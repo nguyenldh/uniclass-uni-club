@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng dẫn cài đặt CMS - Săn Boss | UniClub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e53935 0%, #ff6f00 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "🔥";
+            font-size: 4em;
+            position: absolute;
+            top: 10px;
+            left: 30px;
+            opacity: 0.2;
+        }
+
+        .header::after {
+            content: "🐉";
+            font-size: 4em;
+            position: absolute;
+            bottom: 10px;
+            right: 30px;
+            opacity: 0.2;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #e53935;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #e53935;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h3 {
+            color: #0f3460;
+            font-size: 1.3em;
+            margin: 25px 0 12px;
+        }
+
+        .section h4 {
+            color: #ff6f00;
+            font-size: 1.1em;
+            margin: 18px 0 8px;
+        }
+
+        .section p {
+            line-height: 1.8;
+            margin-bottom: 12px;
+            color: #555;
+        }
+
+        .section ul, .section ol {
+            margin: 10px 0 15px 25px;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .section li {
+            margin-bottom: 6px;
+        }
+
+        /* Steps */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .step {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            background: #fff8f0;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #ff6f00;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #e53935 0%, #ff6f00 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: #333;
+            margin: 0 0 5px;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #666;
+        }
+
+        /* Highlight Boxes */
+        .highlight-box {
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border: 2px solid #ff9800;
+        }
+
+        .highlight-box.info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #2196f3;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 2px solid #4caf50;
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border: 2px solid #f44336;
+        }
+
+        .highlight-box h4 {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .highlight-box.warning h4 { color: #e65100; }
+        .highlight-box.info h4 { color: #1565c0; }
+        .highlight-box.success h4 { color: #2e7d32; }
+        .highlight-box.danger h4 { color: #c62828; }
+
+        /* Tables */
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.95em;
+        }
+
+        .config-table th {
+            background: linear-gradient(135deg, #e53935 0%, #ff6f00 100%);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .config-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .config-table tr:hover {
+            background: #fff8f0;
+        }
+
+        .config-table code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #e53935;
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 20px 0;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: #fff8f0;
+            border-radius: 10px;
+            border-left: 4px solid #ff6f00;
+            position: relative;
+        }
+
+        .flow-step .flow-icon {
+            font-size: 1.8em;
+            flex-shrink: 0;
+        }
+
+        .flow-step .flow-text h4 {
+            color: #333;
+            margin: 0 0 3px;
+        }
+
+        .flow-step .flow-text p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            font-size: 1.5em;
+            color: #ff6f00;
+            padding: 5px 0;
+        }
+
+        /* CMS Menu Preview */
+        .cms-menu {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            color: white;
+        }
+
+        .cms-menu h4 {
+            color: #ff6f00;
+            margin-bottom: 12px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            color: #ccc;
+            font-size: 0.95em;
+        }
+
+        .menu-item.active {
+            background: rgba(229, 57, 53, 0.2);
+            color: white;
+        }
+
+        .menu-item .menu-icon {
+            font-size: 1.1em;
+        }
+
+        .menu-group {
+            margin-bottom: 12px;
+        }
+
+        .menu-group-title {
+            font-weight: bold;
+            color: #ff6f00;
+            padding: 4px 12px;
+            font-size: 0.95em;
+        }
+
+        /* Boss State Preview */
+        .boss-states {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .boss-state-card {
+            text-align: center;
+            padding: 20px 15px;
+            border-radius: 12px;
+            border: 2px solid #eee;
+        }
+
+        .boss-state-card.normal {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-color: #4caf50;
+        }
+
+        .boss-state-card.injured {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border-color: #ff9800;
+        }
+
+        .boss-state-card.rage {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-color: #f44336;
+        }
+
+        .boss-state-card .state-icon {
+            font-size: 2.5em;
+            margin-bottom: 8px;
+        }
+
+        .boss-state-card .state-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .boss-state-card .state-range {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        /* Scoring Formula */
+        .formula-box {
+            background: #1a1a2e;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .formula-box .formula {
+            font-size: 1.2em;
+            font-family: 'Courier New', monospace;
+            color: #ff6f00;
+            margin: 10px 0;
+        }
+
+        .formula-box .formula-desc {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        /* FAQ */
+        .faq-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ff6f00;
+        }
+
+        .faq-item .faq-q {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .faq-item .faq-a {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .boss-states {
+                grid-template-columns: 1fr;
+            }
+
+            .step {
+                flex-direction: column;
+            }
+
+            .flow-step {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Hướng dẫn CMS - Săn Boss</h1>
+            <p>Cài đặt và quản lý game Săn Boss trên hệ thống UniClub</p>
+        </div>
+
+        <div class="content">
+            <!-- ==================== TỔNG QUAN ==================== -->
+            <div class="section">
+                <h2><span class="icon">📖</span> Tổng quan</h2>
+                <p>
+                    <strong>Săn Boss</strong> là game hợp tác hàng tuần, trong đó học sinh cùng nhau trả lời câu hỏi
+                    để đánh bại Boss. Mỗi tuần, một Boss Instance được tạo cho từng khối lớp. Học sinh trả lời
+                    câu hỏi hàng ngày, tích lũy điểm và góp phần giảm HP của Boss.
+                </p>
+                <p>
+                    CMS (Content Management System) cho phép quản trị viên:
+                </p>
+                <ul>
+                    <li><strong>Cấu hình mặc định</strong> — Thiết lập thông số chung cho tất cả các tuần</li>
+                    <li><strong>Cấu hình theo tuần</strong> — Ghi đè cấu hình cho từng tuần × khối cụ thể</li>
+                    <li><strong>Ngân hàng câu hỏi</strong> — CRUD + Import/Export Excel</li>
+                    <li><strong>Theo dõi</strong> — Xem trạng thái Boss, BXH, và danh hiệu</li>
+                </ul>
+            </div>
+
+            <!-- ==================== MENU CMS ==================== -->
+            <div class="section">
+                <h2><span class="icon">🧭</span> Điều hướng CMS</h2>
+                <p>Trong sidebar CMS, mục <strong>🔥 Săn Boss</strong> gồm 4 trang:</p>
+
+                <div class="cms-menu">
+                    <div class="menu-group">
+                        <div class="menu-group-title">🔥 Săn Boss</div>
+                        <div class="menu-item active">
+                            <span class="menu-icon">⚙️</span> Cấu hình mặc định
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📅</span> Cấu hình tuần
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📝</span> Ngân hàng câu hỏi
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📊</span> Theo dõi
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 1: CẤU HÌNH MẶC ĐỊNH ==================== -->
+            <div class="section">
+                <h2><span class="icon">⚙️</span> Bước 1: Cấu hình mặc định</h2>
+                <p>
+                    Vào <strong>🔥 Săn Boss → Cấu hình mặc định</strong>. Đây là template áp dụng cho
+                    mọi tuần mới, trừ khi bị ghi đè bởi Weekly Config.
+                </p>
+
+                <h3>Các thông số cấu hình</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Trường</th>
+                            <th>Mô tả</th>
+                            <th>Mặc định</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>bossName</code></td>
+                            <td>Tên Boss hiển thị trong tuần</td>
+                            <td>Hắc Long Tri Thức</td>
+                        </tr>
+                        <tr>
+                            <td><code>hpMax</code></td>
+                            <td>Tổng HP của Boss</td>
+                            <td>50,000</td>
+                        </tr>
+                        <tr>
+                            <td><code>questionsPerDay</code></td>
+                            <td>Số câu hỏi mỗi ngày cho 1 học sinh</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td><code>questionsPerWeek</code></td>
+                            <td>Tổng số câu hỏi trong tuần (hiển thị "x/N" trên thẻ xếp hạng)</td>
+                            <td>35</td>
+                        </tr>
+                        <tr>
+                            <td><code>basePoint</code></td>
+                            <td>Điểm cơ bản cho mỗi câu trả lời đúng</td>
+                            <td>10</td>
+                        </tr>
+                        <tr>
+                            <td><code>maxSpeedBonus</code></td>
+                            <td>Điểm thưởng tốc độ tối đa (trả lời nhanh = nhiều điểm hơn)</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td><code>tMaxSec</code></td>
+                            <td>Thời gian tối đa cho 1 câu hỏi (giây)</td>
+                            <td>60</td>
+                        </tr>
+                        <tr>
+                            <td><code>weeklyFrameImageUrl</code></td>
+                            <td>URL khung avatar "Dũng sĩ diệt Boss" cho Top 10</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Trạng thái Boss theo % HP</h3>
+                <p>
+                    Mỗi trạng thái Boss được xác định bởi khoảng % HP còn lại. Khi HP giảm,
+                    hình ảnh Boss thay đổi để thể hiện mức độ tổn thương.
+                </p>
+
+                <div class="boss-states">
+                    <div class="boss-state-card normal">
+                        <div class="state-icon">🐉</div>
+                        <div class="state-name">Bình thường</div>
+                        <div class="state-range">71% — 100% HP</div>
+                    </div>
+                    <div class="boss-state-card injured">
+                        <div class="state-icon">🤕</div>
+                        <div class="state-name">Bị thương</div>
+                        <div class="state-range">41% — 70% HP</div>
+                    </div>
+                    <div class="boss-state-card rage">
+                        <div class="state-icon">😡</div>
+                        <div class="state-name">Phẫn nộ</div>
+                        <div class="state-range">0% — 40% HP</div>
+                    </div>
+                </div>
+
+                <p>
+                    Mỗi trạng thái gồm 3 trường: <code>minPercent</code>, <code>maxPercent</code>, và <code>img</code> (URL ảnh).
+                    Bạn có thể thêm/xóa trạng thái trong bảng cấu hình.
+                </p>
+
+                <div class="highlight-box info">
+                    <h4>ℹ️ Lưu ý</h4>
+                    <p>
+                        Cấu hình mặc định chỉ là <strong>template</strong>. Khi khởi tạo tuần mới,
+                        hệ thống sẽ <strong>merge</strong> (ghi đè) các trường từ Weekly Config lên template này.
+                        Nếu Weekly Config không ghi đè trường nào, giá trị mặc định sẽ được sử dụng.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 2: NGÂN HÀNG CÂU HỎI ==================== -->
+            <div class="section">
+                <h2><span class="icon">📝</span> Bước 2: Ngân hàng câu hỏi</h2>
+                <p>
+                    Vào <strong>🔥 Săn Boss → Ngân hàng câu hỏi</strong>. Quản lý kho câu hỏi
+                    dùng để tạo Question Set hàng tuần.
+                </p>
+
+                <h3>Các trường của câu hỏi</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Trường</th>
+                            <th>Kiểu</th>
+                            <th>Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>grade</code></td>
+                            <td>Number</td>
+                            <td>Khối lớp (3–12)</td>
+                        </tr>
+                        <tr>
+                            <td><code>content</code></td>
+                            <td>String</td>
+                            <td>Nội dung câu hỏi</td>
+                        </tr>
+                        <tr>
+                            <td><code>imageUrl</code></td>
+                            <td>String?</td>
+                            <td>URL ảnh minh họa (tùy chọn)</td>
+                        </tr>
+                        <tr>
+                            <td><code>options</code></td>
+                            <td>[String × 4]</td>
+                            <td>4 đáp án A, B, C, D</td>
+                        </tr>
+                        <tr>
+                            <td><code>correctIndex</code></td>
+                            <td>Number</td>
+                            <td>Index đáp án đúng (0=A, 1=B, 2=C, 3=D)</td>
+                        </tr>
+                        <tr>
+                            <td><code>isActive</code></td>
+                            <td>Boolean</td>
+                            <td>Câu hỏi có đang kích hoạt không</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Thêm câu hỏi thủ công</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Nhấn nút "Thêm câu hỏi"</h4>
+                            <p>Mở modal tạo câu hỏi mới.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Điền thông tin</h4>
+                            <p>Chọn khối, nhập nội dung, 4 đáp án, chọn đáp án đúng.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Nhấn "Tạo"</h4>
+                            <p>Câu hỏi được lưu vào ngân hàng.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Import từ Excel</h3>
+                <div class="highlight-box info">
+                    <h4>📥 Import hàng loạt từ file .xlsx</h4>
+                    <p>
+                        Nhấn nút <strong>"Import Excel"</strong> để tải file lên. File Excel cần có các cột:
+                    </p>
+                    <p>
+                        <code>id</code>, <code>grade</code>, <code>content</code>, <code>imageUrl</code>,
+                        <code>optionA</code>, <code>optionB</code>, <code>optionC</code>, <code>optionD</code>,
+                        <code>correctIndex</code>, <code>isActive</code>
+                    </p>
+                    <ul>
+                        <li>Nếu <code>id</code> đã tồn tại → cập nhật (upsert)</li>
+                        <li>Nếu <code>id</code> trống hoặc chưa tồn tại → tạo mới</li>
+                    </ul>
+                </div>
+
+                <h3>Export ra Excel</h3>
+                <p>
+                    Nhấn nút <strong>"Export Excel"</strong> để tải toàn bộ câu hỏi (theo bộ lọc hiện tại)
+                    về file <code>.xlsx</code>.
+                </p>
+
+                <h3>Lọc và tìm kiếm</h3>
+                <ul>
+                    <li><strong>Lọc theo khối</strong> — Chọn khối từ dropdown</li>
+                    <li><strong>Lọc theo trạng thái</strong> — Kích hoạt / Vô hiệu hóa</li>
+                    <li><strong>Tìm kiếm</strong> — Nhập từ khóa trong nội dung câu hỏi</li>
+                </ul>
+
+                <div class="highlight-box warning">
+                    <h4>⚠️ Lưu ý quan trọng</h4>
+                    <ul>
+                        <li>Chỉ câu hỏi có <code>isActive = true</code> mới được dùng khi auto-generate Question Set.</li>
+                        <li>Hãy đảm bảo mỗi khối có đủ số câu hỏi ≥ <code>questionsPerWeek</code> (mặc định 35) để tránh lặp câu.</li>
+                        <li>Nên import trước khi khởi tạo tuần mới.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 3: CẤU HÌNH TUẦN ==================== -->
+            <div class="section">
+                <h2><span class="icon">📅</span> Bước 3: Cấu hình tuần & Vòng đời</h2>
+                <p>
+                    Vào <strong>🔥 Săn Boss → Cấu hình tuần</strong>. Đây là trang trung tâm quản lý
+                    vòng đời hàng tuần của Săn Boss.
+                </p>
+
+                <h3>3.1 Chọn tuần</h3>
+                <p>
+                    Sử dụng dropdown <strong>"Chọn tuần"</strong> ở đầu trang để chọn tuần cần quản lý.
+                    Tuần được hiển thị theo định dạng <code>YYYY-Www</code> (ISO week).
+                </p>
+
+                <h3>3.2 Khởi tạo tuần mới (Init Week)</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Nhấn nút "Khởi tạo tuần mới"</h4>
+                            <p>Mở modal chọn tuần và khối.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Chọn tuần (weekKey)</h4>
+                            <p>Ví dụ: <code>2026-W23</code>. Chọn tuần tương lai hoặc hiện tại.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Chọn khối</h4>
+                            <p>Mặc định: khối 3–9. Có thể thêm/bớt khối.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Xác nhận</h4>
+                            <p>Hệ thống tạo BossInstance + tự động generate 7 Question Set (mỗi ngày 1 set) cho từng khối.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="highlight-box danger">
+                    <h4>🚨 Cảnh báo</h4>
+                    <p>
+                        <strong>Không thể khởi tạo lại tuần đã tồn tại!</strong> Nếu cần tạo lại, phải xóa dữ liệu
+                        trong database trước. Luôn kiểm tra kỹ tuần trước khi nhấn xác nhận.
+                    </p>
+                </div>
+
+                <h3>3.3 Ghi đè cấu hình theo khối (Weekly Override)</h3>
+                <p>
+                    Mỗi khối trong tuần có thể ghi đè các trường từ cấu hình mặc định. Chỉnh sửa bằng cách:
+                </p>
+                <ul>
+                    <li>Nhấn nút <strong>"Sửa"</strong> cạnh khối muốn ghi đè</li>
+                    <li>Bật/toggle các trường muốn ghi đè</li>
+                    <li>Nhấn <strong>"Lưu"</strong></li>
+                </ul>
+                <p>
+                    Các trường có thể ghi đè: <code>hpMax</code>, <code>questionsPerDay</code>,
+                    <code>questionsPerWeek</code>, <code>basePoint</code>, <code>maxSpeedBonus</code>,
+                    <code>tMaxSec</code>, <code>bossName</code>, <code>bossStates</code>.
+                </p>
+
+                <div class="highlight-box info">
+                    <h4>💡 Mẹo</h4>
+                    <p>
+                        Ví dụ: Khối 3 cần ít câu hơn → bật toggle <code>questionsPerDay</code> và đặt = 3
+                        thay vì 5 mặc định. Các trường không bật toggle sẽ kế thừa từ cấu hình mặc định.
+                    </p>
+                </div>
+
+                <h3>3.4 Quản lý Question Set</h3>
+                <p>
+                    Trong bảng cấu hình tuần, nhấn nút <strong>"Câu hỏi"</strong> cạnh khối để xem và quản lý
+                    7 Question Set hàng ngày. Bạn có thể:
+                </p>
+                <ul>
+                    <li><strong>Xem</strong> danh sách câu hỏi trong mỗi ngày</li>
+                    <li><strong>Swap</strong> — Thay thế 1 câu hỏi bằng câu hỏi khác từ ngân hàng</li>
+                    <li><strong>Force regenerate</strong> — Tạo lại toàn bộ 7 ngày (cẩn thận: xóa câu hỏi cũ)</li>
+                </ul>
+
+                <h3>3.5 Đóng tuần (Close Week)</h3>
+                <p>
+                    Khi tuần kết thúc, nhấn nút <strong>"Đóng tuần"</strong> để:
+                </p>
+                <ul>
+                    <li>Tạo <strong>WeeklyHonor</strong> cho Top N học sinh mỗi khối</li>
+                    <li>Đổi trạng thái BossInstance sang <code>CLOSED</code></li>
+                    <li>Học sinh không thể tiếp tục chơi tuần đó nữa</li>
+                </ul>
+
+                <div class="highlight-box warning">
+                    <h4>⚠️ Chỉ đóng tuần khi chắc chắn!</h4>
+                    <p>
+                        Hành động đóng tuần <strong>kh thể hoàn tác</strong>. Đảm bảo tất cả học sinh đã
+                        hoàn thành lượt chơi trước khi đóng.
+                    </p>
+                </div>
+
+                <h3>3.6 Hết hạn danh hiệu (Expire Honors)</h3>
+                <p>
+                    Khung avatar "Dũng sĩ diệt Boss" có hiệu lực 7 ngày. Nhấn nút
+                    <strong>"Hết hạn honors"</strong> để thu hồi khung avatar đã hết hạn.
+                </p>
+            </div>
+
+            <!-- ==================== VÒNG ĐỜI CHI TIẾT ==================== -->
+            <div class="section">
+                <h2><span class="icon">🔄</span> Vòng đời Săn Boss</h2>
+                <p>Quy trình vận hành hàng tuần từ góc nhìn CMS:</p>
+
+                <div class="flow-container">
+                    <div class="flow-step">
+                        <div class="flow-icon">⚙️</div>
+                        <div class="flow-text">
+                            <h4>1. Cấu hình mặc định</h4>
+                            <p>Thiết lập template chung (HP, điểm, câu hỏi/ngày, tên Boss, trạng thái ảnh)</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">📝</div>
+                        <div class="flow-text">
+                            <h4>2. Chuẩn bị ngân hàng câu hỏi</h4>
+                            <p>Thêm/import câu hỏi cho từng khối. Đảm bảo đủ số lượng.</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">📅</div>
+                        <div class="flow-text">
+                            <h4>3. Khởi tạo tuần mới</h4>
+                            <p>Chọn tuần + khối → Tạo BossInstance + 7 Question Set tự động</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">🔧</div>
+                        <div class="flow-text">
+                            <h4>4. Tùy chỉnh (tuỳ chọn)</h4>
+                            <p>Ghi đè cấu hình cho khối cụ thể, swap câu hỏi nếu cần</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">🎮</div>
+                        <div class="flow-text">
+                            <h4>5. Học sinh chơi</h4>
+                            <p>Học sinh trả lời câu hỏi, tích điểm, giảm HP Boss</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">🏆</div>
+                        <div class="flow-text">
+                            <h4>6. Đóng tuần</h4>
+                            <p>Chốt BXH, tạo danh hiệu cho Top 10 mỗi khối</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">⏰</div>
+                        <div class="flow-text">
+                            <h4>7. Hết hạn honors</h4>
+                            <p>Thu hồi khung avatar sau 7 ngày</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 4: THEO DÕI ==================== -->
+            <div class="section">
+                <h2><span class="icon">📊</span> Bước 4: Theo dõi (Monitor)</h2>
+                <p>
+                    Vào <strong>🔥 Săn Boss → Theo dõi</strong>. Trang này gồm 3 tab:
+                </p>
+
+                <h3>Tab "Instance"</h3>
+                <p>
+                    Hiển thị danh sách BossInstance theo tuần. Mỗi instance cho biết:
+                </p>
+                <ul>
+                    <li><strong>Khối</strong> — Grade level</li>
+                    <li><strong>Tên Boss</strong> — Tên hiển thị</li>
+                    <li><strong>HP</strong> — Tổng HP ban đầu</li>
+                    <li><strong>Tiến độ</strong> — % HP đã bị giảm (thanh progress)</li>
+                    <li><strong>Trạng thái</strong> — ACTIVE / CLOSED / DEFEATED</li>
+                </ul>
+
+                <h3>Tab "Bảng xếp hạng"</h3>
+                <p>
+                    Xem BXH học sinh theo tuần × khối. Xếp hạng dựa trên:
+                </p>
+                <ol>
+                    <li><strong>Số câu đúng</strong> (<code>correctCountWeek</code>) — Giảm dần</li>
+                    <li><strong>Tổng thời gian đúng</strong> (<code>totalCorrectTimeSec</code>) — Tăng dần (nhanh hơn = xếp trên)</li>
+                    <li><strong>Thời gian đạt</strong> (<code>lastAchievedAt</code>) — Sớm hơn = xếp trên</li>
+                </ol>
+
+                <h3>Tab "Danh hiệu"</h3>
+                <p>
+                    Xem danh sách WeeklyHonor — Top 10 mỗi khối nhận khung avatar
+                    "Dũng sĩ diệt Boss" có hiệu lực 7 ngày.
+                </p>
+            </div>
+
+            <!-- ==================== CÔNG THỨC TÍNH ĐIỂM ==================== -->
+            <div class="section">
+                <h2><span class="icon">🧮</span> Công thức tính điểm</h2>
+                <p>Mỗi câu trả lời đúng, học sinh nhận điểm:</p>
+
+                <div class="formula-box">
+                    <div class="formula">
+                        Điểm = basePoint + maxSpeedBonus × (1 − responseTimeSec / tMaxSec)
+                    </div>
+                    <div class="formula-desc">
+                        <code>responseTimeSec</code> = thời gian trả lời (tính từ lúc hiện câu hỏi)<br>
+                        <code>tMaxSec</code> = thời gian tối đa cho 1 câu (mặc định 60s)<br>
+                        Trả lời càng nhanh → bonus càng cao!
+                    </div>
+                </div>
+
+                <h4>Ví dụ</h4>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Thời gian trả lời</th>
+                            <th>Speed Bonus</th>
+                            <th>Tổng điểm (basePoint=10, maxSpeedBonus=5)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0 giây (tức thì)</td>
+                            <td>+5</td>
+                            <td><strong>15 điểm</strong></td>
+                        </tr>
+                        <tr>
+                            <td>30 giây</td>
+                            <td>+2.5</td>
+                            <td><strong>12.5 điểm</strong></td>
+                        </tr>
+                        <tr>
+                            <td>60 giây (hết giờ)</td>
+                            <td>+0</td>
+                            <td><strong>10 điểm</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box info">
+                    <h4>💡 Tiến độ Boss</h4>
+                    <p>
+                        <code>progressPercent = min(100, totalPointsEarned / hpMax × 100)</code><br>
+                        Khi progress đạt 100% → Boss bị đánh bại!
+                    </p>
+                </div>
+            </div>
+
+            <!-- ==================== API ENDPOINTS ==================== -->
+            <div class="section">
+                <h2><span class="icon">🔌</span> API Endpoints (Tham khảo)</h2>
+                <p>CMS gọi các API sau thông qua service layer:</p>
+
+                <h3>Cấu hình mặc định</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/admin/boss-battle/config</code></td>
+                            <td>Lấy cấu hình mặc định</td>
+                        </tr>
+                        <tr>
+                            <td>PUT</td>
+                            <td><code>/api/admin/boss-battle/config</code></td>
+                            <td>Cập nhật cấu hình mặc định</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Câu hỏi</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/admin/boss-battle/questions</code></td>
+                            <td>Danh sách câu hỏi (filter, search, paginate)</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/admin/boss-battle/questions</code></td>
+                            <td>Tạo câu hỏi mới</td>
+                        </tr>
+                        <tr>
+                            <td>PUT</td>
+                            <td><code>/api/admin/boss-battle/questions/:id</code></td>
+                            <td>Cập nhật câu hỏi</td>
+                        </tr>
+                        <tr>
+                            <td>DELETE</td>
+                            <td><code>/api/admin/boss-battle/questions/:id</code></td>
+                            <td>Xóa câu hỏi</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/admin/boss-battle/questions/bulk-upsert</code></td>
+                            <td>Bulk upsert (import Excel)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Vòng đời tuần</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/admin/boss-battle/cycle/init-week</code></td>
+                            <td>Khởi tạo tuần mới</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/admin/boss-battle/cycle/close-week</code></td>
+                            <td>Đóng tuần (chốt BXH)</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/admin/boss-battle/cycle/expire-honors</code></td>
+                            <td>Thu hồi honors hết hạn</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Weekly Config</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/admin/boss-battle/weekly-config</code></td>
+                            <td>Danh sách weekly configs cho tuần</td>
+                        </tr>
+                        <tr>
+                            <td>PUT</td>
+                            <td><code>/api/admin/boss-battle/weekly-config/:weekKey/:gradeLevel</code></td>
+                            <td>Upsert override cho khối</td>
+                        </tr>
+                        <tr>
+                            <td>DELETE</td>
+                            <td><code>/api/admin/boss-battle/weekly-config/:weekKey/:gradeLevel</code></td>
+                            <td>Xóa override (revert về mặc định)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Question Sets</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/admin/boss-battle/question-sets</code></td>
+                            <td>Danh sách Question Set cho tuần × khối</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/admin/boss-battle/question-sets/auto-generate</code></td>
+                            <td>Tạo lại 7 Question Set</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/admin/boss-battle/question-sets/:setId/swap</code></td>
+                            <td>Thay thế 1 câu hỏi trong set</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Monitor</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/admin/boss-battle/instances</code></td>
+                            <td>Danh sách BossInstance</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/admin/boss-battle/leaderboard</code></td>
+                            <td>Bảng xếp hạng</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/admin/boss-battle/honors</code></td>
+                            <td>Danh sách danh hiệu</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ==================== REDIS & CACHING ==================== -->
+            <div class="section">
+                <h2><span class="icon">⚡</span> Redis & Caching</h2>
+                <p>
+                    Backend sử dụng Redis để cache dữ liệu và broadcast real-time qua Socket.IO.
+                    Dưới đây là các key pattern quan trọng:
+                </p>
+
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Key Pattern</th>
+                            <th>TTL</th>
+                            <th>Mục đích</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>boss-battle:config</code></td>
+                            <td>300s</td>
+                            <td>Cache cấu hình mặc định</td>
+                        </tr>
+                        <tr>
+                            <td><code>boss-battle:instance:{weekKey}:{grade}</code></td>
+                            <td>60s</td>
+                            <td>Cache BossInstance</td>
+                        </tr>
+                        <tr>
+                            <td><code>boss-battle:leaderboard:{weekKey}:{grade}</code></td>
+                            <td>30s</td>
+                            <td>Cache BXH</td>
+                        </tr>
+                        <tr>
+                            <td><code>boss-battle:attempt:{attemptId}:question:{questionId}</code></td>
+                            <td>24h</td>
+                            <td>Timestamp bắt đầu câu hỏi (anti-cheat)</td>
+                        </tr>
+                        <tr>
+                            <td><code>boss-battle:lock:init:{weekKey}</code></td>
+                            <td>60s</td>
+                            <td>Lock khởi tạo tuần</td>
+                        </tr>
+                        <tr>
+                            <td><code>boss-battle:lock:close:{weekKey}</code></td>
+                            <td>60s</td>
+                            <td>Lock đóng tuần</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box info">
+                    <h4>💡 Mẹo</h4>
+                    <p>
+                        Khi cập nhật cấu hình, backend tự động invalidate cache Redis.
+                        Không cần xóa cache thủ công.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ==================== FAQ ==================== -->
+            <div class="section">
+                <h2><span class="icon">❓</span> Câu hỏi thường gặp</h2>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Cần bao nhiêu câu hỏi tối thiểu cho mỗi khối?</div>
+                    <div class="faq-a">
+                        Ít nhất bằng <code>questionsPerWeek</code> (mặc định 35). Khuyến nghị nên có gấp đôi
+                        (70+) để hệ thống random không bị lặp câu trong tuần.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Có thể khởi tạo lại tuần đã tồn tại không?</div>
+                    <div class="faq-a">
+                        Không. Nếu cần tạo lại, phải xóa dữ liệu BossInstance và QuestionSet trong database trước.
+                        Hãy kiểm tra kỹ trước khi nhấn "Khởi tạo tuần mới".
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Thay đổi cấu hình mặc định có ảnh hưởng tuần đang chạy không?</div>
+                    <div class="faq-a">
+                        Không ngay lập tức. Cấu hình mặc định chỉ ảnh hưởng khi <strong>khởi tạo tuần mới</strong>.
+                        Tuần đang chạy dùng snapshot đã tạo. Để thay đổi tuần đang chạy, hãy dùng
+                        <strong>Weekly Override</strong>.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Học sinh có thể chơi sau khi tuần đã đóng?</div>
+                    <div class="faq-a">
+                        Không. Khi tuần đóng (CLOSED), học sinh không thể bắt đầu lượt chơi mới.
+                        BossInstance chuyển sang trạng thái CLOSED.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Khung avatar "Dũng sĩ diệt Boss" tồn tại bao lâu?</div>
+                    <div class="faq-a">
+                        7 ngày kể từ khi nhận. Sau 7 ngày, chạy <strong>"Hết hạn honors"</strong>
+                        để thu hồi khung avatar.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Top bao nhiêu học sinh nhận danh hiệu?</div>
+                    <div class="faq-a">
+                        Mặc định Top 10 mỗi khối. Có thể thay đổi tham số <code>topN</code> khi đóng tuần.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Làm sao đổi câu hỏi trong Question Set đã tạo?</div>
+                    <div class="faq-a">
+                        Vào <strong>Cấu hình tuần</strong> → nhấn nút <strong>"Câu hỏi"</strong> cạnh khối
+                        → chọn ngày → nhấn <strong>"Swap"</strong> để thay thế 1 câu hỏi.
+                        Hoặc nhấn <strong>"Force regenerate"</strong> để tạo lại toàn bộ 7 ngày.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== CHECKLIST ==================== -->
+            <div class="section">
+                <h2><span class="icon">✅</span> Checklist vận hành hàng tuần</h2>
+                <p>Danh sách công việc cần làm mỗi tuần:</p>
+
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Kiểm tra ngân hàng câu hỏi</h4>
+                            <p>Đảm bảo mỗi khối có đủ câu hỏi (≥ 35 câu/khối, khuyến nghị 70+).</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Cập nhật cấu hình mặc định (nếu cần)</h4>
+                            <p>Thay đổi HP, điểm, tên Boss, trạng thái ảnh...</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Khởi tạo tuần mới</h4>
+                            <p>Chọn tuần + khối → nhấn "Khởi tạo tuần mới".</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Kiểm tra Question Set</h4>
+                            <p>Xem lại 7 ngày câu hỏi, swap nếu cần.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h4>Ghi đè cấu hình (tuỳ chọn)</h4>
+                            <p>Điều chỉnh cho khối cụ thể nếu cần.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">6</div>
+                        <div class="step-content">
+                            <h4>Theo dõi trong tuần</h4>
+                            <p>Kiểm tra tiến độ Boss, BXH trên trang Theo dõi.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">7</div>
+                        <div class="step-content">
+                            <h4>Đóng tuần khi kết thúc</h4>
+                            <p>Nhấn "Đóng tuần" → chốt BXH, tạo danh hiệu.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">8</div>
+                        <div class="step-content">
+                            <h4>Thu hồi honors hết hạn</h4>
+                            <p>Sau 7 ngày, nhấn "Hết hạn honors" để thu hồi khung avatar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2024 UniClub - Hướng dẫn CMS Săn Boss 🔥🐉</p>
+        </div>
+    </div>
+</body>
+</html>

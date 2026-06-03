@@ -1,0 +1,583 @@
+/* ============================================================
+   Game so tài · Mini-games (Caro + Memory)
+   Đính kèm sau index.css (đã có tokens + game UI)
+   ============================================================ */
+
+/* ============================================================
+   CARO — board, cells, X/O marks, winning line
+   ============================================================ */
+.caro-board{
+  display: inline-grid;
+  gap: 4px;
+  padding: 14px;
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(110,63,23,0) 0 32px, rgba(110,63,23,.10) 32px 34px),
+    linear-gradient(180deg, #f3d9a6 0%, #ecc88a 50%, #d9a35b 100%);
+  border: 4px solid var(--g-wood-4);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.4),
+    0 10px 0 rgba(110,63,23,.4);
+  position: relative;
+}
+.caro-board[data-size="3"]  { --cell: 92px; }
+.caro-board[data-size="5"]  { --cell: 64px; }
+.caro-board[data-size="10"] { --cell: 44px; }
+.caro-board[data-size="15"] { --cell: 32px; }
+.caro-board[data-size="20"] { --cell: 26px; }
+
+.caro-cell{
+  width: var(--cell, 56px);
+  height: var(--cell, 56px);
+  background: linear-gradient(180deg, #fff7e1, #f3d9a6);
+  border: 2px solid var(--g-wood-3);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition: transform .12s ease, box-shadow .12s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.6),
+    inset 0 -3px 0 rgba(110,63,23,.12);
+}
+.caro-cell:hover:not(.placed):not(.disabled){
+  background: linear-gradient(180deg, #fff, #ffe9b8);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -3px 0 rgba(110,63,23,.12),
+    0 3px 0 rgba(110,63,23,.25);
+}
+.caro-cell.placed{ cursor: default; }
+.caro-cell.disabled{ cursor: not-allowed; opacity: .85; }
+.caro-cell.win{
+  /* Một lần pop-in rồi giữ trạng thái glow vàng, KHÔNG pulse vô hạn */
+  background: linear-gradient(180deg, #fff5b0, var(--g-gold));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.8),
+    inset 0 -3px 0 rgba(180,120,30,.18),
+    0 0 0 2px rgba(246,195,68,.85),
+    0 0 16px rgba(246,195,68,.55),
+    0 4px 0 rgba(110,63,23,.3);
+  animation: caro-win-in .45s cubic-bezier(.22,1.4,.36,1) backwards;
+  z-index: 3;
+}
+.caro-cell.win:nth-child(5n+2){ animation-delay: .06s; }
+.caro-cell.win:nth-child(5n+3){ animation-delay: .12s; }
+.caro-cell.win:nth-child(5n+4){ animation-delay: .18s; }
+.caro-cell.win:nth-child(5n)  { animation-delay: .24s; }
+@keyframes caro-win-in{
+  0%   { transform: scale(1);   filter: brightness(1);   }
+  45%  { transform: scale(1.12); filter: brightness(1.25); }
+  100% { transform: scale(1);   filter: brightness(1);   }
+}
+/* Glyph tô vàng-cam khi thắng, viền đậm hơn cho contrast trên nền gold */
+.caro-cell.win .caro-x path{ stroke: #c43a00; filter: drop-shadow(0 2px 0 #8a2700); }
+.caro-cell.win .caro-o circle{ stroke: #1c5b8a; filter: drop-shadow(0 2px 0 #0d3550); }
+.caro-cell .last-pin{
+  position: absolute; top: -8px; right: -6px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--o-500); border: 2px solid var(--g-wood-4);
+  box-shadow: 0 1px 0 rgba(0,0,0,.2);
+}
+
+/* X mark — orange brand, hand-drawn stroke that draws on placement */
+.caro-x, .caro-o{
+  width: 72%; height: 72%;
+  overflow: visible;
+}
+.caro-x path, .caro-o circle{
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.caro-x path{
+  stroke: var(--o-500);
+  stroke-width: 15;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: caro-draw .35s ease-out forwards;
+  filter: drop-shadow(0 2px 0 var(--o-700));
+}
+.caro-x path:nth-child(2){ animation-delay: .15s; }
+.caro-o circle{
+  stroke: var(--info);
+  stroke-width: 15;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: caro-draw .45s ease-out forwards;
+  filter: drop-shadow(0 2px 0 #1c5b8a);
+}
+@keyframes caro-draw{
+  to { stroke-dashoffset: 0; }
+}
+
+/* Winning line — gold tone hợp palette wood, không multiply blend, glow mềm */
+.caro-win-line{
+  position: absolute; inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 2;
+}
+.caro-win-line line{
+  stroke: #f0b21e;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: caro-line .55s cubic-bezier(.4,.0,.2,1) .08s forwards;
+  filter:
+    drop-shadow(0 0 4px rgba(240,178,30,.6))
+    drop-shadow(0 1px 0 rgba(110,63,23,.45));
+  opacity: .92;
+}
+@keyframes caro-line{
+  to { stroke-dashoffset: 0; }
+}
+
+/* ============================================================
+   MEMORY — board, card with 3D flip
+   ============================================================ */
+.memory-board{
+  --mem-gap: 12px;
+  --mem-pad: 20px;
+  --mem-radius: 20px;
+  --mem-card-radius: 14px;
+  --mem-card-border: 3px;
+  --mem-font-min: 32px;
+  --mem-font-max: 72px;
+  --mem-max-width: 560px;
+
+  display: grid;
+  gap: var(--mem-gap);
+  padding: var(--mem-pad);
+  width: 100%;
+  max-width: var(--mem-max-width);
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(110,63,23,0) 0 32px, rgba(110,63,23,.10) 32px 34px),
+    linear-gradient(180deg, #f3d9a6 0%, #ecc88a 50%, #d9a35b 100%);
+  border: 4px solid var(--g-wood-4);
+  border-radius: var(--mem-radius);
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.4),
+    0 10px 0 rgba(110,63,23,.4);
+}
+.memory-board.dense-5{
+  --mem-gap: 9px;
+  --mem-pad: 16px;
+  --mem-card-radius: 11px;
+  --mem-card-border: 2px;
+  --mem-font-min: 26px;
+  --mem-font-max: 52px;
+  --mem-max-width: 640px;
+}
+.memory-board.dense-6{
+  --mem-gap: 7px;
+  --mem-pad: 14px;
+  --mem-card-radius: 9px;
+  --mem-card-border: 2px;
+  --mem-font-min: 22px;
+  --mem-font-max: 44px;
+  --mem-max-width: 720px;
+}
+.memory-board.dense-7{
+  --mem-gap: 6px;
+  --mem-pad: 12px;
+  --mem-card-radius: 8px;
+  --mem-card-border: 2px;
+  --mem-font-min: 18px;
+  --mem-font-max: 36px;
+  --mem-max-width: 800px;
+}
+
+.memory-card-wrap{
+  perspective: 1000px;
+  cursor: pointer;
+  aspect-ratio: 3 / 4;
+  position: relative;
+  container-type: inline-size;
+}
+.memory-card{
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .5s cubic-bezier(.4,.2,.2,1);
+}
+.memory-card-wrap.revealed .memory-card,
+.memory-card-wrap.matched  .memory-card{
+  transform: rotateY(180deg);
+}
+.memory-card-wrap.matched .memory-card{
+  animation: memory-bounce .5s ease-out;
+}
+@keyframes memory-bounce{
+  0%   { transform: rotateY(180deg) scale(1); }
+  50%  { transform: rotateY(180deg) scale(1.08); }
+  100% { transform: rotateY(180deg) scale(1); }
+}
+
+.memory-face{
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: 3px solid var(--g-wood-4);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4),
+    0 4px 0 rgba(110,63,23,.35);
+  /* Opacity fallback for browsers/contexts where backface-visibility fails */
+  transition: opacity .25s linear .2s;
+  border: var(--mem-card-border, 3px) solid var(--g-wood-4);
+  border-radius: var(--mem-card-radius, 14px);
+}
+/* Z-translate to avoid coplanar z-fighting */
+.memory-back{ transform: translateZ(1px); }
+.memory-front{ transform: rotateY(180deg) translateZ(1px); }
+/* Opacity swap: hidden → back visible, revealed/matched → front visible */
+.memory-card-wrap.revealed .memory-back,
+.memory-card-wrap.matched  .memory-back  { opacity: 0; }
+.memory-card-wrap:not(.revealed):not(.matched) .memory-front{ opacity: 0; }
+/* Back face (face-down) — wood-textured with brand logo / star */
+.memory-back{
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(0,0,0,0) 0 18px, rgba(0,0,0,.08) 18px 20px),
+    linear-gradient(180deg, #c98640, #a86c2d 60%, #8a5723);
+}
+.memory-back::before{
+  content: "";
+  position: absolute;
+  inset: max(4px, calc(var(--mem-card-radius, 14px) * .45));     /* ← đổi */
+  border: 2px dashed rgba(255,255,255,.4);
+  border-radius: calc(var(--mem-card-radius, 14px) * .55);        /* ← đổi */
+}
+.memory-back .ornament{
+  position: relative;
+  filter: drop-shadow(0 2px 0 var(--g-wood-4));
+}
+
+/* Front face — flipped 180° (translateZ to avoid z-fighting w/ back) */
+.memory-front{
+  transform: rotateY(180deg) translateZ(1px);
+  background: linear-gradient(180deg, #fff, #fff7e1);
+  font-family: var(--f-game);
+  font-weight: 900;
+  font-size: clamp(var(--mem-font-min, 32px), 9cqw, var(--mem-font-max, 72px));
+  color: var(--g-wood-4);
+  text-shadow: 0 2px 0 rgba(255,255,255,.5);
+  text-align: center;
+  padding: 4px;
+  line-height: 1.05;
+  word-break: break-word;
+  hyphens: auto;
+}
+.memory-front.color{
+  background: var(--c, var(--o-500));
+  border-color: rgba(0,0,0,.25);
+}
+.memory-front img{
+  width: 80%; height: 80%; object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
+}
+
+.memory-card-wrap.matched .memory-front{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4),
+    inset 0 0 0 3px var(--success),
+    0 4px 0 rgba(31,91,53,.4);
+}
+.memory-card-wrap.matched .memory-front::after{
+  content: "";
+  position: absolute; inset: 0;
+  background: rgba(43,182,115,.15);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.memory-card-wrap.matched .memory-checkmark{
+  position: absolute; top: -10px; right: -10px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--success); border: 3px solid #1f5b35;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,.2);
+  z-index: 2;
+}
+
+/* ============================================================
+   GAME HUD — player cards, timer, hint, score
+   ============================================================ */
+.game-hud{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(110,63,23,0) 0 28px, rgba(110,63,23,.08) 28px 30px),
+    linear-gradient(180deg, #f3d9a6 0%, #ecc88a 60%, #d9a35b 100%);
+  border: 4px solid var(--g-wood-4);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.4),
+    0 8px 0 rgba(110,63,23,.4);
+  font-family: var(--f-game);
+  position: relative;
+}
+
+.player-card{
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px 6px 6px;
+  background: linear-gradient(180deg, #fff1d4, var(--g-wood-1));
+  border: 3px solid var(--g-wood-4);
+  border-radius: 999px;
+  box-shadow: 0 4px 0 rgba(110,63,23,.35);
+  transition: all .25s ease;
+  min-width: 0;
+}
+.player-card.active{
+  background: linear-gradient(180deg, #ffeb8a, var(--g-gold));
+  box-shadow:
+    0 4px 0 rgba(110,63,23,.35),
+    0 0 0 4px rgba(246,195,68,.5);
+  animation: player-glow 1.6s ease-in-out infinite;
+}
+@keyframes player-glow{
+  0%, 100% { box-shadow: 0 4px 0 rgba(110,63,23,.35), 0 0 0 4px rgba(246,195,68,.5);  }
+  50%      { box-shadow: 0 4px 0 rgba(110,63,23,.35), 0 0 0 8px rgba(246,195,68,.35); }
+}
+.player-card .pc-av{
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 2px solid var(--g-wood-4);
+  background: radial-gradient(circle at 30% 30%, #fff, var(--o-300));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 15px; color: var(--g-wood-4);
+  flex-shrink: 0;
+}
+.player-card .pc-meta{ display: flex; flex-direction: column; min-width: 0; }
+.player-card .pc-name{
+  font-weight: 800; font-size: 14px; color: var(--g-wood-4);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.15;
+}
+.player-card .pc-stats{
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--g-wood-4);
+  line-height: 1.15;
+}
+.player-card .pc-mark{
+  font-weight: 900; font-size: 14px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--g-wood-4); background: #fff;
+}
+.player-card .pc-mark.x{ color: var(--o-500); }
+.player-card .pc-mark.o{ color: var(--info); }
+
+/* Timer with circular progress */
+.timer{
+  position: relative;
+  width: 70px; height: 70px;
+}
+.timer svg{ width: 100%; height: 100%; transform: rotate(-90deg); }
+.timer .track{ stroke: rgba(110,63,23,.18); fill: none; }
+.timer .fill {
+  stroke: var(--o-500); fill: none;
+  transition: stroke-dashoffset .3s linear, stroke .3s;
+  stroke-linecap: round;
+}
+.timer.warning .fill{ stroke: var(--warning); }
+.timer.danger  .fill{ stroke: var(--danger); animation: timer-pulse .8s ease-in-out infinite; }
+@keyframes timer-pulse{
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+.timer .label{
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-game); font-weight: 900;
+  color: var(--g-wood-4);
+  font-size: 18px;
+}
+
+/* Hint button (cost in stars) */
+.hint-btn{
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px 6px 6px;
+  background: linear-gradient(180deg, #fff1d4, var(--g-wood-1));
+  border: 3px solid var(--g-wood-4);
+  border-radius: 999px;
+  box-shadow: 0 4px 0 rgba(110,63,23,.35);
+  font-family: var(--f-game); font-weight: 800; font-size: 13px;
+  color: var(--g-wood-4);
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.hint-btn:hover:not(:disabled){ filter: brightness(1.04); }
+.hint-btn:active:not(:disabled){
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(110,63,23,.35);
+}
+.hint-btn:disabled{ opacity: .6; cursor: not-allowed; }
+.hint-btn .hint-cost{
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  background: var(--o-500); color: #fff;
+  border-radius: 999px;
+  font-weight: 900;
+  text-shadow: 0 1px 0 var(--o-700);
+}
+
+/* Streak counter */
+.streak-counter{
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--f-game); font-weight: 900; font-size: 13px;
+  color: var(--o-600);
+}
+
+/* Turn indicator inline */
+.turn-indicator{
+  font-family: var(--f-game); font-weight: 800; font-size: 13px;
+  color: var(--g-wood-4);
+  padding: 4px 12px;
+  background: rgba(255,255,255,.5);
+  border-radius: 999px;
+  border: 2px dashed var(--g-wood-3);
+}
+
+/* ============================================================
+   GAME STATE OVERLAY (win / lose / draw / idle)
+   ============================================================ */
+.game-overlay-backdrop{
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(16,20,24,.55);
+  backdrop-filter: blur(4px);
+  padding: 32px;
+  animation: overlay-fade-in .25s ease;
+}
+@keyframes overlay-fade-in{
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.game-overlay{
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 36px 28px 28px;
+  background:
+    radial-gradient(120% 80% at 50% -30%, #fff3cd, var(--g-paper) 60%, #e7cf9f 100%);
+  border: 4px solid var(--g-wood-4);
+  border-radius: 26px;
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.55),
+    inset 0 -10px 0 rgba(110,63,23,.12),
+    0 14px 0 rgba(110,63,23,.4),
+    0 24px 40px rgba(110,63,23,.35);
+  text-align: center;
+  font-family: var(--f-game);
+  max-width: 480px;
+  /* animation removed — was causing render glitches when overlays mount inside cards */
+}
+
+.game-overlay .crown{
+  position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
+  filter: drop-shadow(0 4px 0 var(--g-wood-4));
+}
+.game-overlay h3{
+  font-weight: 900; color: #fff;
+  font-size: 32px;
+  margin: 14px 0 12px;
+  letter-spacing: .02em;
+  line-height: 1.1;
+  text-shadow:
+    -2px 0 0 var(--g-wood-4), 2px 0 0 var(--g-wood-4),
+    0 -2px 0 var(--g-wood-4), 0  2px 0 var(--g-wood-4),
+    -2px -2px 0 var(--g-wood-4), 2px -2px 0 var(--g-wood-4),
+    -2px  2px 0 var(--g-wood-4), 2px  2px 0 var(--g-wood-4),
+    0 4px 0 var(--g-wood-4);
+}
+.game-overlay.win  h3{ /* gold sheen */ }
+.game-overlay.lose h3{ color: #fff; }
+.game-overlay.lose{ background: radial-gradient(120% 80% at 50% -30%, #e8e1d3, #c9bfa9 60%, #a8987b 100%);}
+.game-overlay.draw h3{ color: #fff; }
+.game-overlay.draw{ background: radial-gradient(120% 80% at 50% -30%, #d6e9f6, #bcd8ec 60%, #92b3cc 100%);}
+
+.game-overlay .sub{
+  color: var(--g-wood-4); font-weight: 700; font-size: 14px;
+  margin-bottom: 18px;
+}
+
+.game-overlay .stats{
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+  width: 100%;
+}
+.game-overlay .stat{
+  background: #fff; border: 3px solid var(--g-wood-4); border-radius: 14px;
+  padding: 10px 8px;
+  box-shadow: 0 3px 0 rgba(110,63,23,.35);
+}
+.game-overlay .stat .k{
+  font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-500);
+}
+.game-overlay .stat .v{
+  font-family: var(--f-game); font-weight: 900; font-size: 22px; color: var(--g-wood-4);
+}
+
+.game-overlay .actions{
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+}
+
+/* Confetti sprite (for win state) */
+.game-overlay .confetti{
+  position: absolute; pointer-events: none;
+  inset: 0; overflow: hidden;
+  border-radius: 22px;
+}
+.game-overlay .confetti span{
+  position: absolute;
+  width: 8px; height: 14px;
+  top: -20px;
+  animation: confetti-fall 2.2s linear infinite;
+}
+@keyframes confetti-fall{
+  to { transform: translateY(520px) rotate(540deg); opacity: 0; }
+}
+
+/* ============================================================
+   GAME LAYOUT helper — HUD on top, board below, overlay over
+   ============================================================ */
+.game-frame{
+  position: relative;
+  display: flex; flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+.game-frame .game-body{
+  display: flex; justify-content: center; align-items: center;
+  padding: 16px 0;
+  width: 100%;
+}
+.game-frame .overlay-anchor{
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(16,20,24,.35);
+  border-radius: inherit;
+  z-index: 10;
+  padding: 32px;
+}
+/* Mobile — bóp gap/padding cho mọi mật độ ≥5 cột để không tràn viewport */
+@media (max-width: 480px){
+  .memory-board.dense-5{ --mem-gap: 6px; --mem-pad: 12px; --mem-font-max: 22px; }
+  .memory-board.dense-6{ --mem-gap: 5px; --mem-pad: 10px; --mem-font-max: 18px; }
+  .memory-board.dense-7{ --mem-gap: 4px; --mem-pad: 8px;  --mem-font-max: 15px; }
+}

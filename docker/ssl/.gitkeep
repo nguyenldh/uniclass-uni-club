@@ -1,0 +1,7 @@
+# Placeholder directory for SSL certificates
+# Place your cert.pem and key.pem files here when using HTTPS
+
+# For development, you can generate self-signed certificates:
+# openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#   -keyout key.pem -out cert.pem \
+#   -subj "/C=VN/ST=HCM/L=HCM/O=UniClub/CN=localhost"

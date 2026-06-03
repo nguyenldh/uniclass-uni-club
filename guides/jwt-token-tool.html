@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Token Generator - UniClub Dev Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e8530e 0%, #f37e2c 100%);
+            padding: 24px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #444;
+            font-size: 0.9em;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #e8530e;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e8530e 0%, #f37e2c 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(232, 83, 14, 0.4);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(232, 83, 14, 0.5);
+        }
+
+        .token-output {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .token-output label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #444;
+            font-size: 0.9em;
+        }
+
+        .token-display {
+            word-break: break-all;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            background: #1a1a2e;
+            color: #4ade80;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .copy-btn {
+            margin-top: 8px;
+            padding: 8px 16px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .copy-btn:hover {
+            background: #4b5563;
+        }
+
+        .game-buttons {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .game-buttons h3 {
+            margin-bottom: 12px;
+            color: #444;
+            font-size: 1em;
+        }
+
+        .game-btn-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-game {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-game:hover {
+            transform: translateY(-3px);
+        }
+
+        .btn-game .icon {
+            font-size: 1.5em;
+        }
+
+        .btn-quiz-arena {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-mind-game {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .settings {
+            margin-top: 24px;
+            padding: 16px;
+            background: #fef3c7;
+            border-radius: 8px;
+            border: 2px solid #fcd34d;
+        }
+
+        .settings h4 {
+            margin-bottom: 12px;
+            color: #92400e;
+            font-size: 0.9em;
+        }
+
+        .settings .form-group label {
+            color: #92400e;
+        }
+
+        .settings input {
+            border-color: #fcd34d;
+        }
+
+        .note {
+            margin-top: 16px;
+            padding: 12px;
+            background: #dbeafe;
+            border-radius: 8px;
+            font-size: 0.85em;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 JWT Token Generator</h1>
+            <p>UniClub Development Tool</p>
+        </div>
+
+        <div class="content">
+            <!-- Settings -->
+            <div class="settings">
+                <h4>⚙️ Cấu hình</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>API Base URL</label>
+                        <input type="text" id="apiBaseUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+                    </div>
+                    <div class="form-group">
+                        <label>Frontend URL</label>
+                        <input type="text" id="frontendUrl" value="http://localhost:5173" placeholder="http://localhost:5173">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>JWT Secret (phải khớp với backend)</label>
+                    <input type="text" id="jwtSecret" value="dev-secret-key" placeholder="JWT_SECRET từ backend">
+                </div>
+            </div>
+
+            <!-- User Info -->
+            <div style="margin-top: 24px;">
+                <h3 style="margin-bottom: 12px; color: #444;">👤 Thông tin User</h3>
+                
+                <div class="form-group">
+                    <label>Profile ID *</label>
+                    <input type="text" id="profileId" value="test-user-001" placeholder="Nhập Profile ID">
+                </div>
+
+                <div class="form-group">
+                    <label>Tên hiển thị *</label>
+                    <input type="text" id="userName" value="Người chơi test" placeholder="Nhập tên">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Khối lớp</label>
+                        <select id="grade">
+                            <option value="">-- Chọn khối --</option>
+                            <option value="1">Lớp 1</option>
+                            <option value="2">Lớp 2</option>
+                            <option value="3">Lớp 3</option>
+                            <option value="4">Lớp 4</option>
+                            <option value="5">Lớp 5</option>
+                            <option value="6">Lớp 6</option>
+                            <option value="7">Lớp 7</option>
+                            <option value="8">Lớp 8</option>
+                            <option value="9">Lớp 9</option>
+                            <option value="10" selected>Lớp 10</option>
+                            <option value="11">Lớp 11</option>
+                            <option value="12">Lớp 12</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Hết hạn sau</label>
+                        <select id="expiresIn">
+                            <option value="1h">1 giờ</option>
+                            <option value="1d">1 ngày</option>
+                            <option value="7d" selected>7 ngày</option>
+                            <option value="30d">30 ngày</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Avatar URL (tùy chọn)</label>
+                    <input type="text" id="avatar" value="" placeholder="https://example.com/avatar.jpg">
+                </div>
+
+                <button class="btn btn-primary" onclick="generateToken()">
+                    🔑 Tạo JWT Token
+                </button>
+            </div>
+
+            <!-- Token Output -->
+            <div class="token-output" id="tokenOutput" style="display: none;">
+                <label>JWT Token:</label>
+                <div class="token-display" id="tokenDisplay"></div>
+                <button class="copy-btn" onclick="copyToken()">📋 Copy Token</button>
+            </div>
+
+            <!-- Game Buttons -->
+            <div class="game-buttons">
+                <h3>🎮 Vào chơi game</h3>
+                <div class="game-btn-row">
+                    <button class="btn-game btn-quiz-arena" onclick="openGame('quiz-arena')">
+                        <span class="icon">⚔️</span>
+                        <span>Quiz Arena</span>
+                    </button>
+                    <button class="btn-game btn-mind-game" onclick="openGame('mind-game')">
+                        <span class="icon">🧠</span>
+                        <span>Mind Game</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="note">
+                💡 <strong>Lưu ý:</strong> Token sẽ được tự động thêm vào URL khi vào game. 
+                Đảm bảo JWT_SECRET khớp với cấu hình backend.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script>
+        let currentToken = '';
+
+        // UTF-8 encode then Base64URL encode
+        function base64UrlEncode(str) {
+            // Convert to UTF-8 bytes then to base64
+            const utf8Bytes = new TextEncoder().encode(str);
+            let binary = '';
+            utf8Bytes.forEach(byte => binary += String.fromCharCode(byte));
+            return btoa(binary)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+        }
+
+        // Create JWT using HMAC SHA256
+        function createJWT(payload, secret) {
+            const header = {
+                alg: 'HS256',
+                typ: 'JWT'
+            };
+
+            const encodedHeader = base64UrlEncode(JSON.stringify(header));
+            const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+            
+            const signature = CryptoJS.HmacSHA256(
+                encodedHeader + '.' + encodedPayload, 
+                secret
+            );
+            const encodedSignature = signature.toString(CryptoJS.enc.Base64)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+
+            return encodedHeader + '.' + encodedPayload + '.' + encodedSignature;
+        }
+
+        // Parse expiration string to seconds
+        function parseExpiration(exp) {
+            const match = exp.match(/^(\d+)([hdm])$/);
+            if (!match) return 7 * 24 * 60 * 60; // default 7 days
+            
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            
+            switch (unit) {
+                case 'h': return value * 60 * 60;
+                case 'd': return value * 24 * 60 * 60;
+                case 'm': return value * 30 * 24 * 60 * 60;
+                default: return 7 * 24 * 60 * 60;
+            }
+        }
+
+        function generateToken() {
+            const profileId = document.getElementById('profileId').value.trim();
+            const name = document.getElementById('userName').value.trim();
+            const grade = document.getElementById('grade').value;
+            const avatar = document.getElementById('avatar').value.trim();
+            const expiresIn = document.getElementById('expiresIn').value;
+            const secret = document.getElementById('jwtSecret').value.trim();
+
+            if (!profileId || !name) {
+                alert('Vui lòng nhập Profile ID và Tên!');
+                return;
+            }
+
+            if (!secret) {
+                alert('Vui lòng nhập JWT Secret!');
+                return;
+            }
+
+            const now = Math.floor(Date.now() / 1000);
+            const exp = now + parseExpiration(expiresIn);
+
+            const payload = {
+                profileId: profileId,
+                name: name,
+                iat: now,
+                exp: exp
+            };
+
+            if (grade) {
+                payload.grade = parseInt(grade);
+            }
+
+            if (avatar) {
+                payload.avatar = avatar;
+            }
+
+            try {
+                currentToken = createJWT(payload, secret);
+                
+                document.getElementById('tokenDisplay').textContent = currentToken;
+                document.getElementById('tokenOutput').style.display = 'block';
+            } catch (error) {
+                alert('Lỗi tạo token: ' + error.message);
+            }
+        }
+
+        function copyToken() {
+            if (currentToken) {
+                navigator.clipboard.writeText(currentToken).then(() => {
+                    const btn = event.target;
+                    btn.textContent = '✅ Đã copy!';
+                    setTimeout(() => {
+                        btn.textContent = '📋 Copy Token';
+                    }, 2000);
+                });
+            }
+        }
+
+        function openGame(game) {
+            // Auto-generate token if not exists
+            if (!currentToken) {
+                generateToken();
+            }
+            
+            if (!currentToken) {
+                return; // generateToken failed
+            }
+
+            const frontendUrl = document.getElementById('frontendUrl').value.trim();
+            const gameUrl = `${frontendUrl}/${game}?token=${encodeURIComponent(currentToken)}`;
+            
+            window.open(gameUrl, '_blank');
+        }
+
+        // Auto-generate token on page load for convenience
+        window.onload = function() {
+            // Optional: auto-generate on load
+            // generateToken();
+        };
+    </script>
+</body>
+</html>

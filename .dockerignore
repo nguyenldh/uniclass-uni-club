@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+
+# Dependencies - will be installed in container
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+build
+**/build
+
+# Environment files - should not be in image
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Test
+coverage
+**/.nyc_output
+
+# Documentation (optional - remove if you want docs in image)
+docs
+*.md
+!README.md
+
+# Docker files not needed in context
+docker-compose*.yml
+Dockerfile*
+
+# Development files
+.eslintrc*
+.prettierrc*
+vitest.config.*
+jest.config.*
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp

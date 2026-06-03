@@ -1,0 +1,82 @@
+# UniClub Docker Development Compose
+# Dành cho development - chỉ chạy infrastructure (MongoDB + Redis)
+# Application services chạy local với npm run dev
+#
+# SECURITY NOTE: This config uses weak passwords for local development only.
+# NEVER use these settings in production!
+
+services:
+  mongodb:
+    image: mongo:7.0.14
+    container_name: uniclub-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: uniclub
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine3.20
+    container_name: uniclub-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: MongoDB admin UI
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: uniclub-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_URL: mongodb://root:password@mongodb:27017/
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # Optional: Redis admin UI
+  redis-commander:
+    image: rediscommander/redis-commander:0.8.1
+    container_name: uniclub-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - tools
+
+volumes:
+  mongodb_dev_data:
+  redis_dev_data:
+
+networks:
+  default:
+    name: uniclub-dev-network

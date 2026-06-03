@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng dẫn chơi So Tài - UniClub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #f5576c;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #f5576c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2 .icon {
+            font-size: 1.3em;
+        }
+
+        .section p {
+            line-height: 1.8;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .step {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #f5576c;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #666;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+            border: 2px solid #f5576c;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .highlight-box h3 {
+            color: #f5576c;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .formula {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .tips-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .tips-list li {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background: #f0fff4;
+            border-radius: 8px;
+            border-left: 4px solid #48bb78;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tips-list li::before {
+            content: "💡";
+        }
+
+        .scoring-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .scoring-table th,
+        .scoring-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .scoring-table th {
+            background: #f5576c;
+            color: white;
+        }
+
+        .scoring-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .example {
+            background: #e8f4fd;
+            border: 1px solid #3182ce;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .example h4 {
+            color: #3182ce;
+            margin-bottom: 10px;
+        }
+
+        .vs-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .player-card {
+            text-align: center;
+            color: white;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            margin: 0 auto 10px;
+            border: 3px solid #ffd700;
+        }
+
+        .vs-text {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .vs-screen {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .step {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚔️ So Tài</h1>
+            <p>Đấu trường trắc nghiệm 1v1 - Tốc độ quyết định tất cả!</p>
+        </div>
+
+        <div class="content">
+            <!-- Giới thiệu -->
+            <div class="section">
+                <h2><span class="icon">📖</span> Giới thiệu</h2>
+                <p>
+                    <strong>So Tài</strong> là chế độ đấu trường trắc nghiệm 1 đấu 1 hấp dẫn, 
+                    nơi bạn sẽ thi đấu với các học sinh khác cùng khối lớp. Mỗi trận đấu gồm 
+                    <strong>10 câu hỏi</strong>, ai trả lời đúng và nhanh hơn sẽ giành chiến thắng!
+                </p>
+                <p>
+                    Điểm số được tính theo thời gian phản xạ - trả lời càng nhanh, điểm càng cao. 
+                    Đây là cách tuyệt vời để rèn luyện kiến thức và tốc độ tư duy!
+                </p>
+            </div>
+
+            <!-- Cách chơi -->
+            <div class="section">
+                <h2><span class="icon">🎮</span> Cách chơi</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Vào Sảnh chờ</h3>
+                            <p>Chọn mục "So Tài" từ menu chính. Hệ thống sẽ tự động nhận diện khối lớp của bạn.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Tìm đối thủ</h3>
+                            <p>Nhấn nút <strong>"Tìm Đối Thủ"</strong>. Hệ thống sẽ ghép bạn với học sinh cùng khối trong vòng 30 giây.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Màn hình VS</h3>
+                            <p>Khi tìm thấy đối thủ, màn hình VS hiển thị trong 3 giây để bạn chuẩn bị tinh thần!</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>Thi đấu</h3>
+                            <p>Trả lời 10 câu hỏi trắc nghiệm. Mỗi câu có thời gian riêng (15-30 giây). Cả hai người chơi trả lời đồng thời.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h3>Kết quả</h3>
+                            <p>Xem kết quả Thắng/Thua, số câu đúng, tổng điểm và nhận UniPoints thưởng!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Màn hình VS Demo -->
+            <div class="vs-screen">
+                <div class="player-card">
+                    <div class="avatar">👤</div>
+                    <div>Bạn</div>
+                    <div style="font-size: 0.8em; opacity: 0.7;">Lớp 10</div>
+                </div>
+                <div class="vs-text">VS</div>
+                <div class="player-card">
+                    <div class="avatar">🤖</div>
+                    <div>Đối thủ</div>
+                    <div style="font-size: 0.8em; opacity: 0.7;">Lớp 10</div>
+                </div>
+            </div>
+
+            <!-- Cơ chế tính điểm -->
+            <div class="section">
+                <h2><span class="icon">📊</span> Cơ chế tính điểm</h2>
+                <p>
+                    Điểm số trong trận được tính dựa trên <strong>tốc độ phản xạ</strong>. 
+                    Trả lời càng nhanh, điểm càng cao!
+                </p>
+
+                <div class="highlight-box">
+                    <h3>💡 Công thức tính điểm</h3>
+                    <div class="formula">
+Điểm = Điểm_tối_đa × [1 - (0.5 × Thời_gian_trả_lời / Thời_gian_tối_đa)]
+                    </div>
+                    <p>
+                        <strong>Ví dụ:</strong> Câu hỏi có điểm tối đa 1000, thời gian 20 giây. 
+                        Bạn trả lời đúng ở giây thứ 5:
+                    </p>
+                    <div class="formula">
+Điểm = 1000 × [1 - (0.5 × 5/20)] = 1000 × 0.875 = 875 điểm
+                    </div>
+                </div>
+
+                <table class="scoring-table">
+                    <thead>
+                        <tr>
+                            <th>Trường hợp</th>
+                            <th>Điểm nhận được</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Trả lời đúng ngay lập tức (0 giây)</td>
+                            <td>100% điểm tối đa</td>
+                        </tr>
+                        <tr>
+                            <td>Trả lời đúng ở giữa thời gian</td>
+                            <td>75% điểm tối đa</td>
+                        </tr>
+                        <tr>
+                            <td>Trả lời đúng ở giây cuối</td>
+                            <td>50% điểm tối đa</td>
+                        </tr>
+                        <tr>
+                            <td>Trả lời sai hoặc hết giờ</td>
+                            <td>0 điểm</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Phân định thắng thua -->
+            <div class="section">
+                <h2><span class="icon">🏆</span> Phân định Thắng - Thua</h2>
+                <p>
+                    Trận đấu <strong>KHÔNG BAO GIỜ CÓ KẾT QUẢ HÒA</strong>. 
+                    Hệ thống sẽ phân định thắng thua theo thứ tự ưu tiên:
+                </p>
+                
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>So sánh Tổng điểm trận đấu</h3>
+                            <p>Ai có tổng điểm cao hơn sẽ thắng (thường trường hợp này đã phân định được).</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>So sánh Tổng thời gian trả lời đúng</h3>
+                            <p>Nếu bằng điểm, ai có tổng thời gian trả lời đúng nhỏ hơn (phản xạ nhanh hơn) sẽ thắng.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>So sánh thời gian hoàn thành</h3>
+                            <p>Nếu vẫn bằng, ai hoàn thành trận đấu trước (timestamp sớm hơn) sẽ thắng.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UniPoints -->
+            <div class="section">
+                <h2><span class="icon">⭐</span> Điểm thưởng UniPoints</h2>
+                <p>
+                    Sau mỗi trận đấu, bạn sẽ nhận được <strong>UniPoints</strong> để tích lũy vào tài khoản UniClass:
+                </p>
+                
+                <div class="highlight-box">
+                    <h3>🎁 Công thức tính UniPoints</h3>
+                    <div class="formula">
+UniPoints = Số câu trả lời đúng × 10
+                    </div>
+                    <p>
+                        <strong>Lưu ý:</strong> UniPoints được tính theo số câu đúng, không phụ thuộc vào thắng/thua. 
+                        Cả người thắng và thua đều nhận UniPoints dựa trên số câu đúng của mình!
+                    </p>
+                </div>
+
+                <div class="example">
+                    <h4>📝 Ví dụ:</h4>
+                    <p>
+                        Bạn trả lời đúng 8/10 câu → Nhận <strong>80 UniPoints</strong><br>
+                        Đối thủ trả lời đúng 8/10 câu nhưng chậm hơn → Cũng nhận <strong>80 UniPoints</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mẹo chơi -->
+            <div class="section">
+                <h2><span class="icon">💡</span> Mẹo chơi hay</h2>
+                <ul class="tips-list">
+                    <li>Đọc kỹ câu hỏi trước khi trả lời - đừng vội vàng bấm sai!</li>
+                    <li>Nếu chắc chắn đáp án, trả lời ngay để được điểm cao nhất</li>
+                    <li>Nếu không chắc, sử dụng phương pháp loại trừ đáp án sai</li>
+                    <li>Tập trung cao độ - mỗi giây đều quan trọng!</li>
+                    <li>Chơi thường xuyên để quen với áp lực thời gian</li>
+                    <li>Ôn tập kiến thức theo khối lớp để có lợi thế</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2024 UniClub - Game học tập vui vẻ! 🎓</p>
+        </div>
+    </div>
+</body>
+</html>
