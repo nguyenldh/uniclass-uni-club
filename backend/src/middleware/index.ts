@@ -93,7 +93,7 @@ export function requireUserAuth(req: Request, res: Response, next: NextFunction)
     const payload = normalizeAuthUser(rawPayload);
 
     if (payload.profileId) {
-      payload.userId = payload.profileId; // Sử dụng profileId làm userId chính nếu có
+      payload.userId = payload.profileId + ""; // Sử dụng profileId làm userId chính nếu có
     }
 
     if (!payload.userId) {

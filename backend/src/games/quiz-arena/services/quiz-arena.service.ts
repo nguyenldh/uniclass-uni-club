@@ -3,20 +3,20 @@
 // Vòng đời session: tạo → phát câu hỏi → nhận đáp án → kết thúc
 // ============================================================
 
-import { redis } from '../../../config/index';
-import { ScoreService } from '../../../services/score.service';
-import { MatchmakingService } from '../../../services/matchmaking.service';
-import { BotProfileService } from '../../../services/bot-profile.service';
-import { QuestionService } from './question.service';
-import { UserAbilityService } from './user-ability.service';
-import { QuizBotService } from './quiz-bot.service';
-import { UniClassSyncService } from './uniclass-sync.service';
-import { GameResultEventService } from '../../../services/game-result-event.service';
+import { redis } from "../../../config/index";
+import { ScoreService } from "../../../services/score.service";
+import { MatchmakingService } from "../../../services/matchmaking.service";
+import { BotProfileService } from "../../../services/bot-profile.service";
+import { QuestionService } from "./question.service";
+import { UserAbilityService } from "./user-ability.service";
+import { QuizBotService } from "./quiz-bot.service";
+import { UniClassSyncService } from "./uniclass-sync.service";
+import { GameResultEventService } from "../../../services/game-result-event.service";
 import {
   QUIZ_ARENA_REDIS_KEYS,
   QUIZ_ARENA_SOCKET_EVENTS,
   QUIZ_BOT_PROFILES,
-} from '@uniclub/shared';
+} from "@uniclub/shared";
 import type {
   QuizArenaSession,
   QuizArenaConfig,
@@ -27,9 +27,9 @@ import type {
   QuizArenaResult,
   QuizPlayerSummary,
   QuizQuestion,
-} from '@uniclub/shared';
-import type { Server } from 'socket.io';
-import { UserService } from '../../../services';
+} from "@uniclub/shared";
+import type { Server } from "socket.io";
+import { UserService } from "../../../services";
 
 // ---- Helpers ----
 
@@ -111,7 +111,12 @@ function determineWinner(
   return { winner: playerA.userId, loser: playerB.userId };
 }
 
-function toPublicQuestion(q: QuizQuestion, questionIndex: number, totalQuestions: number, startedAt: number): QuizQuestionPublic {
+function toPublicQuestion(
+  q: QuizQuestion,
+  questionIndex: number,
+  totalQuestions: number,
+  startedAt: number,
+): QuizQuestionPublic {
   return {
     id: q.id,
     grade: q.grade,
@@ -149,11 +154,22 @@ export class QuizArenaService {
   // ---- Session CRUD (Redis) ----
 
   static async getSession(sessionId: string): Promise<QuizArenaSession | null> {
-    const data = await redis.get(`${QUIZ_ARENA_REDIS_KEYS.SESSION}:${sessionId}`);
+    const data = await redis.get(
+      `${QUIZ_ARENA_REDIS_KEYS.SESSION}:${sessionId}`,
+    );
     if (!data) return null;
     const session = JSON.parse(data) as QuizArenaSession;
     session.playerAData = await UserService.getUser(session.playerA);
-    session.playerBData = await UserService.getUser(session.playerB);
+    if (session.isBot && session.playerB) {
+      session.playerBData = {
+        userId: session.playerB,
+        name: session.playerBState.displayName ?? "",
+        avatar: session.playerBState.avatar,
+        grade: session.playerBState.grade,
+      };
+    } else {
+      session.playerBData = await UserService.getUser(session.playerB);
+    }
     return session;
   }
 
@@ -161,7 +177,7 @@ export class QuizArenaService {
     await redis.set(
       `${QUIZ_ARENA_REDIS_KEYS.SESSION}:${session.sessionId}`,
       JSON.stringify(session),
-      'EX',
+      "EX",
       1800, // 30 phút TTL
     );
   }
@@ -186,8 +202,10 @@ export class QuizArenaService {
     config: QuizArenaConfig,
   ): Promise<QuizArenaSession> {
     const grade = playerAGrade; // cả 2 cùng khối (matchmaking đảm bảo)
-    const recentIdsA = await QuestionService.getRecentQuestionIdsForUser(playerA);
-    const recentIdsB = await QuestionService.getRecentQuestionIdsForUser(playerB);
+    const recentIdsA =
+      await QuestionService.getRecentQuestionIdsForUser(playerA);
+    const recentIdsB =
+      await QuestionService.getRecentQuestionIdsForUser(playerB);
     const excludeIds = [...new Set([...recentIdsA, ...recentIdsB])];
 
     const questions = await QuestionService.pickQuestionsForMatch(
@@ -211,7 +229,7 @@ export class QuizArenaService {
       currentQuestionStartedAt: null,
       playerAState: makePlayerState(playerA, playerAName, grade),
       playerBState: makePlayerState(playerB, playerBName, playerBGrade),
-      status: 'waiting',
+      status: "waiting",
       winner: null,
       config,
       startedAt: new Date(),
@@ -231,13 +249,16 @@ export class QuizArenaService {
     userGrade: number,
     abilityBucket: QuizDifficulty,
     config: QuizArenaConfig,
-  ): Promise<{ session: QuizArenaSession; botProfile?: { name: string; avatar?: string } }> {
+  ): Promise<{
+    session: QuizArenaSession;
+    botProfile?: { name: string; avatar?: string };
+  }> {
     // Lấy bot behavior profile theo độ khó
     const botBehaviorProfile = QUIZ_BOT_PROFILES[abilityBucket];
 
     // Lấy bot identity (name + avatar) từ pool
     const botIdentity = await BotProfileService.getRandomBot();
-    const botName = botIdentity?.name ?? 'Bot AI';
+    const botName = botIdentity?.name ?? "Bot AI";
     const botAvatar = botIdentity?.avatar;
     const botId = `BOT_${Date.now()}`;
 
@@ -265,7 +286,7 @@ export class QuizArenaService {
       currentQuestionStartedAt: null,
       playerAState: makePlayerState(userId, userName, userGrade),
       playerBState: makePlayerState(botId, botName, userGrade, botAvatar),
-      status: 'waiting',
+      status: "waiting",
       winner: null,
       config,
       startedAt: new Date(),
@@ -287,7 +308,7 @@ export class QuizArenaService {
    */
   static async startNextQuestion(sessionId: string, io: Server): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+    if (!session || session.status !== "playing") return;
 
     const { currentQuestionIndex, questions, config } = session;
 
@@ -304,7 +325,12 @@ export class QuizArenaService {
     await this.saveSession(session);
 
     // Broadcast câu hỏi (không có correctIndex)
-    const publicQ = toPublicQuestion(question, currentQuestionIndex, questions.length, now);
+    const publicQ = toPublicQuestion(
+      question,
+      currentQuestionIndex,
+      questions.length,
+      now,
+    );
     io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.QUESTION, publicQ);
 
     // Set timeout tự động submit null khi hết giờ
@@ -315,18 +341,25 @@ export class QuizArenaService {
 
     const handle = setTimeout(() => {
       questionTimeouts.delete(sessionId);
-      this.handleQuestionTimeout(sessionId, currentQuestionIndex, io).catch(() => {});
+      this.handleQuestionTimeout(sessionId, currentQuestionIndex, io).catch(
+        () => {},
+      );
     }, timeLimitMs + 200); // +200ms buffer để đảm bảo client nhận đủ
 
     questionTimeouts.set(sessionId, handle);
 
     // Bot turn nếu là session vs AI
     if (session.isBot && session.botProfile) {
-      const { selectedIndex, responseTimeMs } = QuizBotService.decide(question, session.botProfile);
+      const { selectedIndex, responseTimeMs } = QuizBotService.decide(
+        question,
+        session.botProfile,
+      );
       const botHandle = setTimeout(() => {
         botTurnTimers.delete(sessionId);
         // Bot submit đáp án
-        this.submitAnswer(sessionId, session.playerB, selectedIndex, io).catch(() => {});
+        this.submitAnswer(sessionId, session.playerB, selectedIndex, io).catch(
+          () => {},
+        );
       }, responseTimeMs);
       botTurnTimers.set(sessionId, botHandle);
     }
@@ -338,9 +371,9 @@ export class QuizArenaService {
    */
   static async startMatch(sessionId: string, io: Server): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'waiting') return;
+    if (!session || session.status !== "waiting") return;
 
-    session.status = 'playing';
+    session.status = "playing";
     await this.saveSession(session);
 
     await this.startNextQuestion(sessionId, io);
@@ -357,7 +390,7 @@ export class QuizArenaService {
     io: Server,
   ): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+    if (!session || session.status !== "playing") return;
 
     const { currentQuestionIndex, questions, config } = session;
     const question = questions[currentQuestionIndex];
@@ -377,7 +410,8 @@ export class QuizArenaService {
     const timeLimitMs = question.timeLimitSeconds * 1000;
     const responseTimeMs = Math.min(now - startedAt, timeLimitMs);
 
-    const isCorrect = selectedIndex !== null && selectedIndex === question.correctIndex;
+    const isCorrect =
+      selectedIndex !== null && selectedIndex === question.correctIndex;
     const earnedPoints = calcEarnedPoints(
       isCorrect,
       responseTimeMs,
@@ -440,8 +474,9 @@ export class QuizArenaService {
 
     // Kiểm tra cả 2 đã trả lời chưa
     const otherState = isPlayerA ? session.playerBState : session.playerAState;
-    const bothAnswered = playerState.answers.length > currentQuestionIndex
-      && otherState.answers.length > currentQuestionIndex;
+    const bothAnswered =
+      playerState.answers.length > currentQuestionIndex &&
+      otherState.answers.length > currentQuestionIndex;
 
     if (bothAnswered) {
       await this.resolveQuestion(sessionId, io);
@@ -457,7 +492,7 @@ export class QuizArenaService {
     io: Server,
   ): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+    if (!session || session.status !== "playing") return;
     if (session.currentQuestionIndex !== questionIndex) return;
 
     // Clear bot timer nếu có
@@ -485,9 +520,12 @@ export class QuizArenaService {
   /**
    * Sau khi cả 2 đã trả lời: emit kết quả, schedule câu hỏi tiếp theo.
    */
-  private static async resolveQuestion(sessionId: string, io: Server): Promise<void> {
+  private static async resolveQuestion(
+    sessionId: string,
+    io: Server,
+  ): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+    if (!session || session.status !== "playing") return;
 
     const { currentQuestionIndex, questions, config } = session;
     const question = questions[currentQuestionIndex];
@@ -552,12 +590,14 @@ export class QuizArenaService {
     io: Server,
   ): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+    if (!session || session.status !== "playing") return;
 
     const { config, questions, currentQuestionIndex } = session;
     const isPlayerA = session.playerA === afkUserId;
     const afkState = isPlayerA ? session.playerAState : session.playerBState;
-    const opponentState = isPlayerA ? session.playerBState : session.playerAState;
+    const opponentState = isPlayerA
+      ? session.playerBState
+      : session.playerAState;
 
     // Auto-fill null answers cho AFK user từ câu hiện tại đến hết
     for (let i = afkState.answers.length; i < questions.length; i++) {
@@ -585,13 +625,10 @@ export class QuizArenaService {
 
     // Bonus điểm tối đa cho đối thủ từ câu chưa chơi
     const remainingQuestions = questions.slice(currentQuestionIndex);
-    const bonusPoints = remainingQuestions.reduce(
-      (sum, q) => sum + q.timeLimitSeconds,
-      0,
-    );
-    opponentState.totalScore += remainingQuestions.length * config.maxPointsPerQuestion;
+    opponentState.totalScore +=
+      remainingQuestions.length * config.maxPointsPerQuestion;
 
-    session.currentQuestionIndex = questions.length; // jump to end
+    session.currentQuestionIndex = questions.length - 1; // jump to end
     await this.saveSession(session);
     await this.endMatch(sessionId, io);
   }
@@ -601,22 +638,37 @@ export class QuizArenaService {
    */
   static async endMatch(sessionId: string, io: Server): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status === 'finished') return;
+    if (!session || session.status === "finished") return;
 
     // Clear all pending timers
     const qTimeout = questionTimeouts.get(sessionId);
-    if (qTimeout) { clearTimeout(qTimeout); questionTimeouts.delete(sessionId); }
+    if (qTimeout) {
+      clearTimeout(qTimeout);
+      questionTimeouts.delete(sessionId);
+    }
     const nqTimer = nextQuestionTimers.get(sessionId);
-    if (nqTimer) { clearTimeout(nqTimer); nextQuestionTimers.delete(sessionId); }
+    if (nqTimer) {
+      clearTimeout(nqTimer);
+      nextQuestionTimers.delete(sessionId);
+    }
     const botTimer = botTurnTimers.get(sessionId);
-    if (botTimer) { clearTimeout(botTimer); botTurnTimers.delete(sessionId); }
+    if (botTimer) {
+      clearTimeout(botTimer);
+      botTurnTimers.delete(sessionId);
+    }
     const dcTimer = disconnectTimers.get(sessionId);
-    if (dcTimer) { clearTimeout(dcTimer); disconnectTimers.delete(sessionId); }
+    if (dcTimer) {
+      clearTimeout(dcTimer);
+      disconnectTimers.delete(sessionId);
+    }
 
-    session.status = 'finished';
+    session.status = "finished";
     session.endedAt = new Date();
 
-    const { winner, loser } = determineWinner(session.playerAState, session.playerBState);
+    const { winner, loser } = determineWinner(
+      session.playerAState,
+      session.playerBState,
+    );
     session.winner = winner;
 
     const { config } = session;
@@ -633,19 +685,19 @@ export class QuizArenaService {
         ScoreService.addWinPoints(
           isPlayerAWinner ? session.playerA : session.playerB,
           isPlayerAWinner ? uniA : uniB,
-          'quiz_arena',
+          "quiz_arena",
         ),
         ScoreService.recordLoss(
           isPlayerAWinner ? session.playerB : session.playerA,
-          'quiz_arena',
+          "quiz_arena",
         ),
       ]);
     } else {
       // Bot match: chỉ lưu score cho user thật (playerA luôn là user thật)
       if (isPlayerAWinner) {
-        await ScoreService.addWinPoints(session.playerA, uniA, 'quiz_arena');
+        await ScoreService.addWinPoints(session.playerA, uniA, "quiz_arena");
       } else {
-        await ScoreService.recordLoss(session.playerA, 'quiz_arena');
+        await ScoreService.recordLoss(session.playerA, "quiz_arena");
       }
     }
 
@@ -677,8 +729,11 @@ export class QuizArenaService {
     }
 
     // Ghi lịch sử ability cho user thật
-    const recordAbility = async (userId: string, state: typeof session.playerAState) => {
-      if (userId.startsWith('BOT_')) return;
+    const recordAbility = async (
+      userId: string,
+      state: typeof session.playerAState,
+    ) => {
+      if (userId.startsWith("BOT_")) return;
       await UserAbilityService.recordMatchResult(
         userId,
         state.correctCount,
@@ -686,10 +741,13 @@ export class QuizArenaService {
         config.recentMatchesForAbility,
       );
     };
+    console.log("Here 1");
+
     await Promise.all([
       recordAbility(session.playerA, session.playerAState),
       recordAbility(session.playerB, session.playerBState),
     ]);
+    console.log("Here 2");
 
     // Ghi lịch sử câu hỏi đã làm
     await Promise.all([
@@ -704,6 +762,7 @@ export class QuizArenaService {
             session.questions.map((q) => q.id),
           ),
     ]);
+    console.log("Here 3");
 
     await this.saveSession(session);
 
@@ -736,9 +795,13 @@ export class QuizArenaService {
    * - PvP: đánh dấu disconnected, trận tiếp tục cho đối thủ (auto-submit null).
    *   Active session chỉ bị clear khi endMatch được gọi.
    */
-  static async handleDisconnect(sessionId: string, userId: string, io: Server): Promise<void> {
+  static async handleDisconnect(
+    sessionId: string,
+    userId: string,
+    io: Server,
+  ): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+    if (!session || session.status !== "playing") return;
 
     const isPlayerA = session.playerA === userId;
     const playerState = isPlayerA ? session.playerAState : session.playerBState;
@@ -758,11 +821,12 @@ export class QuizArenaService {
         disconnectTimers.delete(sessionId);
         // Kiểm tra lại session — nếu user đã reconnect thì không end
         const currentSession = await QuizArenaService.getSession(sessionId);
-        if (!currentSession || currentSession.status !== 'playing') return;
+        if (!currentSession || currentSession.status !== "playing") return;
 
-        const userState = currentSession.playerA === userId
-          ? currentSession.playerAState
-          : currentSession.playerBState;
+        const userState =
+          currentSession.playerA === userId
+            ? currentSession.playerAState
+            : currentSession.playerBState;
         // Nếu user đã reconnect (disconnected = false) thì bỏ qua
         if (!userState.disconnected) return;
 
@@ -773,14 +837,19 @@ export class QuizArenaService {
     }
 
     // Thông báo cho đối thủ (nếu PvP)
-    io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.OPPONENT_DISCONNECTED, { userId });
+    io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.OPPONENT_DISCONNECTED, {
+      userId,
+    });
   }
 
   /**
    * Xử lý khi user reconnect sau khi bị disconnect.
    * Clear disconnect timer và reset disconnected flag.
    */
-  static async handleReconnect(sessionId: string, userId: string): Promise<void> {
+  static async handleReconnect(
+    sessionId: string,
+    userId: string,
+  ): Promise<void> {
     // Clear disconnect timer nếu có
     const timer = disconnectTimers.get(sessionId);
     if (timer) {
@@ -808,7 +877,10 @@ export class QuizArenaService {
     return { ...state, answeredCount: state.answers.length };
   }
 
-  private static toPlayerSummary(state: QuizPlayerState, uniPointsEarned: number): QuizPlayerSummary {
+  private static toPlayerSummary(
+    state: QuizPlayerState,
+    uniPointsEarned: number,
+  ): QuizPlayerSummary {
     return {
       userId: state.userId,
       displayName: state.displayName,

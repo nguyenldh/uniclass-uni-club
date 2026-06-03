@@ -26,7 +26,7 @@ router.get("/me", async (req: Request, res: Response) => {
     const payload = normalizeAuthUser(rawPayload);
 
     if (payload.profileId) {
-      payload.userId = payload.profileId; // Sử dụng profileId làm userId chính nếu có
+      payload.userId = payload.profileId + ""; // Sử dụng profileId làm userId chính nếu có
     }
 
     await UserService.upsertUser(payload);

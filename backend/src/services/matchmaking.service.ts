@@ -39,7 +39,10 @@ export class MatchmakingService {
 
   /** Tham gia queue matchmaking */
   static async joinQueue(entry: MatchmakingEntry): Promise<MatchmakingResult> {
-    const { gameType, userId, partitionKey } = entry;
+    const { gameType, partitionKey } = entry;
+    let { userId } = entry;
+    userId = userId + ""; // Đảm bảo userId là string
+    
     const key = this.queueKey(gameType, partitionKey);
     const queueData = await redis.lrange(key, 0, -1);
 
@@ -47,7 +50,7 @@ export class MatchmakingService {
       const waiting: MatchmakingEntry = JSON.parse(data);
 
       // Không ghép với chính mình
-      if (waiting.userId === userId) continue;
+      if (waiting.userId == userId) continue;
 
       // Xóa opponent khỏi queue
       await redis.lrem(key, 0, data);

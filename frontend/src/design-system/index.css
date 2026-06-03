@@ -890,9 +890,7 @@ h3 {
     inset 0 0 0 1px rgba(255, 255, 255, 0.25);
   min-height: 100vh;
 }
-.game-canvas.no-top {
-  padding-top: 0;
-}
+
 .game-canvas::before {
   /* sun + clouds */
   content: "";
