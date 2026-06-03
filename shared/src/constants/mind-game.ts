@@ -63,3 +63,6 @@ export const GOMOKU_WIN_STREAK = 5;
 
 /** Thời gian tối đa cho một nước đi Gomoku (giây) */
 export const GOMOKU_MOVE_TIMEOUT = 30;
+
+/** Số lượt gần nhất bot lật thẻ có thể nhớ (1 lượt = 2 thẻ lật). Điều chỉnh để tăng/giảm độ khó AI. */
+export const BOT_CARD_FLIP_MEMORY_TURNS = 3;

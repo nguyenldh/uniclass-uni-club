@@ -418,7 +418,7 @@ interface WebViewExitPayload {
 
 ```ts
 interface WebViewGameEndedPayload {
-  userId: string;              // User ID (parent app tự map sang profile_id)
+  userId: string;              // User ID (parent app tự map sang profileId)
   gameType: GameType;          // 'mind_game' | 'quiz_arena' | 'boss_battle'
   kafkaGameType: KafkaGameType;// 'SO_TAI' | 'CARO' | 'LAT_MANH_GHEP' | 'SAN_BOSS'
   subGame?: 'gomoku' | 'card_flip'; // Chỉ cho mind_game

@@ -2,36 +2,46 @@
 // MatchmakingPage — dùng chung cho mọi game PvP
 // ============================================================
 
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { GameCanvas, Banner } from '../../design-system/game';
-import { MatchmakingOverlay } from '../../components/MatchmakingOverlay';
-import { useUser } from '../../hooks/useUser';
-import { mindGameApi } from '../../services/mind-game';
-import { quizArenaApi } from '../../services/quiz-arena';
-import type { MatchmakingGameType } from '@uniclub/shared';
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { GameCanvas, Banner } from "../../design-system/game";
+import { MatchmakingOverlay, ExitButton } from "../../components";
+import { useUser } from "../../hooks/useUser";
+import { mindGameApi } from "../../services/mind-game";
+import { quizArenaApi } from "../../services/quiz-arena";
+import type { MatchmakingGameType } from "@uniclub/shared";
+import { exitWebView } from "../../utils";
 
-const GAME_META: Record<string, { title: string; emoji: string; searchingTitle: string; searchingSubtitle: string; foundTitle: string }> = {
+const GAME_META: Record<
+  string,
+  {
+    title: string;
+    emoji: string;
+    searchingTitle: string;
+    searchingSubtitle: string;
+    foundTitle: string;
+  }
+> = {
   gomoku: {
-    title: 'Tìm Đối Thủ',
-    emoji: '⚔️',
-    searchingTitle: 'Đang tìm đối thủ',
-    searchingSubtitle: 'Hệ thống đang ghép trận Cờ Caro phù hợp với bạn',
-    foundTitle: 'Đã ghép được trận!',
+    title: "Tìm Đối Thủ",
+    emoji: "⚔️",
+    searchingTitle: "Đang tìm đối thủ",
+    searchingSubtitle: "Hệ thống đang ghép trận Cờ Caro phù hợp với bạn",
+    foundTitle: "Đã ghép được trận!",
   },
   card_flip: {
-    title: 'Tìm Đối Thủ',
-    emoji: '🃏',
-    searchingTitle: 'Đang tìm đối thủ',
-    searchingSubtitle: 'Hệ thống đang ghép trận Lật Thẻ phù hợp với bạn',
-    foundTitle: 'Đã ghép được trận!',
+    title: "Tìm Đối Thủ",
+    emoji: "🃏",
+    searchingTitle: "Đang tìm đối thủ",
+    searchingSubtitle: "Hệ thống đang ghép trận Lật Thẻ phù hợp với bạn",
+    foundTitle: "Đã ghép được trận!",
   },
   quiz: {
-    title: 'Tìm Đối Thủ',
-    emoji: '🧠',
-    searchingTitle: 'Đang tìm đối thủ',
-    searchingSubtitle: 'Hệ thống đang ghép trận So Tài phù hợp với bạn',
-    foundTitle: 'Đã ghép được trận!',
+    title: "Tìm Đối Thủ",
+    emoji: "🧠",
+    searchingTitle: "Đang tìm đối thủ",
+    searchingSubtitle: "Hệ thống đang ghép trận So Tài phù hợp với bạn",
+    foundTitle: "Đã ghép được trận!",
   },
 };
 
@@ -43,16 +53,17 @@ export function MatchmakingPage() {
   // Redirect về error page nếu không xác thực được
   useEffect(() => {
     if (userError) {
-      navigate('/error', { state: { message: userError }, replace: true });
+      navigate("/error", { state: { message: userError }, replace: true });
     }
   }, [userError, navigate]);
 
   const [checkingSession, setCheckingSession] = useState(true);
+  const [matchmakingPhase, setMatchmakingPhase] = useState<'idle' | 'searching' | 'matched' | 'timeout'>('idle');
 
-  const validGameType = (gameType ?? 'gomoku') as MatchmakingGameType;
+  const validGameType = (gameType ?? "gomoku") as MatchmakingGameType;
   const meta = GAME_META[validGameType] ?? GAME_META.gomoku;
 
-  const userId = user?.userId ?? 'user-1';
+  const userId = user?.userId ?? "user-1";
 
   // ---- Check active session khi mount ----
   useEffect(() => {
@@ -61,43 +72,44 @@ export function MatchmakingPage() {
     async function checkActiveSession() {
       try {
         // Chọn API theo game type
-        const res = validGameType === 'quiz'
-          ? await quizArenaApi.checkActiveSession(userId)
-          : await mindGameApi.checkActiveSession(userId);
+        const res =
+          validGameType === "quiz"
+            ? await quizArenaApi.checkActiveSession(userId)
+            : await mindGameApi.checkActiveSession(userId);
 
         if (cancelled) return;
 
         if (res.hasActiveSession && res.sessionId) {
           // Có session đang diễn ra → tự động vào game
-          if (res.gameType === 'gomoku') {
-            navigate('/mind-game/gomoku', {
+          if (res.gameType === "gomoku") {
+            navigate("/mind-game/gomoku", {
               state: {
                 sessionId: res.sessionId,
                 opponentId: null,
-                playerSymbol: 'X', // sẽ được xác định lại từ session
+                playerSymbol: "X", // sẽ được xác định lại từ session
                 isAI: res.isBot ?? false,
                 isReconnect: true,
               },
               replace: true,
             });
-          } else if (res.gameType === 'card_flip') {
-            navigate('/mind-game/card-flip', {
+          } else if (res.gameType === "card_flip") {
+            navigate("/mind-game/card_flip", {
               state: {
                 sessionId: res.sessionId,
                 opponentId: null,
                 isAI: res.isBot ?? false,
-                role: 'first',
+                role: "first",
                 isReconnect: true,
               },
               replace: true,
             });
-          } else if (res.gameType === 'quiz') {
-            navigate('/quiz-arena/game', {
+          } else if (res.gameType === "quiz") {
+            navigate("/quiz-arena/game", {
               state: {
                 sessionId: res.sessionId,
                 opponentId: null,
                 isAI: res.isBot ?? false,
-                role: 'first',
+                role: "first",
                 isReconnect: true,
               },
               replace: true,
@@ -112,20 +124,22 @@ export function MatchmakingPage() {
     }
 
     checkActiveSession();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [userId, validGameType, navigate]);
 
   const handleEnterGame = (
     sessionId: string,
     opponentId: string | null,
     isAI: boolean,
-    role: 'first' | 'second',
+    role: "first" | "second",
     opponentProfile?: { name: string; avatar?: string },
   ) => {
-    if (validGameType === 'gomoku') {
+    if (validGameType === "gomoku") {
       // Map role → symbol: first = X (đi trước), second = O (đi sau)
-      const playerSymbol = role === 'first' ? 'X' : 'O';
-      navigate('/mind-game/gomoku', {
+      const playerSymbol = role === "first" ? "X" : "O";
+      navigate("/mind-game/gomoku", {
         state: {
           sessionId,
           opponentId,
@@ -134,8 +148,8 @@ export function MatchmakingPage() {
           opponentProfile,
         },
       });
-    } else if (validGameType === 'card_flip') {
-      navigate('/mind-game/card-flip', {
+    } else if (validGameType === "card_flip") {
+      navigate("/mind-game/card_flip", {
         state: {
           sessionId,
           opponentId,
@@ -144,8 +158,8 @@ export function MatchmakingPage() {
           opponentProfile,
         },
       });
-    } else if (validGameType === 'quiz') {
-      navigate('/quiz-arena/game', {
+    } else if (validGameType === "quiz") {
+      navigate("/quiz-arena/game", {
         state: {
           sessionId,
           opponentId,
@@ -158,10 +172,10 @@ export function MatchmakingPage() {
   };
 
   const handleCancel = () => {
-    if (validGameType === 'quiz') {
-      navigate('/quiz-arena');
+    if (validGameType === "quiz") {
+      navigate("/quiz-arena");
     } else {
-      navigate('/mind-game');
+      exitWebView("/mind-game");
     }
   };
 
@@ -169,24 +183,32 @@ export function MatchmakingPage() {
   if (checkingSession) {
     return (
       <GameCanvas
-        className="mind-game-page no-top"
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+        className={"mind-game-page no-top" + " " + matchmakingPhase}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <div style={{ color: '#fff', fontSize: 18 }}>Kiểm tra trận đấu...</div>
+        <div style={{ color: "#fff", fontSize: 18 }}>Kiểm tra trận đấu...</div>
       </GameCanvas>
     );
   }
 
   return (
     <GameCanvas
-      className="mind-game-page no-top"
+      className={"mind-game-page no-top" + " " + matchmakingPhase}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
         gap: 24,
       }}
     >
+      {(validGameType === "gomoku" || validGameType === "card_flip") && (
+        <ExitButton from={`/matchmaking/${validGameType}`} />
+      )}
       <Banner variant="brown">
         <h1>
           {meta.emoji} {meta.title}
@@ -201,6 +223,7 @@ export function MatchmakingPage() {
         foundTitle={meta.foundTitle}
         onEnterGame={handleEnterGame}
         onCancel={handleCancel}
+        onPhaseChange={setMatchmakingPhase}
       />
     </GameCanvas>
   );

@@ -13,6 +13,7 @@ import { mindGameApi } from "../../services/mind-game";
 import { useUser, useCardFlipSocket } from "../../hooks";
 import type { CardFlipStateData } from "../../hooks/useCardFlipSocket";
 import { CardFlipAI, notifyGameEnded } from "../../utils";
+import { exitWebView } from "../../utils/webview";
 
 interface MatchmakingState {
   sessionId: string;
@@ -126,7 +127,7 @@ export function CardFlipPage() {
   // No matchmaking result — redirect back
   useEffect(() => {
     if (!matchmakingResult) {
-      navigate("/mind-game", { replace: true });
+      navigate("/matchmaking/card_flip", { replace: true });
     }
   }, [matchmakingResult, navigate]);
 
@@ -330,12 +331,6 @@ export function CardFlipPage() {
   return (
     <GameCanvas
       className="mind-game-page"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 16,
-      }}
     >
       {/* HUD */}
       <CardFlipHUD
@@ -348,7 +343,27 @@ export function CardFlipPage() {
         currentTurn={currentTurn}
         myUserId={userId}
         timeElapsed={timeElapsed}
-      />
+      >
+        <GameButton className="exit-in-hud" color="ghost" onClick={() => {
+          if (session?.status === 'playing' && !gameEndedSentRef.current) {
+            gameEndedSentRef.current = true;
+            notifyGameEnded({
+              userId,
+              gameType: 'mind_game',
+              kafkaGameType: 'LAT_MANH_GHEP',
+              subGame: 'card_flip',
+              sessionId: session?.sessionId,
+              point: 0,
+              playTime: timeElapsed,
+              sessionCompleted: false,
+              isWin: false,
+            });
+          }
+          exitWebView('/mind-game/card_flip');
+        }}>
+          ← Thoát
+        </GameButton>
+      </CardFlipHUD>
 
       {error && <div className="error-msg">{error}</div>}
 
@@ -363,7 +378,22 @@ export function CardFlipPage() {
         onCardClick={handleCardClick}
       />
 
-      <GameButton color="ghost" onClick={() => {
+      {/* Overlay */}
+      {overlayState !== "idle" && (
+        <GameStateOverlay
+          state={overlayState as GameOverlayState}
+          stats={overlayStats as GameOverlayStat[]}
+          actions={
+            <>
+              <GameButton color="ghost" onClick={() => navigate("/matchmaking/card_flip")}>
+                Về lobby
+              </GameButton>
+            </>
+          }
+        />
+      )}
+
+      <GameButton className="exit-at-bottom" color="ghost" onClick={() => {
         // Gửi forfeit message nếu đang trong trận
         if (session?.status === 'playing' && !gameEndedSentRef.current) {
           gameEndedSentRef.current = true;
@@ -379,31 +409,10 @@ export function CardFlipPage() {
             isWin: false,
           });
         }
-        navigate("/mind-game");
+        exitWebView('/mind-game/card_flip');
       }}>
         ← Thoát
       </GameButton>
-
-      {/* Overlay */}
-      {overlayState !== "idle" && (
-        <GameStateOverlay
-          state={overlayState as GameOverlayState}
-          stats={overlayStats as GameOverlayStat[]}
-          actions={
-            <>
-              <GameButton
-                color="orange"
-                onClick={() => navigate("/matchmaking/card_flip")}
-              >
-                Chơi lại
-              </GameButton>
-              <GameButton color="ghost" onClick={() => navigate("/mind-game")}>
-                Về lobby
-              </GameButton>
-            </>
-          }
-        />
-      )}
     </GameCanvas>
   );
 }

@@ -2,7 +2,7 @@
 // MatchmakingOverlay — reusable UI for any PvP game
 // ============================================================
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import {
   MatchmakingPanel,
   GameButton,
@@ -53,7 +53,7 @@ const gameGuides: Record<MatchmakingGameType, GameGuide> = {
       '💡 Trả lời nhanh để nhận bonus điểm thời gian.',
     ],
   },
-  card_flip: {
+  "card_flip": {
     title: 'Lật Bài',
     icon: '🃏',
     rules: [
@@ -146,6 +146,8 @@ export interface MatchmakingOverlayProps {
   onCancel: () => void;
   /** Slot để chèn thêm UI phía trên (vd: banner, mô tả game) */
   header?: ReactNode;
+  /** Callback khi phase thay đổi */
+  onPhaseChange?: (phase: 'idle' | 'searching' | 'matched' | 'timeout') => void;
 }
 
 export function MatchmakingOverlay({
@@ -159,9 +161,15 @@ export function MatchmakingOverlay({
   onEnterGame,
   onCancel,
   header,
+  onPhaseChange,
 }: MatchmakingOverlayProps) {
   const { phase, secondsRemaining, totalSeconds, result, error, startMatchmaking, cancelMatchmaking } =
     useMatchmaking({ userId, gameType });
+
+  // Expose phase cho parent
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
 
   const me: MatchmakingPlayer = { name: playerName };
   const {user} = useUser();
@@ -213,14 +221,10 @@ export function MatchmakingOverlay({
             maxWidth: 400,
           }}
         >
-          <GameGuideCard gameType={gameType} />
-          
           {error && <div className="error-msg">{error}</div>}
+          <GameGuideCard gameType={gameType} />
           <div style={{ display: 'flex', gap: 12 }}>
-            <GameButton color="ghost" onClick={onCancel}>
-              ← Quay lại
-            </GameButton>
-            <GameButton color="orange" onClick={startMatchmaking}>
+            <GameButton className='find-game-btn' color="orange" onClick={startMatchmaking}>
               🔍 Tìm trận
             </GameButton>
           </div>

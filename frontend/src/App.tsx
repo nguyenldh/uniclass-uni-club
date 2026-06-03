@@ -13,9 +13,9 @@ export function App() {
         <Route path="/matchmaking/:gameType" element={<MatchmakingPage />} />
 
         {/* Mind Game — Đấu trí */}
-        <Route path="/mind-game" element={<MindGameLobby />} />
+        {/* <Route path="/mind-game" element={<MindGameLobby />} /> */}
         <Route path="/mind-game/gomoku" element={<GomokuPage />} />
-        <Route path="/mind-game/card-flip" element={<CardFlipPage />} />
+        <Route path="/mind-game/card_flip" element={<CardFlipPage />} />
 
         {/* So Tài — Quiz Arena */}
         <Route path="/quiz-arena" element={<QuizArenaLobbyPage />} />

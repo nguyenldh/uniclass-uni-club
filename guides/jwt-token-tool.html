@@ -429,20 +429,24 @@
             const now = Math.floor(Date.now() / 1000);
             const exp = now + parseExpiration(expiresIn);
 
-            const payload = {
-                profileId: profileId,
+            const user = {
+                profileId: parseInt(profileId),
                 name: name,
-                iat: now,
-                exp: exp
             };
 
             if (grade) {
-                payload.grade = parseInt(grade);
+                user.grade = parseInt(grade);
             }
 
             if (avatar) {
-                payload.avatar = avatar;
+                user.avatar = avatar;
             }
+
+            const payload = {
+                user: user,
+                iat: now,
+                exp: exp
+            };
 
             try {
                 currentToken = createJWT(payload, secret);

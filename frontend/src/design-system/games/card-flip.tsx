@@ -88,6 +88,8 @@ export interface CardFlipHUDProps extends HTMLAttributes<HTMLDivElement> {
   timeElapsed: number;
   playerAAvatar?: string;
   playerBAvatar?: string;
+  /** Slot bổ sung bên trong HUD (vd: nút thoát ở landscape). */
+  children?: ReactNode;
 }
 
 export function CardFlipHUD({
@@ -100,6 +102,7 @@ export function CardFlipHUD({
   timeElapsed,
   playerAAvatar,
   playerBAvatar,
+  children,
   className,
   ...rest
 }: CardFlipHUDProps) {
@@ -108,7 +111,7 @@ export function CardFlipHUD({
   return (
     <div
       className={cn('game-hud', className)}
-      style={{ width: '100%', maxWidth: 600, display: 'flex', gap: 16 }}
+      style={{ width: '100%', maxWidth: 600 }}
       {...rest}
     >
       <PlayerCard
@@ -124,6 +127,7 @@ export function CardFlipHUD({
         score={playerBScore}
         active={currentTurn !== myUserId}
       />
+      {children}
     </div>
   );
 }

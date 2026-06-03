@@ -10,25 +10,25 @@ Kết quả từ các game So Tài, Đấu Trí, Cờ Caro, Lật mảnh ghé
 
 {
 
-  "profile\_id": "12345",
+  "profileId": "12345",
 
-  "game\_type": "SO\_TAI",
+  "gameType": "SO_TAI",
 
   "point": 50,
 
-  "play\_time": 600,
+  "playTime": 600,
 
-  "session\_completed": true,
+  "sessionCompleted": true,
 
-  "is\_win": true,
+  "isWin": true,
 
-  "correct\_count": 8,
+  "correctCount": 8,
 
-  "total\_questions": 10,
+  "totalQuestions": 10,
 
-  "duration\_seconds": 55,
+  "durationSeconds": 55,
 
-  "consecutive\_pairs": 3
+  "consecutivePairs": 3
 
 }
 
@@ -61,9 +61,9 @@ Kết quả Săn Boss trong Weekly Event.
 
 {
 
-  "id\_profile": "12345",
+  "profileId": "12345",
 
-  "type": "WEEKLY\_EVENT",
+  "type": "WEEKLY_EVENT",
 
   "data": {
 
@@ -75,17 +75,17 @@ Kết quả Săn Boss trong Weekly Event.
 
       "point": 150,
 
-      "correct\_count": 8,
+      "correctCount": 8,
 
-      "total\_questions": 10,
+      "totalQuestions": 10,
 
-      "session\_completed": true,
+      "sessionCompleted": true,
 
-      "play\_time": 300,
+      "playTime": 300,
 
-      "start\_time": 1748217600000,
+      "startTime": 1748217600000,
 
-      "end\_time": 1748304000000
+      "endTime": 1748304000000
 
     }
 

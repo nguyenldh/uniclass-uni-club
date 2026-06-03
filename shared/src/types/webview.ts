@@ -58,7 +58,7 @@ export interface WebViewExitPayload {
  * có thể map trực tiếp hoặc dùng kafkaGameType để gửi tiếp lên Kafka.
  */
 export interface WebViewGameEndedPayload {
-  /** User ID của người chơi (frontend chỉ biết userId, parent app tự map sang profile_id) */
+  /** User ID của người chơi (frontend chỉ biết userId, parent app tự map sang profileId) */
   userId: string;
   /** Loại game (internal format) — 'mind_game' | 'quiz_arena' | 'boss_battle' */
   gameType: GameType;

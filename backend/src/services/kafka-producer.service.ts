@@ -27,15 +27,15 @@ export class KafkaProducerService {
         topic: KAFKA_TOPICS.CLUB_GAME_RESULT,
         messages: [
           {
-            key: payload.profile_id,
+            key: payload.profileId,
             value: JSON.stringify(payload),
           },
         ],
       });
 
       console.log(
-        `[KafkaProducer] Sent game result: profile=${payload.profile_id} ` +
-        `game=${payload.game_type} point=${payload.point} win=${payload.is_win}`,
+        `[KafkaProducer] Sent game result: profile=${payload.profileId} ` +
+        `game=${payload.gameType} point=${payload.point} win=${payload.isWin}`,
       );
       return true;
     } catch (error) {
@@ -61,14 +61,14 @@ export class KafkaProducerService {
         topic: KAFKA_TOPICS.CLUB_WEEKLY_EVENT,
         messages: [
           {
-            key: payload.id_profile,
+            key: payload.profileId,
             value: JSON.stringify(payload),
           },
         ],
       });
 
       console.log(
-        `[KafkaProducer] Sent weekly event: profile=${payload.id_profile} ` +
+        `[KafkaProducer] Sent weekly event: profile=${payload.profileId} ` +
         `week=${payload.data.quiz.week} point=${payload.data.quiz.point}`,
       );
       return true;

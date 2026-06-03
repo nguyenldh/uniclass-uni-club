@@ -14,25 +14,25 @@ export type KafkaGameType = 'SO_TAI' | 'CARO' | 'LAT_MANH_GHEP' | 'SAN_BOSS';
  */
 export interface ClubGameResultDto {
   /** Profile ID của user (từ UniClass) */
-  profile_id: string;
+  profileId: string;
   /** Loại game */
-  game_type: KafkaGameType;
+  gameType: KafkaGameType;
   /** Số UniPoint được cộng trực tiếp từ kết quả game */
   point: number;
   /** Thời gian chơi tính bằng giây */
-  play_time: number;
+  playTime: number;
   /** Đã hoàn thành phiên chơi (không thoát giữa chừng) */
-  session_completed: boolean;
+  sessionCompleted: boolean;
   /** Có thắng không (dùng cho task thắng liên tiếp) */
-  is_win: boolean;
+  isWin: boolean;
   /** Số câu đúng (dùng cho task So Tài) */
-  correct_count?: number;
+  correctCount?: number;
   /** Tổng số câu hỏi (dùng cho task So Tài) */
-  total_questions?: number;
+  totalQuestions?: number;
   /** Thời gian hoàn thành (dùng cho task Lật mảnh ghép 60s) */
-  duration_seconds?: number;
+  durationSeconds?: number;
   /** Số cặp ghép liên tiếp đúng (dùng cho task 10) */
-  consecutive_pairs?: number;
+  consecutivePairs?: number;
 }
 
 /**
@@ -41,7 +41,7 @@ export interface ClubGameResultDto {
  */
 export interface ClubWeeklyEventDto {
   /** Profile ID của user (từ UniClass) */
-  id_profile: string;
+  profileId: string;
   /** Type cố định */
   type: 'WEEKLY_EVENT';
   /** Data chi tiết */
@@ -54,17 +54,17 @@ export interface ClubWeeklyEventDto {
       /** Điểm đạt được */
       point: number;
       /** Số câu đúng */
-      correct_count: number;
+      correctCount: number;
       /** Tổng số câu hỏi */
-      total_questions: number;
+      totalQuestions: number;
       /** Đã hoàn thành session */
-      session_completed: boolean;
+      sessionCompleted: boolean;
       /** Thời gian chơi (giây) */
-      play_time: number;
+      playTime: number;
       /** Timestamp bắt đầu tuần (ms) */
-      start_time: number;
+      startTime: number;
       /** Timestamp kết thúc tuần (ms) */
-      end_time: number;
+      endTime: number;
     };
   };
 }

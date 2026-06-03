@@ -32,28 +32,28 @@ export class GameResultEventService {
 
     // Emit cho playerA (luôn là người thật)
     const playerAResult: ClubGameResultDto = {
-      profile_id: session.playerA,
-      game_type: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
+      profileId: session.playerA,
+      gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
       point: session.playerAState.totalScore,
-      play_time: playTime,
-      session_completed: session.status === 'finished',
-      is_win: session.winner === session.playerA,
-      correct_count: session.playerAState.correctCount,
-      total_questions: totalQuestions,
+      playTime: playTime,
+      sessionCompleted: session.status === 'finished',
+      isWin: session.winner === session.playerA,
+      correctCount: session.playerAState.correctCount,
+      totalQuestions: totalQuestions,
     };
     await KafkaProducerService.sendGameResult(playerAResult);
 
     // Emit cho playerB nếu không phải bot
     if (!session.isBot && session.playerB !== 'BOT') {
       const playerBResult: ClubGameResultDto = {
-        profile_id: session.playerB,
-        game_type: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
+        profileId: session.playerB,
+        gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
         point: session.playerBState.totalScore,
-        play_time: playTime,
-        session_completed: session.status === 'finished',
-        is_win: session.winner === session.playerB,
-        correct_count: session.playerBState.correctCount,
-        total_questions: totalQuestions,
+        playTime: playTime,
+        sessionCompleted: session.status === 'finished',
+        isWin: session.winner === session.playerB,
+        correctCount: session.playerBState.correctCount,
+        totalQuestions: totalQuestions,
       };
       await KafkaProducerService.sendGameResult(playerBResult);
     }
@@ -73,24 +73,24 @@ export class GameResultEventService {
 
     // Emit cho playerX (luôn là người thật)
     const playerXResult: ClubGameResultDto = {
-      profile_id: session.playerX,
-      game_type: GAME_TYPE_TO_KAFKA['gomoku'] as KafkaGameType,
+      profileId: session.playerX,
+      gameType: GAME_TYPE_TO_KAFKA['gomoku'] as KafkaGameType,
       point: winnerId === session.playerX ? winPoints : 0,
-      play_time: playTime,
-      session_completed: session.status === 'finished',
-      is_win: winnerId === session.playerX,
+      playTime: playTime,
+      sessionCompleted: session.status === 'finished',
+      isWin: winnerId === session.playerX,
     };
     await KafkaProducerService.sendGameResult(playerXResult);
 
     // Emit cho playerO nếu không phải AI
     if (!session.isAI && session.playerO !== 'AI') {
       const playerOResult: ClubGameResultDto = {
-        profile_id: session.playerO,
-        game_type: GAME_TYPE_TO_KAFKA['gomoku'] as KafkaGameType,
+        profileId: session.playerO,
+        gameType: GAME_TYPE_TO_KAFKA['gomoku'] as KafkaGameType,
         point: winnerId === session.playerO ? winPoints : 0,
-        play_time: playTime,
-        session_completed: session.status === 'finished',
-        is_win: winnerId === session.playerO,
+        playTime: playTime,
+        sessionCompleted: session.status === 'finished',
+        isWin: winnerId === session.playerO,
       };
       await KafkaProducerService.sendGameResult(playerOResult);
     }
@@ -111,28 +111,28 @@ export class GameResultEventService {
 
     // Emit cho playerA (luôn là người thật)
     const playerAResult: ClubGameResultDto = {
-      profile_id: session.playerA,
-      game_type: GAME_TYPE_TO_KAFKA['card_flip'] as KafkaGameType,
+      profileId: session.playerA,
+      gameType: GAME_TYPE_TO_KAFKA['card_flip'] as KafkaGameType,
       point: winnerId === session.playerA ? winPoints : 0,
-      play_time: playTime,
-      session_completed: session.status === 'finished',
-      is_win: winnerId === session.playerA,
-      duration_seconds: durationSeconds,
-      consecutive_pairs: session.maxConsecutivePairsA,
+      playTime: playTime,
+      sessionCompleted: session.status === 'finished',
+      isWin: winnerId === session.playerA,
+      durationSeconds: durationSeconds,
+      consecutivePairs: session.maxConsecutivePairsA,
     };
     await KafkaProducerService.sendGameResult(playerAResult);
 
     // Emit cho playerB nếu không phải AI
     if (!session.isAI && session.playerB !== 'AI') {
       const playerBResult: ClubGameResultDto = {
-        profile_id: session.playerB,
-        game_type: GAME_TYPE_TO_KAFKA['card_flip'] as KafkaGameType,
+        profileId: session.playerB,
+        gameType: GAME_TYPE_TO_KAFKA['card_flip'] as KafkaGameType,
         point: winnerId === session.playerB ? winPoints : 0,
-        play_time: playTime,
-        session_completed: session.status === 'finished',
-        is_win: winnerId === session.playerB,
-        duration_seconds: durationSeconds,
-        consecutive_pairs: session.maxConsecutivePairsB,
+        playTime: playTime,
+        sessionCompleted: session.status === 'finished',
+        isWin: winnerId === session.playerB,
+        durationSeconds: durationSeconds,
+        consecutivePairs: session.maxConsecutivePairsB,
       };
       await KafkaProducerService.sendGameResult(playerBResult);
     }
@@ -156,12 +156,12 @@ export class GameResultEventService {
     }
 
     const result: ClubGameResultDto = {
-      profile_id: userId,
-      game_type: kafkaGameType,
+      profileId: userId,
+      gameType: kafkaGameType,
       point: 0,
-      play_time: playTime,
-      session_completed: false, // forfeit = không hoàn thành
-      is_win: false,
+      playTime: playTime,
+      sessionCompleted: false, // forfeit = không hoàn thành
+      isWin: false,
     };
     await KafkaProducerService.sendGameResult(result);
   }
@@ -175,14 +175,14 @@ export class GameResultEventService {
     instance: { config: { questionsPerDay: number } },
   ): Promise<void> {
     const result: ClubGameResultDto = {
-      profile_id: attempt.studentId,
-      game_type: GAME_TYPE_TO_KAFKA['boss_battle'] as KafkaGameType,
+      profileId: attempt.studentId,
+      gameType: GAME_TYPE_TO_KAFKA['boss_battle'] as KafkaGameType,
       point: attempt.pointsEarned,
-      play_time: Math.round(attempt.totalResponseTime),
-      session_completed: true,
-      is_win: attempt.correctCount > 0,
-      correct_count: attempt.correctCount,
-      total_questions: instance.config.questionsPerDay,
+      playTime: Math.round(attempt.totalResponseTime),
+      sessionCompleted: true,
+      isWin: attempt.correctCount > 0,
+      correctCount: attempt.correctCount,
+      totalQuestions: instance.config.questionsPerDay,
     };
     await KafkaProducerService.sendGameResult(result);
   }

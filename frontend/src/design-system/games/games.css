@@ -309,6 +309,27 @@
 }
 
 /* ============================================================
+   MIND-GAME PAGE — layout mặc định (dọc)
+   ============================================================ */
+.mind-game-page{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Nút thoát trong HUD: ẩn mặc định (chỉ hiện ở landscape) */
+.exit-in-hud{
+  display: none;
+}
+/* Nút thoát dưới cùng: hiện mặc định (ẩn ở landscape) */
+.exit-at-bottom{
+  display: inline-flex;
+}
+
+/* ============================================================
    GAME HUD — player cards, timer, hint, score
    ============================================================ */
 .game-hud{
@@ -580,4 +601,150 @@
   .memory-board.dense-5{ --mem-gap: 6px; --mem-pad: 12px; --mem-font-max: 22px; }
   .memory-board.dense-6{ --mem-gap: 5px; --mem-pad: 10px; --mem-font-max: 18px; }
   .memory-board.dense-7{ --mem-gap: 4px; --mem-pad: 8px;  --mem-font-max: 15px; }
+}
+
+/* ============================================================
+   GAME HUD — responsive cho mobile dọc
+   ============================================================ */
+@media (max-width: 480px){
+  .game-hud{
+    padding: 8px 10px;
+    gap: 8px;
+    border-width: 3px;
+    border-radius: 14px;
+  }
+  .player-card{
+    padding: 4px 8px 4px 4px;
+    gap: 6px;
+    border-width: 2px;
+    border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(110,63,23,.35);
+  }
+  .player-card .pc-av{
+    width: 30px; height: 30px;
+    font-size: 12px;
+    border-width: 2px;
+  }
+  .player-card .pc-name{
+    font-size: 12px;
+  }
+  .player-card .pc-stats{
+    font-size: 10px;
+    gap: 4px;
+  }
+  .player-card .pc-mark{
+    width: 18px; height: 18px;
+    font-size: 11px;
+    border-width: 2px;
+  }
+  .timer{
+    width: 52px; height: 52px;
+  }
+  .timer .label{
+    font-size: 14px;
+  }
+}
+
+/* ============================================================
+   GAME HUD — landscape phone (ngang, chiều cao hẹp)
+   HUD xếp dọc bên trái, board chiếm phần còn lại
+   ============================================================ */
+@media (orientation: landscape) and (max-height: 500px){
+  /* Trang game: xếp ngang HUD + board */
+  .mind-game-page{
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    padding: 8px 12px;
+  }
+
+  /* 'idle' | 'searching' | 'matched' | 'timeout' */
+  .mind-game-page.idle, .mind-game-page.searching, .mind-game-page.matched, .mind-game-page.timeout{
+    flex-direction: column !important;
+    align-items: center !important;
+    padding-top: 0;
+  }
+
+  /* HUD: xếp dọc, thu gọn */
+  .game-hud{
+    flex-direction: column !important;
+    width: auto !important;
+    max-width: none !important;
+    padding: 8px 10px;
+    gap: 6px;
+    border-width: 3px;
+    border-radius: 14px;
+  }
+
+  .player-card{
+    width: 100%;
+    padding: 3px 8px 3px 3px;
+    gap: 5px;
+    border-width: 2px;
+    border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(110,63,23,.35);
+  }
+  .player-card .pc-av{
+    width: 28px; height: 28px;
+    font-size: 11px;
+    border-width: 2px;
+  }
+  .player-card .pc-name{
+    font-size: 11px;
+  }
+  .player-card .pc-stats{
+    font-size: 10px;
+    gap: 3px;
+  }
+  .player-card .pc-mark{
+    width: 16px; height: 16px;
+    font-size: 10px;
+    border-width: 2px;
+  }
+
+  .timer{
+    width: 44px; height: 44px;
+  }
+  .timer .label{
+    font-size: 13px;
+  }
+
+  .memory-board{
+    --mem-gap: 6px;
+    --mem-pad: 10px;
+    --mem-card-radius: 8px;
+    --mem-card-border: 2px;
+    --mem-font-min: 14px;
+    --mem-font-max: 28px;
+    max-width: none;
+    /* Chiều cao cố định vừa viewport */
+    height: calc(100vh - 24px);
+    /* Grid row chia đều trong chiều cao có sẵn */
+    grid-auto-rows: 1fr;
+    overflow: hidden;
+  }
+  .memory-board.dense-5,
+  .memory-board.dense-6,
+  .memory-board.dense-7{
+    --mem-gap: 5px;
+    --mem-pad: 8px;
+    --mem-card-radius: 7px;
+    --mem-font-max: 22px;
+  }
+  /* Thẻ lật: bỏ aspect-ratio, lấp đầy ô grid */
+  .memory-card-wrap{
+    aspect-ratio: auto;
+    height: 100%;
+  }
+
+  /* Nút thoát: ẩn nút dưới cùng, hiện nút trong HUD */
+  .exit-in-hud{
+    display: inline-flex;
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+  .exit-at-bottom{
+    display: none;
+  }
 }

@@ -1,6 +1,8 @@
 // ============================================================
-// Card Flip AI — có bộ nhớ, ưu tiên ghép cặp đã biết
+// Card Flip AI — có bộ nhớ giới hạn, ưu tiên ghép cặp đã biết
 // ============================================================
+
+import { BOT_CARD_FLIP_MEMORY_TURNS } from '@uniclub/shared';
 
 interface CardFlipCard {
   id: number;
@@ -10,9 +12,22 @@ interface CardFlipCard {
   matched: boolean;
 }
 
+/** 1 entry trong lịch sử nhớ: cardId + value + thứ tự lượt */
+interface MemoryEntry {
+  cardId: number;
+  value: string;
+  turn: number;
+}
+
 export class CardFlipAI {
   /** Bộ nhớ: value → danh sách cardId đã thấy (chưa matched) */
   private static memory = new Map<string, number[]>();
+
+  /** Lịch sử nhớ theo thứ tự thời gian — để giới hạn số lượt */
+  private static history: MemoryEntry[] = [];
+
+  /** Số lượt đã ghi nhớ (tăng mỗi khi remember được gọi) */
+  private static turnCounter = 0;
 
   /**
    * Lấy 2 thẻ để AI lật.
@@ -69,18 +84,44 @@ export class CardFlipAI {
 
   /**
    * Ghi nhớ thẻ vừa được lật (gọi sau mỗi lần flip, kể cả của người chơi).
-   * AI dùng thông tin này để mai phục cặp ở lượt sau.
+   * AI chỉ nhớ tối đa BOT_CARD_FLIP_MEMORY_TURNS lượt gần nhất.
+   * Thẻ cũ hơn sẽ bị quên — mô phỏng trí nhớ ngắn hạn.
    */
   static remember(cardId: number, value: string): void {
+    this.turnCounter++;
+
     const known = this.memory.get(value) ?? [];
     if (!known.includes(cardId)) {
       known.push(cardId);
       this.memory.set(value, known);
+    }
+
+    // Lưu vào history để có thể quên khi vượt giới hạn
+    this.history.push({ cardId, value, turn: this.turnCounter });
+
+    // Quên các thẻ cũ hơn BOT_CARD_FLIP_MEMORY_TURNS lượt
+    // Mỗi lượt = 2 thẻ, nên giới hạn = BOT_CARD_FLIP_MEMORY_TURNS * 2 entries
+    const maxEntries = BOT_CARD_FLIP_MEMORY_TURNS * 2;
+    if (this.history.length > maxEntries) {
+      const forgotten = this.history.splice(0, this.history.length - maxEntries);
+      for (const entry of forgotten) {
+        const ids = this.memory.get(entry.value);
+        if (ids) {
+          const filtered = ids.filter((id) => id !== entry.cardId);
+          if (filtered.length === 0) {
+            this.memory.delete(entry.value);
+          } else {
+            this.memory.set(entry.value, filtered);
+          }
+        }
+      }
     }
   }
 
   /** Xóa toàn bộ bộ nhớ (gọi khi bắt đầu game mới) */
   static reset(): void {
     this.memory.clear();
+    this.history = [];
+    this.turnCounter = 0;
   }
 }
