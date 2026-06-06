@@ -30,17 +30,34 @@ export function getDayIndex(date: Date = new Date()): number {
 }
 
 /**
- * Mốc reset tuần kế tiếp: 00:00 UTC của Thứ Hai tuần kế.
+ * Mốc reset tuần kế tiếp: 00:00 giờ Việt Nam (UTC+7) của Thứ Hai tuần kế.
+ * Tương đương Chủ Nhật 17:00 UTC.
  * Trả về ISO string.
  */
 export function getNextWeeklyResetAt(date: Date = new Date()): string {
-  const d = new Date(date);
-  const dayIndex = getDayIndex(d);
-  const daysUntilNextMonday = 8 - dayIndex; // current Monday is dayIndex 1 → 7 days
-  const next = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysUntilNextMonday),
+  // Monday 00:00 Vietnam (UTC+7) = Sunday 17:00 UTC
+  const now = date.getTime();
+
+  // Today at 17:00 UTC
+  const today17Utc = Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    17, 0, 0, 0,
   );
-  return next.toISOString();
+
+  // Days until next Sunday (0 = Sunday in UTC)
+  const dayOfWeek = date.getUTCDay();
+  const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+
+  let target = today17Utc + daysUntilSunday * 86400000;
+
+  // If already past this Sunday 17:00 UTC, go to next Sunday
+  if (now >= target) {
+    target += 7 * 86400000;
+  }
+
+  return new Date(target).toISOString();
 }
 
 /** Tính weekKey của tuần trước weekKey hiện tại (ISO week math via Monday anchor) */

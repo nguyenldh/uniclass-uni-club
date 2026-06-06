@@ -74,7 +74,7 @@ export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states =
             <div className="bbar-fill" style={{ width: `${after}%` }} />
           </div>
         </div>
-        <div className="bbar-hp">{Math.round(after)}%</div>
+        <div className="bbar-hp">{after.toFixed(2)}%</div>
       </div>
     </div>
   );

@@ -17,6 +17,8 @@ export class MatchmakingService {
 
     const queueData = await redis.lrange(`${this.QUEUE_KEY}:gomoku`, 0, -1);
 
+    console.log(entry);    
+
     for (const data of queueData) {
       const waiting: MatchmakingEntry = JSON.parse(data);
 

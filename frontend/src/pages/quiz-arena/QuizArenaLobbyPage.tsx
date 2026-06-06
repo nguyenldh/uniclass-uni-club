@@ -23,7 +23,7 @@ export function QuizArenaLobbyPage() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   const { phase, secondsRemaining, totalSeconds, result, startMatchmaking, cancelMatchmaking } =
-    useMatchmaking({ userId, gameType: 'quiz' });
+    useMatchmaking({ userId, gameType: 'quiz', grade: user?.grade, displayName: user?.name });
 
   // ---- Check active session khi mount ----
   useEffect(() => {

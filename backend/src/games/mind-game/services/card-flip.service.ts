@@ -302,11 +302,18 @@ export class CardFlipService {
     });
   }
 
-  /** Reset các thẻ đang flip về trạng thái úp, sau đó đổi lượt (có mutex) */
+  /** Reset các thẻ đang flip về trạng thái úp, sau đó đổi lượt (có mutex, idempotent) */
   static async resetFlipped(sessionId: string): Promise<CardFlipSession | null> {
     return withSessionLock(sessionId, async () => {
     const session = await this.getSession(sessionId);
     if (!session) return null;
+
+    // Idempotent guard: nếu không còn thẻ nào đang lật (đã được reset bởi request trước),
+    // trả về session nguyên trạng, không toggle turn lần nữa.
+    const hasFlippedCards = session.cards.some((c) => c.flipped && !c.matched);
+    if (!hasFlippedCards && session.lastFlipped.length === 0) {
+      return session;
+    }
 
     session.cards.forEach((c) => {
       if (c.flipped && !c.matched) c.flipped = false;

@@ -32,7 +32,7 @@ export function CardFlipPage() {
   // Redirect về error page nếu không xác thực được
   useEffect(() => {
     if (userError) {
-      navigate('/error', { state: { message: userError }, replace: true });
+      navigate("/error", { state: { message: userError }, replace: true });
     }
   }, [userError, navigate]);
 
@@ -59,9 +59,13 @@ export function CardFlipPage() {
   const processingRef = useRef(false);
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gameEndedSentRef = useRef(false);
+  // Track sessionId hiện tại để tránh bắn game:ended cho game cũ khi store chưa reset
+  const activeSessionIdRef = useRef<string | null>(null);
 
   // Promise resolver để AI đợi socket state update
-  const aiStateResolveRef = useRef<((data: CardFlipStateData) => void) | null>(null);
+  const aiStateResolveRef = useRef<((data: CardFlipStateData) => void) | null>(
+    null,
+  );
 
   // Refs để tránh stale closure trong socket callbacks
   const sessionIdRef = useRef(session?.sessionId ?? "");
@@ -75,7 +79,9 @@ export function CardFlipPage() {
       ? (session?.playerB ?? "")
       : (session?.playerA ?? "");
   // Dùng opponentProfile.name nếu có (ẩn danh tính AI)
-  const opponentName = matchmakingResult?.opponentProfile?.name ?? (isAI ? opponentId : opponentId);
+  const opponentName =
+    matchmakingResult?.opponentProfile?.name ??
+    (isAI ? opponentId : opponentId);
   const myScore = isPlayerA ? scores.playerA : scores.playerB;
   const opponentScore = isPlayerA ? scores.playerB : scores.playerA;
   const myData = isPlayerA ? session?.playerAData : session?.playerBData;
@@ -83,15 +89,23 @@ export function CardFlipPage() {
 
   // Load session from matchmaking result on mount (chỉ dùng REST cho lần đầu)
   useEffect(() => {
+    console.log(matchmakingResult);
     if (!matchmakingResult?.sessionId) return;
 
     const loadSession = async () => {
       setLoading(true);
       try {
-        const res = await mindGameApi.getCardFlipSession(matchmakingResult.sessionId);
+        const res = await mindGameApi.getCardFlipSession(
+          matchmakingResult.sessionId,
+        );
         if (res.session) {
+          console.log(res.session);
+
           CardFlipAI.reset();
           setSession(res.session);
+          // Đánh dấu session hiện tại để tránh bắn game:ended cho session cũ
+          activeSessionIdRef.current = res.session.sessionId;
+          gameEndedSentRef.current = false;
 
           if (res.session.status === "finished") {
             const elapsed =
@@ -113,9 +127,12 @@ export function CardFlipPage() {
             const won = myS > oppS;
             endGame(won ? "win" : "lose", elapsed, myS, oppS);
           }
+        } else {
+          navigate("/matchmaking/card_flip", { replace: true });
         }
       } catch (err: any) {
         setError(err.message || "Không thể tải session");
+        navigate("/matchmaking/card_flip", { replace: true });
       } finally {
         setLoading(false);
       }
@@ -178,34 +195,81 @@ export function CardFlipPage() {
     };
   }, [session?.sessionId, session?.status, tick]);
 
-  // Cleanup AI timeout on unmount
+  // Cleanup AI timeout on unmount + gửi forfeit nếu user rời trang giữa trận
   useEffect(() => {
     return () => {
       if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
+      // Nếu vẫn đang chơi mà component unmount (browser back, v.v.) → gửi forfeit
+      if (session?.status === "playing" && !gameEndedSentRef.current) {
+        gameEndedSentRef.current = true;
+        notifyGameEnded({
+          userId,
+          gameType: "mind_game",
+          kafkaGameType: "LAT_MANH_GHEP",
+          subGame: "card_flip",
+          sessionId: session?.sessionId,
+          point: 0,
+          playTime: timeElapsed,
+          sessionCompleted: false,
+          isWin: false,
+        });
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Handler: gửi game:ended khi user bỏ cuộc giữa chừng ───
+  const handleForfeit = useCallback(() => {
+    if (session?.status === "playing" && !gameEndedSentRef.current) {
+      gameEndedSentRef.current = true;
+      notifyGameEnded({
+        userId,
+        gameType: "mind_game",
+        kafkaGameType: "LAT_MANH_GHEP",
+        subGame: "card_flip",
+        sessionId: session?.sessionId,
+        point: 0,
+        playTime: timeElapsed,
+        sessionCompleted: false,
+        isWin: false,
+      });
+    }
+    exitWebView("/mind-game/card_flip");
+  }, [session?.status, session?.sessionId, userId, timeElapsed]);
+
   // ─── Gửi game:ended khi game kết thúc (overlay hiện ra) ───
+  // PHẢI depend vào overlayStats để đảm bảo đọc được giá trị mới nhất.
+  // QUAN TRỌNG: Khi user chơi game mới, Zustand store vẫn giữ state cũ (overlayState='win')
+  // cho đến khi setSession() chạy. Effect này sẽ trigger với state cũ → bắn game:ended sai.
+  // Fix: Chỉ gửi khi sessionId khớp với session hiện tại (activeSessionIdRef).
   useEffect(() => {
-    if (overlayState === 'idle' || gameEndedSentRef.current) return;
+    if (overlayState === "idle" || gameEndedSentRef.current) return;
+    // Guard: overlayStats phải có data mới gửi (tránh race condition)
+    if (overlayStats.length === 0) return;
+    // Guard: chỉ gửi cho session hiện tại, không phải session cũ còn sót trong store
+    if (!session?.sessionId || session.sessionId !== activeSessionIdRef.current)
+      return;
+
     gameEndedSentRef.current = true;
 
-    const isWin = overlayState === 'win';
-    const isDraw = overlayState === 'draw';
+    const isWin = overlayState === "win";
 
     notifyGameEnded({
       userId,
-      gameType: 'mind_game',
-      kafkaGameType: 'LAT_MANH_GHEP',
-      subGame: 'card_flip',
-      sessionId: session?.sessionId,
-      point: isWin ? myScore : 0,
+      gameType: "mind_game",
+      kafkaGameType: "LAT_MANH_GHEP",
+      subGame: "card_flip",
+      sessionId: session.sessionId,
+      point: isWin ? (session?.config?.winPoints ?? 0) : 0,
       playTime: timeElapsed,
       sessionCompleted: true,
       isWin,
       durationSeconds: timeElapsed,
+      consecutivePairs: isPlayerA
+        ? session?.maxConsecutivePairsA
+        : session?.maxConsecutivePairsB,
     });
-  }, [overlayState]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [overlayState, overlayStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── AI move (tính toán trên client, gửi qua socket) ───
   useEffect(() => {
@@ -230,7 +294,7 @@ export function CardFlipPage() {
           cards.map((c) => ({
             id: Number(c.id),
             pairId: Number(c.pairId),
-            value: String(c.content ?? ''),
+            value: String(c.content ?? ""),
             flipped: c.state === "revealed" || c.state === "matched",
             matched: c.state === "matched",
           })),
@@ -251,7 +315,7 @@ export function CardFlipPage() {
 
         // Ghi nhớ thẻ 1
         const c1 = cards.find((c) => c.id === String(cardId1));
-        if (c1) CardFlipAI.remember(cardId1, String(c1.content ?? ''));
+        if (c1) CardFlipAI.remember(cardId1, String(c1.content ?? ""));
 
         // Delay nhỏ giữa 2 lần lật
         await new Promise((r) => setTimeout(r, 600));
@@ -264,7 +328,7 @@ export function CardFlipPage() {
 
         // Ghi nhớ thẻ 2
         const c2 = cards.find((c) => c.id === String(cardId2));
-        if (c2) CardFlipAI.remember(cardId2, String(c2.content ?? ''));
+        if (c2) CardFlipAI.remember(cardId2, String(c2.content ?? ""));
 
         if (!stateData.isMatch) {
           // Không match — đợi reset (được trigger bởi onStateUpdate)
@@ -306,7 +370,8 @@ export function CardFlipPage() {
 
       // AI học từ nước đi của người chơi
       const clickedCard = cards.find((c) => c.id === cardId);
-      if (clickedCard) CardFlipAI.remember(Number(cardId), String(clickedCard.content ?? ''));
+      if (clickedCard)
+        CardFlipAI.remember(Number(cardId), String(clickedCard.content ?? ""));
     },
     [session, currentTurn, userId, cards, flipCard],
   );
@@ -329,9 +394,7 @@ export function CardFlipPage() {
   }
 
   return (
-    <GameCanvas
-      className="mind-game-page"
-    >
+    <GameCanvas className="mind-game-page">
       {/* HUD */}
       <CardFlipHUD
         playerAName="Bạn"
@@ -344,23 +407,11 @@ export function CardFlipPage() {
         myUserId={userId}
         timeElapsed={timeElapsed}
       >
-        <GameButton className="exit-in-hud" color="ghost" onClick={() => {
-          if (session?.status === 'playing' && !gameEndedSentRef.current) {
-            gameEndedSentRef.current = true;
-            notifyGameEnded({
-              userId,
-              gameType: 'mind_game',
-              kafkaGameType: 'LAT_MANH_GHEP',
-              subGame: 'card_flip',
-              sessionId: session?.sessionId,
-              point: 0,
-              playTime: timeElapsed,
-              sessionCompleted: false,
-              isWin: false,
-            });
-          }
-          exitWebView('/mind-game/card_flip');
-        }}>
+        <GameButton
+          className="exit-in-hud"
+          color="ghost"
+          onClick={handleForfeit}
+        >
           ← Thoát
         </GameButton>
       </CardFlipHUD>
@@ -385,7 +436,10 @@ export function CardFlipPage() {
           stats={overlayStats as GameOverlayStat[]}
           actions={
             <>
-              <GameButton color="ghost" onClick={() => navigate("/matchmaking/card_flip")}>
+              <GameButton
+                color="ghost"
+                onClick={() => navigate("/matchmaking/card_flip")}
+              >
                 Về lobby
               </GameButton>
             </>
@@ -393,28 +447,13 @@ export function CardFlipPage() {
         />
       )}
 
-      <GameButton className="exit-at-bottom" color="ghost" onClick={() => {
-        // Gửi forfeit message nếu đang trong trận
-        if (session?.status === 'playing' && !gameEndedSentRef.current) {
-          gameEndedSentRef.current = true;
-          notifyGameEnded({
-            userId,
-            gameType: 'mind_game',
-            kafkaGameType: 'LAT_MANH_GHEP',
-            subGame: 'card_flip',
-            sessionId: session?.sessionId,
-            point: 0,
-            playTime: timeElapsed,
-            sessionCompleted: false,
-            isWin: false,
-          });
-        }
-        exitWebView('/mind-game/card_flip');
-      }}>
+      <GameButton
+        className="exit-at-bottom"
+        color="ghost"
+        onClick={handleForfeit}
+      >
         ← Thoát
       </GameButton>
     </GameCanvas>
   );
 }
-
-

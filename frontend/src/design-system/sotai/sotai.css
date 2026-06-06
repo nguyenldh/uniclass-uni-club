@@ -602,6 +602,43 @@
 .st-answer.is-dimmed{ opacity: .45; pointer-events: none;}
 .st-answer:disabled{ cursor: default;}
 
+/* Waiting for opponent banner — inside question card */
+.st-waiting-banner{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  margin-top: 4px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(47,143,214,.18), rgba(47,143,214,.08));
+  border: 2px dashed rgba(47,143,214,.45);
+  animation: st-waiting-pulse 1.8s ease-in-out infinite;
+}
+.st-waiting-icon{
+  font-size: 22px;
+  animation: st-waiting-spin 2s linear infinite;
+  display: inline-block;
+}
+.st-waiting-text{
+  font-weight: 800;
+  font-size: 15px;
+  color: #2f8fd6;
+  letter-spacing: .03em;
+  font-family: var(--f-game);
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+}
+@keyframes st-waiting-pulse{
+  0%, 100%{ opacity: .7; transform: scale(1);}
+  50%     { opacity: 1; transform: scale(1.01);}
+}
+@keyframes st-waiting-spin{
+  0%  { transform: rotate(0deg);}
+  25% { transform: rotate(15deg);}
+  75% { transform: rotate(-15deg);}
+  100%{ transform: rotate(0deg);}
+}
+
 @keyframes st-correct-pop{
   0%{ transform: scale(1);}
   40%{ transform: scale(1.04);}
@@ -617,19 +654,20 @@
 .st-floating{
   position: absolute;
   font-family: var(--f-game); font-weight: 900;
-  font-size: 28px;
+  font-size: 36px;
   pointer-events: none;
-  animation: st-float-up 1.4s cubic-bezier(.22,1,.36,1) forwards;
+  animation: st-float-up 2.6s cubic-bezier(.22,1,.36,1) forwards;
   text-shadow: 0 3px 0 var(--g-wood-4), 0 6px 12px rgba(0,0,0,.4);
   z-index: 10;
 }
 .st-floating.win{ color: #ffd66b;}
 .st-floating.miss{ color: #ff9696;}
 @keyframes st-float-up{
-  0%  { opacity: 0; transform: translateY(10px) scale(.6);}
-  20% { opacity: 1; transform: translateY(0) scale(1.1);}
-  40% { transform: translateY(-8px) scale(1);}
-  100%{ opacity: 0; transform: translateY(-60px) scale(.9);}
+  0%  { opacity: 0; transform: translateY(16px) scale(.5);}
+  15% { opacity: 1; transform: translateY(0) scale(1.15);}
+  30% { opacity: 1; transform: translateY(-4px) scale(1);}
+  70% { opacity: 1; transform: translateY(-20px) scale(1);}
+  100%{ opacity: 0; transform: translateY(-56px) scale(.85);}
 }
 
 /* Per-question result badge (between rounds) */

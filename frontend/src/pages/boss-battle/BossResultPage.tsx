@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GameButton } from '../../design-system/game';
 import { BossResult } from '../../design-system/bossbattle';
+import { DEFAULT_BOSS_STATES } from '../../design-system/bossbattle/lobby';
 import { useUser } from '../../hooks/useUser';
 import { useBossBattleStore } from '../../stores/boss-battle';
 import { notifyGameEnded } from '../../utils';
@@ -20,7 +21,6 @@ export function BossResultPage() {
     attemptId,
     bossHpPercent,
     bossProgressPercent,
-    bossStates,
     bossName,
     loading,
     error,
@@ -102,7 +102,7 @@ export function BossResultPage() {
       pointsContributed={attempt.pointsEarned}
       hpBefore={bossHpPercent}
       hpAfter={hpAfter}
-      states={bossStates}
+      states={DEFAULT_BOSS_STATES}
       bossName={bossName}
       bossDefeated={bossDefeated}
       onViewLeaderboard={() => navigate('/boss-battle/leaderboard')}

@@ -282,6 +282,14 @@ export function QuestionCard({
           </AnswerChoice>
         ))}
       </div>
+
+      {/* Waiting for opponent indicator */}
+      {phase === 'waiting' && (
+        <div className="st-waiting-banner">
+          <span className="st-waiting-icon">⏳</span>
+          <span className="st-waiting-text">Đang chờ đối thủ trả lời...</span>
+        </div>
+      )}
     </div>
   );
 }

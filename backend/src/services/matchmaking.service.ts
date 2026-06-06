@@ -46,11 +46,15 @@ export class MatchmakingService {
     const key = this.queueKey(gameType, partitionKey);
     const queueData = await redis.lrange(key, 0, -1);
 
+    console.log(entry);
+
     for (const data of queueData) {
       const waiting: MatchmakingEntry = JSON.parse(data);
 
       // Không ghép với chính mình
       if (waiting.userId == userId) continue;
+
+      console.log('Matching entry:', entry, 'with waiting entry:', waiting);
 
       // Xóa opponent khỏi queue
       await redis.lrem(key, 0, data);
@@ -59,6 +63,9 @@ export class MatchmakingService {
       const factory = this.getFactory(gameType);
       const session = await factory.createPVPSession(waiting.userId, userId);
       const opponent = await UserService.getUser(waiting.userId);
+
+      console.log('Opponent', opponent);
+      
 
       return {
         status: 'matched',

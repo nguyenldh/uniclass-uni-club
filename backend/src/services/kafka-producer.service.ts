@@ -17,6 +17,11 @@ export class KafkaProducerService {
   static async sendGameResult(payload: ClubGameResultDto): Promise<boolean> {
     const producer = getKafkaProducer();
 
+    console.log(
+      `[KafkaProducer] Begin Send game result: profile=${payload.profileId} ` +
+      `game=${payload.gameType} point=${payload.point} win=${payload.isWin}`,
+    );
+
     if (!producer) {
       console.log('[KafkaProducer] Producer not available, skipping sendGameResult');
       return false;
@@ -50,6 +55,11 @@ export class KafkaProducerService {
    */
   static async sendWeeklyEvent(payload: ClubWeeklyEventDto): Promise<boolean> {
     const producer = getKafkaProducer();
+
+    console.log(
+      `[KafkaProducer] Begin Send weekly event: profile=${payload.profileId} ` +
+      `week=${payload.data.quiz.week} point=${payload.data.quiz.point}`,
+    );
 
     if (!producer) {
       console.log('[KafkaProducer] Producer not available, skipping sendWeeklyEvent');

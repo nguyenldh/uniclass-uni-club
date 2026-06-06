@@ -294,6 +294,8 @@ export interface BossBattleStartResponse {
   questions: BossQuestionPublic[];
   /** Timestamp server bắt đầu phát câu đầu tiên (ms) — client dùng đồng bộ timer */
   serverStartedAt: number;
+  /** Vị trí câu hỏi hiện tại (dùng khi resume sau reload) */
+  currentQuestionIndex: number;
 }
 
 /** POST /api/game/boss-battle/battle/answer — FLW-05 */

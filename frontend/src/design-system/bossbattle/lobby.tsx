@@ -156,12 +156,12 @@ export interface BossHpBarProps extends HTMLAttributes<HTMLDivElement> {
 export function BossHpBar({ hpPercent, sub, className, ...rest }: BossHpBarProps) {
   const hp = Math.max(0, Math.min(100, hpPercent));
   const low = hp > 0 && hp <= 30;
-  const progress = Math.round(100 - hp);
+  const progress = (100 - hp).toFixed(2);
   return (
     <div data-ui="UI-102" className={cn('bb-hp', className)} {...rest}>
       <div className="bb-hp-top">
         <span className="heart"><FlameIcon size={18} /><span className="lab">Máu Boss</span></span>
-        <span className="pct"><b>{Math.round(hp)}%</b></span>
+        <span className="pct"><b>{hp.toFixed(2)}%</b></span>
       </div>
       <div className={cn('bb-hp-track', hp <= 0 && 'zero')}>
         <div className={cn('bb-hp-fill', low && 'low')} style={{ width: `calc(${hp}% - 4px)` }} />
@@ -200,14 +200,25 @@ export interface WeeklyCountdownProps {
   label?: ReactNode;
 }
 
+/** Mốc reset: 00:00 Thứ Hai giờ Việt Nam (UTC+7) = Chủ Nhật 17:00 UTC */
 function nextMonday(): number {
   const now = new Date();
-  const d = new Date(now);
-  const day = d.getDay(); // 0=CN..1=T2
-  const add = (8 - day) % 7 || 7;
-  d.setDate(d.getDate() + add);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
+  // Today at 17:00 UTC
+  const today17Utc = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    17, 0, 0, 0,
+  );
+  // Days until next Sunday (0 = Sunday in UTC)
+  const dayOfWeek = now.getUTCDay();
+  const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  let target = today17Utc + daysUntilSunday * 86400000;
+  // If already past this Sunday 17:00 UTC, go to next Sunday
+  if (now.getTime() >= target) {
+    target += 7 * 86400000;
+  }
+  return target;
 }
 
 export function WeeklyCountdown({ to, label = 'Boss mới sau' }: WeeklyCountdownProps) {

@@ -611,22 +611,25 @@ export class QuizArenaService {
     }
     afkState.finished = true;
 
-    // Đối thủ nhận điểm tối đa cho các câu còn lại
+    // Đối thủ nhận điểm tối đa cho các câu còn lại (tính như trả lời đúng)
     for (let i = opponentState.answers.length; i < questions.length; i++) {
+      const q = questions[i];
+      // Giả lập thời gian phản xạ hợp lý để kết quả trông thực tế
+      const simulatedResponseMs = Math.floor(
+        Math.random() * 4000 + 2000, // 2-6 giây, realistic
+      );
       opponentState.answers.push({
-        questionId: questions[i].id,
-        selectedIndex: null,
-        responseTimeMs: null,
-        isCorrect: false,
-        earnedPoints: 0, // Phần thưởng AFK forfeit sẽ tính ở endMatch
+        questionId: q.id,
+        selectedIndex: q.correctIndex,
+        responseTimeMs: simulatedResponseMs,
+        isCorrect: true,
+        earnedPoints: config.maxPointsPerQuestion,
       });
+      opponentState.correctCount++;
+      opponentState.totalCorrectTimeMs += simulatedResponseMs;
+      opponentState.totalScore += config.maxPointsPerQuestion;
     }
     opponentState.finished = true;
-
-    // Bonus điểm tối đa cho đối thủ từ câu chưa chơi
-    const remainingQuestions = questions.slice(currentQuestionIndex);
-    opponentState.totalScore +=
-      remainingQuestions.length * config.maxPointsPerQuestion;
 
     session.currentQuestionIndex = questions.length - 1; // jump to end
     await this.saveSession(session);

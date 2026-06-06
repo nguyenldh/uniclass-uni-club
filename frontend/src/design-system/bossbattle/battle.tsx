@@ -37,7 +37,7 @@ export function BossStrip({ name, hpPercent, states = DEFAULT_BOSS_STATES, lastD
           <div className="bbar-fill" style={{ width: `${hp}%` }} />
         </div>
       </div>
-      <div className="bbar-hp">{Math.round(hp)}%</div>
+      <div className="bbar-hp">{hp.toFixed(2)}%</div>
     </div>
   );
 }

@@ -120,7 +120,7 @@ export const useBossBattleStore = create<BossBattleState>((set, get) => ({
     try {
       const data = await bossBattleApi.getLobby(grade);
       const hpPercent = data.hasBoss && data.boss
-        ? Math.round(100 - data.boss.progressPercent)
+        ? Math.max(0, 100 - data.boss.progressPercent)
         : 100;
       const name = data.hasBoss && data.boss
         ? data.boss.config.bossName
@@ -146,7 +146,8 @@ export const useBossBattleStore = create<BossBattleState>((set, get) => ({
     try {
       const data = await bossBattleApi.startBattle(grade);
       const total = data.questions.length;
-      const currentIdx = get().currentQuestionIndex; // 0 nếu mới, >0 nếu resume
+      // Dùng currentQuestionIndex từ server (quan trọng khi resume sau reload)
+      const currentIdx = data.currentQuestionIndex ?? 0;
 
       // Init pips: tất cả pending, trừ những câu đã làm (nếu resume)
       const pips: QuestionPip[] = Array.from({ length: total }, (_, i) =>

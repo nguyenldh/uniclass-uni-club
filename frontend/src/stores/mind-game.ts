@@ -82,7 +82,14 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
     });
   },
 
-  setWin: (win) => set({ win, status: 'finished' }),
+  setWin: (win) => {
+    const { session } = get();
+    set({
+      win,
+      status: 'finished',
+      session: session ? { ...session, status: 'finished' as const } : null,
+    });
+  },
 
   tick: () => set(s => ({ timeElapsed: s.timeElapsed + 1 })),
 

@@ -234,6 +234,7 @@ export class BossBattleService {
       attemptId: String(attempt._id),
       questions: publicQuestions,
       serverStartedAt,
+      currentQuestionIndex: attempt.currentQuestionIndex,
     };
   }
 

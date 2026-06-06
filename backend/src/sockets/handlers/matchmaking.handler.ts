@@ -12,6 +12,7 @@ import {
 import type { MatchmakingGameType } from '@uniclub/shared';
 import { UserAbilityService } from '../../games/quiz-arena/services/user-ability.service';
 import { setPendingContext } from '../../games/quiz-arena/services/quiz-matchmaking.factory';
+import { UserService } from '../../services';
 
 /**
  * Lưu timeout handle cho mỗi user đang chờ matchmaking.
@@ -132,10 +133,15 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
           });
 
           if (opponentSocketId) {
+            const me = await UserService.getUser(userId);
             io.to(opponentSocketId).emit(MATCHMAKING_SOCKET_EVENTS.MATCHMAKING_MATCHED, {
               ...result,
               opponentId: userId,
               role: 'first',
+              opponentProfile: {
+                name: me?.name ?? '',
+                avatar: me?.avatar,
+              },
             });
           }
 

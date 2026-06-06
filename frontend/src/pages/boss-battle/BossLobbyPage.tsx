@@ -65,6 +65,7 @@ export function BossLobbyPage() {
       <GameCanvas
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}
       >
+        <ExitButton from="/boss-battle" />
         <div style={{ color: '#ff6a5a', fontSize: 18, fontWeight: 800 }}>Lỗi</div>
         <div style={{ color: '#fff', fontSize: 14, opacity: 0.8 }}>{error}</div>
       </GameCanvas>
@@ -75,8 +76,9 @@ export function BossLobbyPage() {
   if (!lobby?.hasBoss) {
     return (
       <GameCanvas
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}
       >
+        <ExitButton from="/boss-battle" />
         <div style={{ color: '#fff', fontSize: 18, textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🐉</div>
           <div style={{ fontWeight: 900 }}>Chưa có Boss tuần này</div>

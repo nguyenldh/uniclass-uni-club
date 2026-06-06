@@ -24,6 +24,10 @@ export interface UseMatchmakingOptions {
   gameType: MatchmakingGameType;
   /** Override default timeout (seconds). Falls back to server-provided value. */
   timeout?: number;
+  /** Quiz Arena: khối lớp của học sinh (lấy từ JWT) */
+  grade?: number;
+  /** Quiz Arena: tên hiển thị */
+  displayName?: string;
 }
 
 export interface UseMatchmakingReturn extends MatchmakingState {
@@ -37,6 +41,8 @@ export function useMatchmaking({
   userId,
   gameType,
   timeout: customTimeout,
+  grade,
+  displayName,
 }: UseMatchmakingOptions): UseMatchmakingReturn {
   const [phase, setPhase] = useState<MatchmakingPhase>('idle');
   const [secondsRemaining, setSecondsRemaining] = useState(
@@ -86,6 +92,8 @@ export function useMatchmaking({
       socket.emit(MATCHMAKING_SOCKET_EVENTS.JOIN_MATCHMAKING, {
         userId,
         gameType,
+        grade,
+        displayName,
       });
     });
 

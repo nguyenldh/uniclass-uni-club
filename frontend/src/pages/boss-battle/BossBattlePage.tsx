@@ -127,18 +127,17 @@ export function BossBattlePage() {
         applyAnswerResponse(res);
       } catch (err: any) {
         console.error('[BossBattle] submitAnswer failed:', err);
-        // Vẫn reveal với trạng thái sai nếu API lỗi
-        applyAnswerResponse({
-          isCorrect: false,
-          correctIndex: -1,
-          responseTimeSec: 0,
-          pointsAwarded: 0,
-          nextQuestionIndex: null,
-          attemptCompleted: false,
-        });
+        // Nếu lỗi là "out of order" → state client không đồng bộ với server
+        // → redirect về lobby để startBattle đồng bộ lại đúng currentQuestionIndex
+        if (err?.message?.includes('out of order')) {
+          navigate('/boss-battle', { replace: true });
+          return;
+        }
+        // Các lỗi khác (network, timeout...) → hiển thị lỗi, không giả vờ sai
+        useBossBattleStore.setState({ error: err?.message || 'Lỗi kết nối, vui lòng thử lại' });
       }
     },
-    [attemptId, questions, currentQuestionIndex, applyAnswerResponse],
+    [attemptId, questions, currentQuestionIndex, applyAnswerResponse, navigate],
   );
 
   const handleSelect = useCallback(

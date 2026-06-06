@@ -78,6 +78,10 @@ export function GomokuPage() {
   const processingRef = useRef(false);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gameEndedSentRef = useRef(false);
+  // Track sessionId hiện tại để tránh bắn game:ended cho game cũ khi store chưa reset
+  const activeSessionIdRef = useRef<string | null>(null);
+  // Guard: ngăn GOMOKU_END từ server ghi đè kết quả đã xác định local (tránh race condition)
+  const gameEndedLocallyRef = useRef(false);
 
   /** Phát hiện đường thắng, set win line cho board, delay overlay để người dùng thấy hiệu ứng */
   const handleWin = useCallback(
@@ -91,6 +95,8 @@ export function GomokuPage() {
       moves: number,
       score: number,
     ) => {
+      // Đánh dấu game đã kết thúc local, ngăn GOMOKU_END từ server ghi đè
+      gameEndedLocallyRef.current = true;
       const winLine = getGomokuWinLine(boardSnapshot, row, col, symbol);
       if (winLine) {
         setWin({ from: winLine.from, to: winLine.to, cells: winLine.cells });
@@ -104,7 +110,7 @@ export function GomokuPage() {
   );
 
   // Load session from matchmaking result on mount
-  useEffect(() => {
+  useEffect(() => {    
     if (!matchmakingResult?.sessionId) return;
 
     const loadSession = async () => {
@@ -115,7 +121,9 @@ export function GomokuPage() {
         );
         if (res.session) {
           setSession(res.session);
-          if (matchmakingResult.isAI) {
+          // Đánh dấu session hiện tại để tránh bắn game:ended cho session cũ
+          activeSessionIdRef.current = res.session.sessionId;
+          gameEndedSentRef.current = false;          gameEndedLocallyRef.current = false;          if (matchmakingResult.isAI) {
             setDifficulty("medium");
           }
 
@@ -180,6 +188,8 @@ export function GomokuPage() {
     userId,
     playerSymbol,
     onOpponentMove: (row, col, symbol) => {
+      // Nếu game đã kết thúc local, bỏ qua move từ server
+      if (gameEndedLocallyRef.current) return;
       makeMove(row, col, symbol);
       // Check if opponent's move is a winning move — set win line for animation
       const newBoard = board.map((r) => [...r]) as Board;
@@ -190,6 +200,8 @@ export function GomokuPage() {
       }
     },
     onGameEnd: (winner, isDraw) => {
+      // Nếu game đã kết thúc local (player thắng trước), bỏ qua GOMOKU_END từ server
+      if (gameEndedLocallyRef.current) return;
       // Delay overlay to let user see the winning line animation
       overlayTimerRef.current = setTimeout(() => {
         if (winner) {
@@ -217,18 +229,65 @@ export function GomokuPage() {
     };
   }, [session?.sessionId, session?.status, tick]);
 
-  // Cleanup overlay timer on unmount
+  // Cleanup overlay timer on unmount + gửi forfeit nếu user rời trang giữa trận
+  // PHẢI dùng empty deps [] để chỉ chạy khi component thực sự unmount,
+  // không phải khi deps thay đổi (status đổi playing→finished sẽ clear timer → overlay không hiện)
   useEffect(() => {
     return () => {
       if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+      // Nếu vẫn đang chơi mà component unmount (browser back, v.v.) → gửi forfeit
+      if (status === 'playing' && !gameEndedSentRef.current) {
+        gameEndedSentRef.current = true;
+        notifyGameEnded({
+          userId,
+          gameType: 'mind_game',
+          kafkaGameType: 'CARO',
+          subGame: 'gomoku',
+          sessionId: session?.sessionId,
+          point: 0,
+          playTime: timeElapsed,
+          sessionCompleted: false,
+          isWin: false,
+        });
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Handler: gửi game:ended khi user bỏ cuộc giữa chừng ───
+  const handleForfeit = useCallback(() => {
+    if (status === 'playing' && !gameEndedSentRef.current) {
+      gameEndedSentRef.current = true;
+      notifyGameEnded({
+        userId,
+        gameType: 'mind_game',
+        kafkaGameType: 'CARO',
+        subGame: 'gomoku',
+        sessionId: session?.sessionId,
+        point: 0,
+        playTime: timeElapsed,
+        sessionCompleted: false,
+        isWin: false,
+      });
+    }
+    exitWebView('/mind-game/gomoku');
+  }, [status, userId, session?.sessionId, timeElapsed]);
+
   // ─── Gửi game:ended khi game kết thúc (overlay hiện ra) ───
+  // PHẢI depend vào overlayStats để đảm bảo đọc được giá trị mới nhất.
+  // endGame() set overlayState + overlayStats cùng lúc, nhưng nếu chỉ depend [overlayState]
+  // thì overlayStats trong closure vẫn là giá trị cũ → point = 0.
+  //
+  // QUAN TRỌNG: Khi user chơi game mới, Zustand store vẫn giữ state cũ (overlayState='win')
+  // cho đến khi setSession() chạy. Effect này sẽ trigger với state cũ → bắn game:ended sai.
+  // Fix: Chỉ gửi khi sessionId khớp với session hiện tại (activeSessionIdRef).
   useEffect(() => {
-    console.log(overlayState);
-    
     if (overlayState === 'idle' || gameEndedSentRef.current) return;
+    // Guard: overlayStats phải có data mới gửi (tránh race condition)
+    if (overlayStats.length === 0) return;
+    // Guard: chỉ gửi cho session hiện tại, không phải session cũ còn sót trong store
+    if (!session?.sessionId || session.sessionId !== activeSessionIdRef.current) return;
+
     gameEndedSentRef.current = true;
 
     const isWin = overlayState === 'win';
@@ -240,13 +299,13 @@ export function GomokuPage() {
       gameType: 'mind_game',
       kafkaGameType: 'CARO',
       subGame: 'gomoku',
-      sessionId: session?.sessionId,
+      sessionId: session.sessionId,
       point: isWin ? point : 0,
       playTime: timeElapsed,
       sessionCompleted: true,
       isWin,
     });
-  }, [overlayState]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [overlayState, overlayStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // AI move — computed locally on frontend
   useEffect(() => {
@@ -330,7 +389,9 @@ export function GomokuPage() {
   const handleCellClick = useCallback(
     (row: number, col: number) => {
       if (processingRef.current || !session) return;
-      if (currentTurn !== playerSymbol) return;
+      // Dùng getState() để đọc currentTurn mới nhất từ store (Zustand update đồng bộ),
+      // tránh stale closure cho phép click khi không phải lượt mình
+      if (useGomokuStore.getState().currentTurn !== playerSymbol) return;
       if (board[row]?.[col] !== null) return;
 
       processingRef.current = true;
@@ -365,7 +426,6 @@ export function GomokuPage() {
     },
     [
       session,
-      currentTurn,
       playerSymbol,
       board,
       makeMove,
@@ -423,23 +483,7 @@ export function GomokuPage() {
           mark={playerSymbol === "X" ? "O" : "X"}
           active={currentTurn !== playerSymbol}
         />
-        <GameButton className="exit-in-hud" color="ghost" onClick={() => {
-          if (status === 'playing' && !gameEndedSentRef.current) {
-            gameEndedSentRef.current = true;
-            notifyGameEnded({
-              userId,
-              gameType: 'mind_game',
-              kafkaGameType: 'CARO',
-              subGame: 'gomoku',
-              sessionId: session?.sessionId,
-              point: 0,
-              playTime: timeElapsed,
-              sessionCompleted: false,
-              isWin: false,
-            });
-          }
-          exitWebView('/mind-game/gomoku');
-        }}>
+        <GameButton className="exit-in-hud" color="ghost" onClick={handleForfeit}>
           ← Thoát
         </GameButton>
       </div>
@@ -470,24 +514,7 @@ export function GomokuPage() {
         />
       )}
 
-      <GameButton className="exit-at-bottom" color="ghost" onClick={() => {
-        // Gửi forfeit message nếu đang trong trận
-        if (status === 'playing' && !gameEndedSentRef.current) {
-          gameEndedSentRef.current = true;
-          notifyGameEnded({
-            userId,
-            gameType: 'mind_game',
-            kafkaGameType: 'CARO',
-            subGame: 'gomoku',
-            sessionId: session?.sessionId,
-            point: 0,
-            playTime: timeElapsed,
-            sessionCompleted: false,
-            isWin: false,
-          });
-        }
-        exitWebView('/mind-game/gomoku');
-      }}>
+      <GameButton className="exit-at-bottom" color="ghost" onClick={handleForfeit}>
         ← Thoát
       </GameButton>
     </GameCanvas>
