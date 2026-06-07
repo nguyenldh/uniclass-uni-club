@@ -14,6 +14,13 @@ import {
   MonitorPage,
   WeeklyConfigPage,
 } from './pages/boss-battle';
+import {
+  WeeklyEventGeneralSettingsPage,
+  WeeklyEventListPage,
+  WeeklyEventDetailPage,
+  WeeklyEventExamBankPage,
+  WeeklyEventMonitorPage,
+} from './pages/weekly-event';
 import { BotProfilesPage } from './pages/BotProfilesPage';
 
 export function App() {
@@ -53,6 +60,15 @@ export function App() {
               <Route path="weekly-config" element={<WeeklyConfigPage />} />
               <Route path="questions" element={<BossQuestionsPage />} />
               <Route path="monitor" element={<MonitorPage />} />
+            </Route>
+
+            {/* Weekly Event (Sự kiện tuần) */}
+            <Route path="weekly-event">
+              <Route path="settings" element={<WeeklyEventGeneralSettingsPage />} />
+              <Route path="events" element={<WeeklyEventListPage />} />
+              <Route path="events/:id" element={<WeeklyEventDetailPage />} />
+              <Route path="exams" element={<WeeklyEventExamBankPage />} />
+              <Route path="monitor" element={<WeeklyEventMonitorPage />} />
             </Route>
             
             {/* Bot Profiles */}

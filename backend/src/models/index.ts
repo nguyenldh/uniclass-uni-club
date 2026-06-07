@@ -603,3 +603,351 @@ export const BossWeeklyConfigModel = mongoose.model<IBossWeeklyConfig>(
   'bb_boss_weekly_configs',
 );
 
+// ============================================================
+// Weekly Event (Sự kiện tuần) — DATA-M-001..DATA-M-007
+// ============================================================
+
+import type {
+  WeeklyEventGeneralConfig,
+  WeeklyEventStatus,
+  WeeklyEventRoomStatus,
+  SubmissionType,
+  ExamOption,
+  ExamQuestion,
+  WeeklyEventAnswer,
+  LeaderboardEntry,
+} from '@uniclub/shared';
+
+// ---- DATA-M-001: WeeklyEventGeneralConfig (singleton) ----
+
+export interface IWeeklyEventGeneralConfig extends Document {
+  defaultWaitingDuration: number;
+  defaultExamDuration: number;
+  defaultLeaderboardDuration: number;
+  leaderboardLimit: number;
+  defaultActiveGrades: number[];
+  weeklyCronExpression: string;
+  timezone: string;
+  updatedAt: Date;
+  updatedBy?: string;
+}
+
+const WeeklyEventGeneralConfigSchema = new Schema<IWeeklyEventGeneralConfig>(
+  {
+    _id: { type: Schema.Types.Mixed, default: 'singleton' },
+    defaultWaitingDuration: { type: Number, required: true, default: 5, min: 1 },
+    defaultExamDuration: { type: Number, required: true, default: 20, min: 1 },
+    defaultLeaderboardDuration: { type: Number, required: true, default: 5, min: 1 },
+    leaderboardLimit: { type: Number, required: true, default: 10, min: 1 },
+    defaultActiveGrades: {
+      type: [Number],
+      required: true,
+      default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    },
+    weeklyCronExpression: { type: String, required: true, default: '0 10 * * 6' },
+    timezone: { type: String, required: true, default: 'Asia/Ho_Chi_Minh' },
+    updatedBy: { type: String },
+  },
+  { timestamps: { updatedAt: true, createdAt: false } },
+);
+
+export const WeeklyEventGeneralConfigModel = mongoose.model<IWeeklyEventGeneralConfig>(
+  'WeeklyEventGeneralConfig',
+  WeeklyEventGeneralConfigSchema,
+  'we_general_config',
+);
+
+// ---- DATA-M-002: WeeklyEvent ----
+
+export interface IWeeklyEvent extends Document {
+  weekNumber: number;
+  year: number;
+  title: string;
+  scheduledStartAt: Date;
+  actualStartAt?: Date | null;
+  actualEndAt?: Date | null;
+  waitingDuration: number;
+  examDuration: number;
+  leaderboardDuration: number;
+  questionCountOverride: number;
+  activeGrades: number[];
+  status: WeeklyEventStatus;
+  examAssignments: Record<string, string>;
+  createdAt: Date;
+  createdBy?: string;
+}
+
+const WeeklyEventSchema = new Schema<IWeeklyEvent>(
+  {
+    weekNumber: { type: Number, required: true, min: 1, max: 53 },
+    year: { type: Number, required: true },
+    title: { type: String, required: true, trim: true },
+    scheduledStartAt: { type: Date, required: true },
+    actualStartAt: { type: Date, default: null },
+    actualEndAt: { type: Date, default: null },
+    waitingDuration: { type: Number, required: true, default: 5 },
+    examDuration: { type: Number, required: true, default: 20 },
+    leaderboardDuration: { type: Number, required: true, default: 5 },
+    questionCountOverride: { type: Number, required: true, default: 25 },
+    activeGrades: { type: [Number], required: true, default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+    status: {
+      type: String,
+      required: true,
+      enum: ['Draft', 'Scheduled', 'Waiting', 'InProgress', 'Grading', 'Showing', 'Closed', 'Cancelled'],
+      default: 'Draft',
+    },
+    examAssignments: { type: Schema.Types.Mixed, default: {} },
+    createdBy: { type: String },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+
+WeeklyEventSchema.index({ status: 1, scheduledStartAt: 1 });
+WeeklyEventSchema.index({ weekNumber: 1, year: 1 }, { unique: true });
+
+export const WeeklyEventModel = mongoose.model<IWeeklyEvent>(
+  'WeeklyEvent',
+  WeeklyEventSchema,
+  'we_events',
+);
+
+// ---- DATA-M-003: WeeklyEventRoom ----
+
+export interface IWeeklyEventRoom extends Document {
+  eventId: mongoose.Types.ObjectId;
+  grade: number;
+  examId?: string;
+  status: WeeklyEventRoomStatus;
+  stateTransitions: { to: string; at: Date }[];
+  participantCount: number;
+  submittedCount: number;
+}
+
+const WeeklyEventRoomSchema = new Schema<IWeeklyEventRoom>(
+  {
+    eventId: { type: Schema.Types.ObjectId, ref: 'WeeklyEvent', required: true },
+    grade: { type: Number, required: true, min: 1, max: 12 },
+    examId: { type: String },
+    status: {
+      type: String,
+      required: true,
+      enum: ['Scheduled', 'Waiting', 'InProgress', 'Grading', 'Showing', 'Closed', 'Cancelled'],
+      default: 'Scheduled',
+    },
+    stateTransitions: {
+      type: [{ to: String, at: { type: Date, default: Date.now } }],
+      default: [],
+    },
+    participantCount: { type: Number, default: 0 },
+    submittedCount: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
+
+WeeklyEventRoomSchema.index({ eventId: 1, grade: 1 }, { unique: true });
+WeeklyEventRoomSchema.index({ status: 1, eventId: 1 });
+
+export const WeeklyEventRoomModel = mongoose.model<IWeeklyEventRoom>(
+  'WeeklyEventRoom',
+  WeeklyEventRoomSchema,
+  'we_rooms',
+);
+
+// ---- DATA-M-004: ExamBank ----
+
+const ExamOptionSchema = new Schema<ExamOption>(
+  {
+    key: { type: String, required: true, enum: ['A', 'B', 'C', 'D'] },
+    text: { type: String, required: true, trim: true },
+  },
+  { _id: false },
+);
+
+const ExamQuestionSchema = new Schema<ExamQuestion>(
+  {
+    questionId: { type: String, required: true },
+    stem: { type: String, required: true, trim: true },
+    options: {
+      type: [ExamOptionSchema],
+      required: true,
+      validate: [(v: ExamOption[]) => v.length === 4, 'options must have exactly 4 items'],
+    },
+    correctKey: { type: String, required: true, enum: ['A', 'B', 'C', 'D'] },
+    shuffleable: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
+export interface IExamBank extends Document {
+  grade: number;
+  title: string;
+  subject: string;
+  totalQuestions: number;
+  questions: ExamQuestion[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ExamBankSchema = new Schema<IExamBank>(
+  {
+    grade: { type: Number, required: true, min: 1, max: 12 },
+    title: { type: String, required: true, trim: true },
+    subject: { type: String, required: true, trim: true },
+    totalQuestions: { type: Number, required: true, default: 25 },
+    questions: {
+      type: [ExamQuestionSchema],
+      required: true,
+      validate: [
+        (v: ExamQuestion[]) => v.length > 0 && v.length <= 100,
+        'questions must have 1-100 items',
+      ],
+    },
+  },
+  { timestamps: true },
+);
+
+ExamBankSchema.index({ grade: 1 });
+ExamBankSchema.index({ subject: 1 });
+
+export const ExamBankModel = mongoose.model<IExamBank>(
+  'ExamBank',
+  ExamBankSchema,
+  'we_exam_bank',
+);
+
+// ---- DATA-M-005: WeeklyEventParticipation ----
+
+export interface IWeeklyEventParticipation extends Document {
+  eventId: mongoose.Types.ObjectId;
+  roomId: mongoose.Types.ObjectId;
+  studentId: string;
+  grade: number;
+  joinedAt: Date;
+  examStartedAt?: Date | null;
+  submittedAt?: Date | null;
+  submissionType?: SubmissionType;
+  disconnectCount: number;
+  shuffleSeed: string;
+}
+
+const WeeklyEventParticipationSchema = new Schema<IWeeklyEventParticipation>(
+  {
+    eventId: { type: Schema.Types.ObjectId, ref: 'WeeklyEvent', required: true },
+    roomId: { type: Schema.Types.ObjectId, ref: 'WeeklyEventRoom', required: true },
+    studentId: { type: String, required: true },
+    grade: { type: Number, required: true, min: 1, max: 12 },
+    joinedAt: { type: Date, required: true, default: Date.now },
+    examStartedAt: { type: Date, default: null },
+    submittedAt: { type: Date, default: null },
+    submissionType: {
+      type: String,
+      enum: ['manual', 'auto_timeout', 'auto_disconnect'],
+    },
+    disconnectCount: { type: Number, default: 0 },
+    shuffleSeed: { type: String, required: true },
+  },
+  { timestamps: true },
+);
+
+WeeklyEventParticipationSchema.index({ eventId: 1, studentId: 1 }, { unique: true });
+WeeklyEventParticipationSchema.index({ roomId: 1, submittedAt: 1 });
+
+export const WeeklyEventParticipationModel = mongoose.model<IWeeklyEventParticipation>(
+  'WeeklyEventParticipation',
+  WeeklyEventParticipationSchema,
+  'we_participations',
+);
+
+// ---- DATA-M-006: WeeklyEventResult ----
+
+const WeeklyEventAnswerSchema = new Schema<WeeklyEventAnswer>(
+  {
+    questionId: { type: String, required: true },
+    selectedKey: { type: String, default: null },
+    isCorrect: { type: Boolean, required: true },
+    answeredAt: { type: String, required: true },
+  },
+  { _id: false },
+);
+
+export interface IWeeklyEventResult extends Document {
+  participationId: mongoose.Types.ObjectId;
+  eventId: mongoose.Types.ObjectId;
+  roomId: mongoose.Types.ObjectId;
+  studentId: string;
+  correctCount: number;
+  totalAnswered: number;
+  totalTimeMs: number;
+  lastCorrectAnswerAt?: Date;
+  rank?: number;
+  score: number;
+  answers: WeeklyEventAnswer[];
+}
+
+const WeeklyEventResultSchema = new Schema<IWeeklyEventResult>(
+  {
+    participationId: { type: Schema.Types.ObjectId, ref: 'WeeklyEventParticipation', required: true },
+    eventId: { type: Schema.Types.ObjectId, ref: 'WeeklyEvent', required: true },
+    roomId: { type: Schema.Types.ObjectId, ref: 'WeeklyEventRoom', required: true },
+    studentId: { type: String, required: true },
+    correctCount: { type: Number, required: true, default: 0 },
+    totalAnswered: { type: Number, required: true, default: 0 },
+    totalTimeMs: { type: Number, required: true, default: 0 },
+    lastCorrectAnswerAt: { type: Date },
+    rank: { type: Number },
+    score: { type: Number, required: true, default: 0 },
+    answers: { type: [WeeklyEventAnswerSchema], default: [] },
+  },
+  { timestamps: true },
+);
+
+WeeklyEventResultSchema.index({ eventId: 1, roomId: 1, rank: 1 });
+WeeklyEventResultSchema.index({ studentId: 1, eventId: 1 });
+
+export const WeeklyEventResultModel = mongoose.model<IWeeklyEventResult>(
+  'WeeklyEventResult',
+  WeeklyEventResultSchema,
+  'we_results',
+);
+
+// ---- DATA-M-007: WeeklyEventLeaderboardSnapshot ----
+
+const LeaderboardEntrySchema = new Schema<LeaderboardEntry>(
+  {
+    rank: { type: Number, required: true },
+    studentId: { type: String, required: true },
+    displayName: { type: String, required: true },
+    avatarUrl: { type: String },
+    correctCount: { type: Number, required: true },
+    totalTimeMs: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
+export interface IWeeklyEventLeaderboardSnapshot extends Document {
+  eventId: mongoose.Types.ObjectId;
+  roomId: mongoose.Types.ObjectId;
+  grade: number;
+  topN: LeaderboardEntry[];
+  computedAt: Date;
+}
+
+const WeeklyEventLeaderboardSnapshotSchema = new Schema<IWeeklyEventLeaderboardSnapshot>(
+  {
+    eventId: { type: Schema.Types.ObjectId, ref: 'WeeklyEvent', required: true },
+    roomId: { type: Schema.Types.ObjectId, ref: 'WeeklyEventRoom', required: true },
+    grade: { type: Number, required: true, min: 1, max: 12 },
+    topN: { type: [LeaderboardEntrySchema], default: [] },
+    computedAt: { type: Date, required: true, default: Date.now },
+  },
+  { timestamps: false },
+);
+
+WeeklyEventLeaderboardSnapshotSchema.index({ eventId: 1, roomId: 1 }, { unique: true });
+
+export const WeeklyEventLeaderboardSnapshotModel = mongoose.model<IWeeklyEventLeaderboardSnapshot>(
+  'WeeklyEventLeaderboardSnapshot',
+  WeeklyEventLeaderboardSnapshotSchema,
+  'we_leaderboard_snapshots',
+);
+

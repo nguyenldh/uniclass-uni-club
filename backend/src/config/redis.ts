@@ -29,6 +29,11 @@ export const redis = createRedisClient();
 
 export async function connectRedis(): Promise<void> {
   try {
+    // redis.duplicate() (dùng bởi Socket.IO adapter) có thể đã kích hoạt kết nối
+    if (redis.status === 'connecting' || redis.status === 'connect' || redis.status === 'ready') {
+      console.log(`[Redis] Already connected (${env.REDIS_MODE})`);
+      return;
+    }
     await redis.connect();
     console.log(`[Redis] Connected (${env.REDIS_MODE})`);
   } catch (error) {

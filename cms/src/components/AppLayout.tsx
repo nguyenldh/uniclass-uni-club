@@ -10,6 +10,7 @@ import {
   LogoutOutlined,
   UserOutlined,
   FireOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth.store';
@@ -43,6 +44,12 @@ const menuItems: MenuItem[] = [
     getItem('Cấu hình tuần', '/boss-battle/weekly-config'),
     getItem('Ngân hàng câu hỏi', '/boss-battle/questions'),
     getItem('Theo dõi', '/boss-battle/monitor'),
+  ]),
+  getItem('Sự kiện tuần', 'weekly-event', <CalendarOutlined />, [
+    getItem('Cấu hình chung', '/weekly-event/settings'),
+    getItem('Danh sách sự kiện', '/weekly-event/events'),
+    getItem('Ngân hàng đề', '/weekly-event/exams'),
+    getItem('Theo dõi', '/weekly-event/monitor'),
   ]),
   getItem('Bot Profiles', '/bot-profiles', <RobotOutlined />),
 ];
@@ -79,6 +86,8 @@ export function AppLayout() {
     ? ['quiz-arena']
     : location.pathname.startsWith('/boss-battle')
     ? ['boss-battle']
+    : location.pathname.startsWith('/weekly-event')
+    ? ['weekly-event']
     : [];
 
   return (
