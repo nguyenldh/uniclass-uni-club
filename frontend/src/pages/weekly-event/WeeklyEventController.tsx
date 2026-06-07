@@ -15,6 +15,7 @@ import { useWeeklyEventStore } from '../../stores/weekly-event';
 import { useWeeklyEventSocket } from '../../hooks/useWeeklyEventSocket';
 import { weeklyEventApi } from '../../services/weekly-event';
 import { exitWebView, notifyGameEnded } from '../../utils';
+import { ExitButton } from '../../components';
 
 export function WeeklyEventController() {
   const navigate = useNavigate();
@@ -401,6 +402,7 @@ export function WeeklyEventController() {
           onJoin={handleJoin}
           onResume={handleResume}
           waitingDuration={store.event?.waitingDuration}
+          topRight={<ExitButton from="/weekly-event" />}
         />
       );
 

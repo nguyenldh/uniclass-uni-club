@@ -12,7 +12,9 @@
     "seed:bots": "tsx src/scripts/seed-bots.ts",
     "seed:bots:force": "tsx src/scripts/seed-bots.ts --force",
     "seed:questions": "tsx src/games/quiz-arena/scripts/seed-questions.ts",
-    "seed:admin": "tsx src/scripts/seed-admin.ts"
+    "seed:admin": "tsx src/scripts/seed-admin.ts",
+    "seed:weekly-event": "tsx src/scripts/seed-weekly-event.ts",
+    "test:batch-grading": "tsx src/scripts/test-batch-grading.ts"
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",

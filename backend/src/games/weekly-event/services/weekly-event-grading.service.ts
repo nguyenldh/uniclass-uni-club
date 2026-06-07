@@ -14,6 +14,7 @@ import {
   ExamBankModel,
 } from '../../../models/index';
 import { ScoreService } from '../../../services/score.service';
+import { KafkaProducerService } from '../../../services/kafka-producer.service';
 import {
   WEEKLY_EVENT_REDIS_KEYS,
 } from '@uniclub/shared';
@@ -165,7 +166,9 @@ export class WeeklyEventGradingService {
 
     // 2. Query event parameters (examDuration)
     const event = await WeeklyEventModel.findById(eventId).lean();
-    const examDurationMs = (event?.examDuration || 20) * 60 * 1000;
+    if (!event) return 0;
+
+    const examDurationMs = (event.examDuration || 20) * 60 * 1000;
     const questionCount = exam.questions.length;
     const perQuestionMs = examDurationMs / questionCount;
     const examQuestionMap = new Map(exam.questions.map((q) => [q.questionId, q]));
@@ -277,6 +280,26 @@ export class WeeklyEventGradingService {
           { $set: { disconnectCount } }
         ).catch((err) => console.error('[WeeklyEvent] Sync disconnectCount error:', err));
       }
+
+      // Emit Kafka event sang UniClass
+      const kafkaPayload = {
+        profileId: p.studentId,
+        type: 'WEEKLY_EVENT' as const,
+        data: {
+          quiz: {
+            week: event.weekNumber,
+            year: event.year,
+            point: score,
+            correctCount,
+            totalQuestions: questionCount,
+            sessionCompleted: true,
+            playTime: Math.round(computedTotalTimeMs / 1000),
+            startTime: new Date(event.scheduledStartAt).getTime(),
+            endTime: new Date(event.scheduledStartAt).getTime() + (event.waitingDuration + event.examDuration) * 60000,
+          }
+        }
+      };
+      KafkaProducerService.sendWeeklyEvent(kafkaPayload);
     }
 
     // 4. Ghi DB & Redis theo chunks (size: 500)
