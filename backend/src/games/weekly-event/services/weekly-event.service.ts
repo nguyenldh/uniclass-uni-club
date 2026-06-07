@@ -131,8 +131,8 @@ export class WeeklyEventService {
     const event = await WeeklyEventModel.findById(id).lean();
     if (!event) return null;
 
-    if (['Waiting', 'InProgress', 'Grading', 'Showing'].includes(event.status)) {
-      throw new Error('Không thể sửa event đang diễn ra');
+    if (!['Draft', 'Scheduled'].includes(event.status)) {
+      throw new Error('Chỉ có thể chỉnh sửa sự kiện ở trạng thái Bản nháp hoặc Đã lên lịch');
     }
 
     const update: Record<string, unknown> = {};
@@ -202,8 +202,8 @@ export class WeeklyEventService {
     const event = await WeeklyEventModel.findById(eventId).lean();
     if (!event) throw new Error('EVENT_NOT_FOUND');
 
-    if (['Waiting', 'InProgress', 'Grading', 'Showing'].includes(event.status)) {
-      throw new Error('Không thể gán đề khi event đang diễn ra');
+    if (!['Draft', 'Scheduled'].includes(event.status)) {
+      throw new Error('Chỉ có thể gán đề cho sự kiện ở trạng thái Bản nháp hoặc Đã lên lịch');
     }
 
     const examAssignments = { ...(event.examAssignments || {}) };
@@ -254,7 +254,7 @@ export class WeeklyEventService {
 
     // Khởi tạo room state trong Redis
     for (const grade of event.activeGrades) {
-      await WeeklyEventStateMachine.initRoomState(id, grade);
+      await WeeklyEventStateMachine.initRoomState(id, grade, event.scheduledStartAt.toISOString());
     }
 
     await redis.del(`${WEEKLY_EVENT_REDIS_KEYS.EVENT}:${id}`);
@@ -311,10 +311,10 @@ export class WeeklyEventService {
     // Kiểm tra đã tồn tại chưa
     const existing = await WeeklyEventModel.findOne({ weekNumber, year }).lean();
     console.log(existing);
-    
+
     if (existing) return null;
 
-    const title = `Đấu Trường Số ${weekNumber}: Thử Thách Tuần`;
+    const title = `Sự kiện tuần Số ${weekNumber}: Thử Thách Tuần`;
 
     const doc = await WeeklyEventModel.create({
       weekNumber,

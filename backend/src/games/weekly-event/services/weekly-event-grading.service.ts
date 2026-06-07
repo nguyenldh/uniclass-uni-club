@@ -5,6 +5,7 @@
 
 import { redis } from '../../../config/index';
 import {
+  WeeklyEventModel,
   WeeklyEventResultModel,
   WeeklyEventParticipationModel,
   WeeklyEventLeaderboardSnapshotModel,
@@ -76,14 +77,36 @@ export class WeeklyEventGradingService {
       }
     }
 
-    // Tính tổng thời gian làm bài
+    // Tính tổng thời gian làm bài theo tổng thời gian phản hồi từng câu hỏi (Response Time Summation)
+    const event = await WeeklyEventModel.findById(eventId).lean();
+    const examDurationMs = (event?.examDuration || 20) * 60 * 1000;
+    const questionCount = exam.questions.length;
+    const perQuestionMs = examDurationMs / questionCount;
+
     const examStartedAt = participation.examStartedAt
       ? new Date(participation.examStartedAt).getTime()
       : new Date(participation.joinedAt).getTime();
-    const submittedAt = participation.submittedAt
-      ? new Date(participation.submittedAt).getTime()
-      : Date.now();
-    totalTimeMs = submittedAt - examStartedAt;
+
+    let computedTotalTimeMs = 0;
+    for (let i = 0; i < questionCount; i++) {
+      const q = exam.questions[i];
+      const answer = answers[q.questionId];
+      if (answer) {
+        const questionStartAt = examStartedAt + i * perQuestionMs;
+        const answeredAt = new Date(answer.at).getTime();
+        let timeTaken = answeredAt - questionStartAt;
+        
+        // Clamping để đảm bảo tính chính xác
+        if (timeTaken < 0) timeTaken = 0;
+        if (timeTaken > perQuestionMs) timeTaken = perQuestionMs;
+        
+        computedTotalTimeMs += timeTaken;
+      } else {
+        // Học sinh không trả lời câu này -> Tính tối đa thời gian của câu đó (Phương án A)
+        computedTotalTimeMs += perQuestionMs;
+      }
+    }
+    totalTimeMs = computedTotalTimeMs;
 
     // 4. Tính điểm
     const score = correctCount * 10; // Base score: 10 điểm/câu đúng

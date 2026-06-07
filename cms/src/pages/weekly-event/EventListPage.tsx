@@ -55,7 +55,17 @@ const STATUS_LABEL: Record<WeeklyEventStatus, string> = {
 
 export function WeeklyEventListPage() {
   const navigate = useNavigate();
-  const { events, eventsTotal, isLoading, loadEvents, publishEvent, cancelEvent, createEvent } = useWeeklyEventStore();
+  const {
+    events,
+    eventsTotal,
+    isLoading,
+    loadEvents,
+    publishEvent,
+    cancelEvent,
+    createEvent,
+    generalConfig,
+    loadGeneralConfig,
+  } = useWeeklyEventStore();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -73,6 +83,23 @@ export function WeeklyEventListPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    loadGeneralConfig();
+  }, [loadGeneralConfig]);
+
+  useEffect(() => {
+    if (createModalOpen) {
+      const cfg = generalConfig || { defaultActiveGrades: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] };
+      createForm.setFieldsValue({
+        weekNumber: getCurrentWeekNumber(),
+        year: new Date().getFullYear(),
+        activeGrades: cfg.defaultActiveGrades,
+        title: '',
+        scheduledStartAt: null,
+      });
+    }
+  }, [createModalOpen, generalConfig, createForm]);
 
   const handlePublish = async (id: string) => {
     try {

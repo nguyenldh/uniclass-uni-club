@@ -52,9 +52,12 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
   // ============================================================
   socket.on(WEEKLY_EVENT_CLIENT_EVENTS.ROOM_JOIN, async (_payload, ack) => {
     try {
+      // Ensure student is added to online set
+      await WeeklyEventRoomService.enterRoom(eventId, studentId, grade);
+
       // Broadcast online count
       const count = await WeeklyEventRoomService.getOnlineCount(eventId, grade);
-      io.to(roomName(eventId, grade)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
+      socket.nsp.to(roomName(eventId, grade)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
         grade,
         count,
       });
@@ -88,7 +91,7 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
       );
 
       // Emit ack riêng cho student
-      io.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ANSWER_ACK, result);
+      socket.nsp.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ANSWER_ACK, result);
 
       ack?.({ ok: true });
     } catch (err: any) {
@@ -125,7 +128,7 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
 
       switch (roomState.status) {
         case 'Waiting':
-          io.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_STATE, {
+          socket.nsp.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_STATE, {
             grade,
             status: 'Waiting',
             transitionedAt: roomState.transitionedAt,
@@ -144,10 +147,22 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
                 totalQuestions: exam.totalQuestions,
               }));
 
-              io.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.SESSION_RESUME, {
+              let remainingMs = 0;
+              if (roomState.nextTransitionAt) {
+                remainingMs = Math.max(0, new Date(roomState.nextTransitionAt).getTime() - Date.now());
+              } else {
+                const event = await WeeklyEventModel.findById(eventId).lean();
+                if (event) {
+                  const scheduledStart = new Date(event.scheduledStartAt);
+                  const examEnd = new Date(scheduledStart.getTime() + (event.waitingDuration + event.examDuration) * 60000);
+                  remainingMs = Math.max(0, examEnd.getTime() - Date.now());
+                }
+              }
+
+              socket.nsp.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.SESSION_RESUME, {
                 answers,
                 currentQuestionIdx: Object.keys(answers).length,
-                remainingMs: 0, // Will be calculated by client using time sync
+                remainingMs,
                 status: 'InProgress',
                 questions: publicQuestions,
               });
@@ -177,13 +192,13 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
             );
 
             if (leaderboard) {
-              io.to(studentRoomName(studentId)).emit(
+              socket.nsp.to(studentRoomName(studentId)).emit(
                 WEEKLY_EVENT_SOCKET_EVENTS.ROOM_LEADERBOARD,
                 { topN: leaderboard, computedAt: new Date().toISOString() },
               );
             }
             if (personalResult) {
-              io.to(studentRoomName(studentId)).emit(
+              socket.nsp.to(studentRoomName(studentId)).emit(
                 WEEKLY_EVENT_SOCKET_EVENTS.PERSONAL_RESULT,
                 {
                   correctCount: personalResult.correctCount,
@@ -218,7 +233,7 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
   // ============================================================
   socket.on(WEEKLY_EVENT_CLIENT_EVENTS.TIME_SYNC, (payload) => {
     const { clientTime } = payload || {};
-    io.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.SERVER_TIME, {
+    socket.nsp.to(studentRoomName(studentId)).emit(WEEKLY_EVENT_SOCKET_EVENTS.SERVER_TIME, {
       serverTime: Date.now(),
       clientSentAt: clientTime || 0,
     });
@@ -231,11 +246,20 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
     try {
       await WeeklyEventAnswerService.submitFinal(eventId, studentId);
 
-      // Cập nhật participation
-      await WeeklyEventParticipationModel.findOneAndUpdate(
-        { eventId, studentId },
+      // Cập nhật participation (chỉ khi chưa nộp)
+      const participation = await WeeklyEventParticipationModel.findOneAndUpdate(
+        { eventId, studentId, submittedAt: null },
         { $set: { submittedAt: new Date(), submissionType: 'manual' } },
+        { new: true }
       );
+
+      if (participation) {
+        // Tăng submittedCount trong Room
+        await WeeklyEventRoomModel.findOneAndUpdate(
+          { eventId, grade },
+          { $inc: { submittedCount: 1 } }
+        );
+      }
 
       ack?.({ ok: true });
     } catch (err: any) {
@@ -264,7 +288,7 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
 
       // Broadcast online count mới
       const count = await WeeklyEventRoomService.getOnlineCount(eventId, grade);
-      io.to(roomName(eventId, grade)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
+      socket.nsp.to(roomName(eventId, grade)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
         grade,
         count,
       });

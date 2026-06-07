@@ -3,10 +3,15 @@
 // ============================================================
 
 import { Router, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { env } from '../../../config/index';
+import { normalizeAuthUser } from '@uniclub/shared';
 import { requireUserAuth } from '../../../middleware/index';
+import { WeeklyEventParticipationModel, WeeklyEventModel, WeeklyEventRoomModel } from '../../../models/index';
 import { WeeklyEventService } from '../services/weekly-event.service';
 import { WeeklyEventRoomService } from '../services/weekly-event-room.service';
 import { WeeklyEventGradingService } from '../services/weekly-event-grading.service';
+import { WeeklyEventSocketService } from '../services/weekly-event-socket.service';
 
 const router = Router();
 
@@ -14,7 +19,7 @@ const router = Router();
  * GET /api/game/weekly-event/current
  * Lấy event đang diễn ra (cho UI-S-001).
  */
-router.get('/current', async (_req: Request, res: Response) => {
+router.get('/current', async (req: Request, res: Response) => {
   try {
     const event = await WeeklyEventService.getCurrentEvent();
 
@@ -27,11 +32,22 @@ router.get('/current', async (_req: Request, res: Response) => {
       });
       const nextEventAt = nextEvent.items[0]?.scheduledStartAt || null;
 
+      // Tìm event gần nhất vừa kết thúc (status = 'Closed')
+      const lastClosedEvent = await WeeklyEventModel.findOne({ status: 'Closed' })
+        .sort({ scheduledStartAt: -1 })
+        .lean();
+
       res.json({
         success: true,
         event: null,
         status: 'closed',
         nextEventAt,
+        lastEvent: lastClosedEvent
+          ? {
+              _id: String(lastClosedEvent._id),
+              title: lastClosedEvent.title,
+            }
+          : null,
       });
       return;
     }
@@ -54,10 +70,44 @@ router.get('/current', async (_req: Request, res: Response) => {
         uiStatus = 'closed';
     }
 
+    // Kiểm tra xem user hiện tại đã tham gia room chưa (nếu có gửi token trong header)
+    let hasJoined = false;
+    let roomId: string | undefined;
+    let socketToken: string | undefined;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const rawPayload = jwt.verify(token, env.JWT_SECRET);
+        const payload = normalizeAuthUser(rawPayload);
+        const userId = payload.profileId ? String(payload.profileId) : payload.userId;
+
+        if (userId) {
+          const participation = await WeeklyEventParticipationModel.findOne({
+            eventId: String(event._id),
+            studentId: userId,
+          }).lean();
+
+          if (participation) {
+            hasJoined = true;
+            roomId = String(participation.roomId);
+            const pGrade = participation.grade || payload.grade || 5;
+            socketToken = WeeklyEventSocketService.createSocketToken(userId, String(event._id), pGrade);
+          }
+        }
+      } catch (err) {
+        // Hết hạn/sai token thì bỏ qua (khách vãng lai)
+      }
+    }
+
     res.json({
       success: true,
       event,
       status: uiStatus,
+      hasJoined,
+      roomId,
+      socketToken,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -74,7 +124,7 @@ router.post('/:eventId/join', requireUserAuth, async (req: Request, res: Respons
     const { eventId } = req.params;
     const grade = parseInt(String(req.body?.grade ?? req.user!.grade ?? '0'), 10);
 
-    if (!Number.isFinite(grade) || grade <= 0 || grade > 9) {
+    if (!Number.isFinite(grade) || grade <= 0 || grade > 12) {
       res.status(400).json({ error: 'Missing or invalid grade (1-12)' });
       return;
     }
@@ -158,6 +208,39 @@ router.get('/result/:eventId', requireUserAuth, async (req: Request, res: Respon
     }
 
     res.json({ success: true, result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/game/weekly-event/leaderboard/:eventId/:grade
+ * Lấy leaderboard snapshot của một event và khối lớp cụ thể.
+ */
+router.get('/leaderboard/:eventId/:grade', requireUserAuth, async (req: Request, res: Response) => {
+  try {
+    const { eventId, grade: gradeStr } = req.params;
+    const grade = parseInt(gradeStr, 10);
+    if (!Number.isFinite(grade) || grade <= 0 || grade > 12) {
+      res.status(400).json({ error: 'Grade không hợp lệ' });
+      return;
+    }
+
+    const room = await WeeklyEventRoomModel.findOne({ eventId, grade }).lean();
+    if (!room) {
+      res.status(404).json({ error: 'Không tìm thấy phòng thi cho khối lớp này' });
+      return;
+    }
+
+    const leaderboard = await WeeklyEventGradingService.getLeaderboardSnapshot(
+      eventId,
+      String(room._id)
+    );
+
+    res.json({
+      success: true,
+      leaderboard: leaderboard || [],
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

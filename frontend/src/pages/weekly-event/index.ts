@@ -1,0 +1,1 @@
+export { WeeklyEventController } from './WeeklyEventController';

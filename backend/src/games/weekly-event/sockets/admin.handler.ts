@@ -8,6 +8,9 @@ import {
   WEEKLY_EVENT_ADMIN_SOCKET_EVENTS,
   WEEKLY_EVENT_ADMIN_ROOM_PREFIX,
   WEEKLY_EVENT_ADMIN_METRICS_INTERVAL_MS,
+  WEEKLY_EVENT_NAMESPACES,
+  WEEKLY_EVENT_SOCKET_EVENTS,
+  WEEKLY_EVENT_ROOM_PREFIX,
 } from '@uniclub/shared';
 import { WeeklyEventRoomService } from '../services/weekly-event-room.service';
 import { WeeklyEventService } from '../services/weekly-event.service';
@@ -78,7 +81,7 @@ export function registerWeeklyEventAdminHandlers(io: Server, socket: Socket): vo
             });
           }
 
-          io.to(adminRoomName(eventId)).emit(
+          socket.nsp.to(adminRoomName(eventId)).emit(
             WEEKLY_EVENT_ADMIN_SOCKET_EVENTS.MONITOR_METRICS,
             metrics,
           );
@@ -106,9 +109,11 @@ export function registerWeeklyEventAdminHandlers(io: Server, socket: Socket): vo
 
       const event = await WeeklyEventService.cancelEvent(eventId, reason || 'Admin cancelled via monitor');
 
-      // Broadcast cancel tới tất cả student rooms
+      // Broadcast cancel tới tất cả student rooms qua namespace /we
+      const weNs = io.of(WEEKLY_EVENT_NAMESPACES.STUDENT);
       for (const grade of event.activeGrades) {
-        io.to(`${eventId}:${grade}`).emit('room:cancelled', {
+        const roomName = `${WEEKLY_EVENT_ROOM_PREFIX}:${eventId}:${grade}`;
+        weNs.to(roomName).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_CANCELLED, {
           reason: reason || 'Sự kiện đã bị hủy',
           cancelledAt: new Date().toISOString(),
         });

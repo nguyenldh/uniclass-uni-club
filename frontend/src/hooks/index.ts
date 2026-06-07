@@ -13,3 +13,5 @@ export { useBossBattleSocket } from './useBossBattleSocket';
 export type { UseBossBattleSocketOptions, BossHpUpdateData } from './useBossBattleSocket';
 export { BossBattleSocketProvider, useBossBattleSocketContext } from './useBossBattleSocketProvider';
 export type { HitNotification, BossHpUpdateData as BossHpUpdateDataType } from './useBossBattleSocketProvider';
+export { useWeeklyEventSocket } from './useWeeklyEventSocket';
+export type { WeeklyEventSocketActions } from './useWeeklyEventSocket';

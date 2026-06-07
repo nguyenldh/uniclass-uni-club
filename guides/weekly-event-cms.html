@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng dẫn CMS - Sự kiện Tuần | UniClub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #12101f 0%, #3a3264 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #512da8 0%, #d32f2f 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "📅";
+            font-size: 4em;
+            position: absolute;
+            top: 10px;
+            left: 30px;
+            opacity: 0.15;
+        }
+
+        .header::after {
+            content: "🏆";
+            font-size: 4em;
+            position: absolute;
+            bottom: 10px;
+            right: 30px;
+            opacity: 0.15;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #512da8;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #512da8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h3 {
+            color: #1a237e;
+            font-size: 1.3em;
+            margin: 25px 0 12px;
+        }
+
+        .section h4 {
+            color: #d32f2f;
+            font-size: 1.1em;
+            margin: 18px 0 8px;
+        }
+
+        .section p {
+            line-height: 1.8;
+            margin-bottom: 12px;
+            color: #555;
+        }
+
+        .section ul, .section ol {
+            margin: 10px 0 15px 25px;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .section li {
+            margin-bottom: 6px;
+        }
+
+        /* Steps */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .step {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            background: #fcfaff;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #512da8;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #512da8 0%, #d32f2f 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: #333;
+            margin: 0 0 5px;
+            font-size: 1.1em;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #666;
+        }
+
+        /* Highlight Boxes */
+        .highlight-box {
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border: 2px solid #ff9800;
+        }
+
+        .highlight-box.info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #2196f3;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 2px solid #4caf50;
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border: 2px solid #f44336;
+        }
+
+        .highlight-box h4 {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .highlight-box.warning h4 { color: #e65100; }
+        .highlight-box.info h4 { color: #1565c0; }
+        .highlight-box.success h4 { color: #2e7d32; }
+        .highlight-box.danger h4 { color: #c62828; }
+
+        /* Tables */
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.95em;
+        }
+
+        .config-table th {
+            background: linear-gradient(135deg, #512da8 0%, #d32f2f 100%);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .config-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .config-table tr:hover {
+            background: #f9f6ff;
+        }
+
+        .config-table code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #d32f2f;
+            font-family: Consolas, monospace;
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 20px 0;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: #fcfaff;
+            border-radius: 10px;
+            border-left: 4px solid #512da8;
+            position: relative;
+        }
+
+        .flow-step .flow-icon {
+            font-size: 1.8em;
+            flex-shrink: 0;
+        }
+
+        .flow-step .flow-text h4 {
+            color: #333;
+            margin: 0 0 3px;
+        }
+
+        .flow-step .flow-text p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            font-size: 1.5em;
+            color: #512da8;
+            padding: 5px 0;
+        }
+
+        /* CMS Menu Preview */
+        .cms-menu {
+            background: #1e1e24;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            color: white;
+        }
+
+        .cms-menu h4 {
+            color: #ffb74d;
+            margin-bottom: 12px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            color: #ccc;
+            font-size: 0.95em;
+        }
+
+        .menu-item.active {
+            background: rgba(81, 45, 168, 0.3);
+            color: white;
+            border-left: 3px solid #512da8;
+        }
+
+        .menu-item .menu-icon {
+            font-size: 1.1em;
+        }
+
+        .menu-group {
+            margin-bottom: 12px;
+        }
+
+        .menu-group-title {
+            font-weight: bold;
+            color: #ffb74d;
+            padding: 4px 12px;
+            font-size: 0.95em;
+        }
+
+        /* FAQ */
+        .faq-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-left: 4px solid #512da8;
+        }
+
+        .faq-item .faq-q {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .faq-item .faq-a {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .step {
+                flex-direction: column;
+            }
+
+            .flow-step {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Hướng dẫn Vận hành CMS - Sự kiện Tuần</h1>
+            <p>Quy trình cài đặt đề thi, quản lý lịch và theo dõi trực tiếp đấu trường tuần</p>
+        </div>
+
+        <div class="content">
+            <!-- ==================== TỔNG QUAN ==================== -->
+            <div class="section">
+                <h2><span class="icon">📖</span> Tổng quan</h2>
+                <p>
+                    <strong>Sự kiện tuần (Weekly Event)</strong> là hoạt động thi đấu đồng loạt theo khối lớp (từ lớp 1 đến lớp 12) 
+                    diễn ra vào sáng thứ Bảy hàng tuần. Đây là một cuộc hẹn tri thức đặc biệt của học sinh với tổng thời lượng 30 phút: 
+                    gồm 5 phút chuẩn bị phòng chờ, 20 phút làm bài thi (gồm 25 câu hỏi trắc nghiệm), và 5 phút vinh danh bảng xếp hạng.
+                </p>
+                <p>
+                    Là người vận hành hệ thống, bạn sẽ chịu trách nhiệm:
+                </p>
+                <ul>
+                    <li>Cài đặt khung thời gian và khối lớp mặc định tham gia.</li>
+                    <li>Chuẩn bị ngân hàng đề thi bằng cách tải lên file Excel.</li>
+                    <li>Lên lịch sự kiện tuần và gán chính xác đề thi cho từng khối lớp trước giờ mở cổng.</li>
+                    <li>Giám sát trực tiếp các phòng thi trực tuyến khi sự kiện đang diễn ra.</li>
+                </ul>
+            </div>
+
+            <!-- ==================== MENU CMS ==================== -->
+            <div class="section">
+                <h2><span class="icon">🧭</span> Bản đồ Menu trên Trang quản trị</h2>
+                <p>Trên menu bên trái của CMS, phần quản trị nằm trong mục <strong>Sự kiện tuần</strong>:</p>
+
+                <div class="cms-menu">
+                    <div class="menu-group">
+                        <div class="menu-group-title">Sự kiện tuần</div>
+                        <div class="menu-item">
+                            <span class="menu-icon">⚙️</span> Cấu hình chung
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📅</span> Danh sách sự kiện
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📚</span> Ngân hàng đề
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📊</span> Theo dõi
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 1: CẤU HÌNH CHUNG ==================== -->
+            <div class="section">
+                <h2><span class="icon">⚙️</span> Bước 1: Cấu hình chung (Cài đặt mặc định)</h2>
+                <p>
+                    Truy cập <strong>Sự kiện tuần ➔ Cấu hình chung</strong>. Trang này quy định các mốc thời gian chạy sự kiện mặc định:
+                </p>
+
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Tên cài đặt</th>
+                            <th>Mô tả chức năng</th>
+                            <th>Giá trị chuẩn</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>Thời gian chờ (phút)</code></td>
+                            <td>Khoảng thời gian phòng chờ mở cổng để học sinh tập hợp trước khi phát đề</td>
+                            <td><code>5</code> (10h00 - 10h05)</td>
+                        </tr>
+                        <tr>
+                            <td><code>Thời gian làm bài (phút)</code></td>
+                            <td>Tổng thời gian làm bài thi của học sinh</td>
+                            <td><code>20</code> (10h05 - 10h25)</td>
+                        </tr>
+                        <tr>
+                            <td><code>Thời gian hiển thị BXH (phút)</code></td>
+                            <td>Thời lượng vinh danh kết quả của Top học sinh trước khi đóng sự kiện</td>
+                            <td><code>5</code> (10h25 - 10h30)</td>
+                        </tr>
+                        <tr>
+                            <td><code>Số lượng học sinh vinh danh</code></td>
+                            <td>Thứ hạng tối đa được vinh danh trên bảng xếp hạng của học sinh</td>
+                            <td><code>10</code> (vinh danh Top 10)</td>
+                        </tr>
+                        <tr>
+                            <td><code>Danh sách khối lớp áp dụng mặc định</code></td>
+                            <td>Các khối lớp sẽ tự động mở phòng thi khi có sự kiện</td>
+                            <td>Tích chọn từ lớp 1 đến lớp 12</td>
+                        </tr>
+                        <tr>
+                            <td><code>Lịch lặp tuần tự động (Cron)</code></td>
+                            <td>Hẹn giờ hệ thống tự động sinh sự kiện và chạy tự động</td>
+                            <td><code>0 10 * * 6</code> (10h00 sáng thứ Bảy)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box warning">
+                    <h4>⚠️ Lưu ý dành cho người vận hành</h4>
+                    <p>
+                        Thay đổi cấu hình này <strong>chỉ áp dụng cho các sự kiện tạo mới về sau</strong>. 
+                        Các sự kiện đã ở trạng thái "Đã lên lịch" (Scheduled) sẽ giữ nguyên mốc thời gian cũ trừ khi bạn chỉnh sửa trực tiếp trên sự kiện đó.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 2: NGÂN HÀNG ĐỀ THI ==================== -->
+            <div class="section">
+                <h2><span class="icon">📚</span> Bước 2: Tải lên Đề thi (Ngân hàng đề)</h2>
+                <p>
+                    Trước mỗi sự kiện tuần, bạn cần chuẩn bị các đề thi (mỗi khối lớp một đề riêng biệt). Hệ thống hỗ trợ nhập hàng loạt bằng file Excel.
+                </p>
+
+                <h3>Các bước thực hiện</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Tải file mẫu Excel</h4>
+                            <p>Truy cập mục <strong>Ngân hàng đề</strong> ➔ Nhấn nút <strong>"Tải File Mẫu"</strong> để nhận file Excel có cấu trúc chuẩn.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Soạn thảo đề thi</h4>
+                            <p>Điền nội dung đề thi vào file Excel. Mỗi dòng là 1 câu hỏi. Các dòng có cùng <code>Tên đề (examTitle)</code>, <code>Môn (subject)</code> và <code>Khối (grade)</code> sẽ tự động được gộp thành một đề thi hoàn chỉnh.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Tải đề thi lên hệ thống</h4>
+                            <p>Nhấn nút <strong>"Nhập từ Excel"</strong>, chọn file vừa soạn thảo. Hệ thống sẽ kiểm tra và hiển thị danh sách các đề thi được nhận diện thành công.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="highlight-box info">
+                    <h4>📝 Quy chuẩn cấu trúc File Excel đề thi</h4>
+                    <ul>
+                        <li><strong>Số lượng câu hỏi</strong>: Bắt buộc mỗi đề phải có **đúng 25 câu hỏi**.</li>
+                        <li><strong>Khối lớp (grade)</strong>: Nhập số từ 1 đến 12.</li>
+                        <li><strong>Cột đáp án đúng (correctKey)</strong>: Chỉ nhận các chữ cái in hoa: <code>A</code>, <code>B</code>, <code>C</code>, hoặc <code>D</code>.</li>
+                        <li><strong>Trộn đáp án (shuffleable)</strong>: Nhập số <code>1</code> (hoặc <code>true</code>) nếu muốn các phương án trả lời được trộn ngẫu nhiên ở máy học sinh; nhập <code>0</code> nếu muốn giữ nguyên thứ tự.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 3: LÊN LỊCH & GÁN ĐỀ THI ==================== -->
+            <div class="section">
+                <h2><span class="icon">📅</span> Bước 3: Lập lịch Sự kiện & Gán Đề thi</h2>
+                <p>
+                    Vào <strong>Sự kiện tuần ➔ Danh sách sự kiện</strong>. Đây là nơi bạn tạo và phân phối đề thi cho phiên thi tiếp theo.
+                </p>
+
+                <h3>3.1 Tạo phiên sự kiện tuần</h3>
+                <p>
+                    Mặc định, vào Chủ Nhật mỗi tuần, hệ thống sẽ tự động tạo sẵn một sự kiện ở dạng <strong>Bản nháp (Draft)</strong>. 
+                    Nếu cần lập lịch sớm hoặc tạo thủ công, bạn nhấn nút <strong>"Tạo sự kiện mới"</strong>, điền Tiêu đề và Thời gian cổng mở, 
+                    danh sách khối lớp sẽ tự động được chọn sẵn dựa trên Cấu hình chung.
+                </p>
+
+                <h3>3.2 Gán đề thi cho từng khối (Rất quan trọng)</h3>
+                <p>
+                    Sự kiện không thể bắt đầu nếu thiếu đề thi. Bạn phải thực hiện gán đề trước giờ thi tối thiểu 10 phút:
+                </p>
+                <ol>
+                    <li>Tại danh sách sự kiện, nhấn nút <strong>Chi tiết</strong> (Biểu tượng con mắt) tại sự kiện cần cấu hình.</li>
+                    <li>Kéo xuống phần <strong>Cấu hình đề thi theo khối</strong>.</li>
+                    <li>Ở mỗi khối lớp đang hoạt động, sử dụng hộp chọn để tìm và gán đúng đề thi tương ứng mà bạn đã nhập ở Bước 2.</li>
+                    <li>Nhấn nút <strong>"Lưu"</strong> ở góc trên bên phải màn hình để hoàn tất cấu hình.</li>
+                </ol>
+
+                <div class="highlight-box danger">
+                    <h4>🚨 Lưu ý cực kỳ nghiêm ngặt</h4>
+                    <p>
+                        Nếu bạn không gán đề thi cho một khối lớp trước thời điểm cổng sự kiện mở (10h00), học sinh của khối lớp đó khi bấm nút tham gia sẽ gặp lỗi và không thể nhận đề thi để làm bài.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ==================== BƯỚC 4: GIÁM SÁT TRỰC TIẾP ==================== -->
+            <div class="section">
+                <h2><span class="icon">📊</span> Bước 4: Giám sát Trực tiếp (Theo dõi)</h2>
+                <p>
+                    Khi sự kiện bắt đầu diễn ra (từ 10h00 thứ Bảy), hãy chuyển đến mục <strong>Sự kiện tuần ➔ Theo dõi</strong> để bắt đầu giám sát tiến trình.
+                </p>
+
+                <h3>Các thông số giám sát</h3>
+                <ul>
+                    <li>Chọn sự kiện đang diễn ra ở hộp chọn phía trên. Hệ thống sẽ tự động hiển thị danh sách các phòng thi theo từng khối.</li>
+                    <li><strong>Online</strong>: Số lượng học sinh thực tế đang có mặt trong phòng thi và kết nối mạng ổn định.</li>
+                    <li><strong>Đã nộp</strong>: Số lượng học sinh đã hoàn tất bài thi (đã bấm nút Nộp bài hoặc hệ thống tự động thu bài khi hết giờ).</li>
+                </ul>
+
+                <h3>Xem chi tiết phòng thi của từng khối</h3>
+                <p>Nhấp vào biểu tượng <strong>Chi tiết phòng</strong> của khối lớp tương ứng để mở bảng thông tin thời gian thực:</p>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Tab thông tin</th>
+                            <th>Nội dung chi tiết hiển thị</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Danh sách học sinh làm bài</strong></td>
+                            <td>
+                                Hiển thị họ tên học sinh, số câu trả lời đúng trên tổng số 25 câu, tổng điểm đạt được, 
+                                thời gian làm bài thực tế (tính từ lúc mở câu hỏi đến khi chọn đáp án cuối), 
+                                và trạng thái nộp bài (<code>manual</code> - tự nộp, <code>auto</code> - hệ thống tự động thu bài).
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bảng xếp hạng (Top 50)</strong></td>
+                            <td>
+                                Danh sách 50 học sinh xuất sắc nhất của khối. Điểm số được tính toán tự động dựa trên số câu đúng và tốc độ phản xạ trả lời từng câu. 
+                                Thứ tự xếp hạng ưu tiên: <strong>Nhiều câu đúng nhất ➔ Thời gian phản xạ ngắn nhất ➔ Nộp câu đúng cuối sớm nhất</strong>.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box danger">
+                    <h4>🚨 Xử lý sự cố khẩn cấp (Emergency Cancel)</h4>
+                    <p>
+                        Nếu có sự cố nghiêm trọng xảy ra (như lỗi nội dung đề thi hàng loạt hoặc sự cố đường truyền mạng), 
+                        bạn có thể nhấn nút <strong>"Huỷ sự kiện khẩn cấp"</strong> ở trang Theo dõi.
+                    </p>
+                    <p>
+                        Hành động này sẽ ngay lập tức dừng sự kiện đối với tất cả các khối lớp. Trên thiết bị của tất cả học sinh đang tham gia sẽ tự động hiển thị màn hình thông báo hoãn/huỷ sự kiện từ ban tổ chức để tránh gây hoang mang.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ==================== VÒNG ĐỜI VẬN HÀNH ==================== -->
+            <div class="section">
+                <h2><span class="icon">🔄</span> Chu kỳ Vòng đời Sự kiện tuần</h2>
+                <p>Dưới đây là chu kỳ hoạt động khép kín tự động theo thời gian thực của máy chủ:</p>
+
+                <div class="flow-container">
+                    <div class="flow-step">
+                        <div class="flow-icon">📝</div>
+                        <div class="flow-text">
+                            <h4>1. Tạo & Lập lịch</h4>
+                            <p>Admin gán đề thi cho từng khối và lưu trạng thái "Đã lên lịch" (Scheduled).</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">🚪</div>
+                        <div class="flow-text">
+                            <h4>2. Mở cổng phòng chờ (10h00)</h4>
+                            <p>Cổng mở, học sinh nhấn tham gia và đợi tại Phòng chờ (Waiting) trong vòng 5 phút.</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-text">
+                        <p class="flow-arrow">↓</p>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-icon">✍️</div>
+                        <div class="flow-text">
+                            <h4>3. Học sinh làm bài (10h05 - 10h25)</h4>
+                            <p>Phát đề thi. Học sinh làm bài. Đúng 10h25 hệ thống tự động khóa đề và thu bài.</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">🧮</div>
+                        <div class="flow-text">
+                            <h4>4. Chấm điểm & Vinh danh (10h25 - 10h30)</h4>
+                            <p>Hệ thống tự động chấm điểm và công bố bảng xếp hạng Top 10 trực tiếp cho học sinh.</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="flow-icon">🔒</div>
+                        <div class="flow-text">
+                            <h4>5. Đóng sự kiện (10h30)</h4>
+                            <p>Cổng sự kiện đóng hoàn toàn. Học sinh có thể nhấn "Xem bảng xếp hạng" để xem lại kết quả cũ bất kỳ lúc nào.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== FAQ ==================== -->
+            <div class="section">
+                <h2><span class="icon">❓</span> Câu hỏi thường gặp dành cho Vận hành</h2>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Excel đề thi tải lên bị báo lỗi số lượng câu hỏi?</div>
+                    <div class="faq-a">
+                        Hãy đảm bảo số dòng câu hỏi thuộc cùng một đề thi (cùng tên đề, cùng khối lớp) trong Excel phải có <strong>đúng 25 dòng</strong>. 
+                        Nếu thiếu hoặc thừa câu hỏi, hệ thống sẽ từ chối tải đề thi lên.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Đã gán đề thi nhưng học sinh bấm tham gia báo lỗi không tìm thấy phòng?</div>
+                    <div class="faq-a">
+                        Hãy kiểm tra xem bạn đã nhấn nút <strong>"Lưu"</strong> ở góc trên bên phải màn hình Chi tiết sự kiện sau khi gán đề hay chưa. 
+                        Nếu chưa lưu, liên kết đề thi chưa được đồng bộ xuống cơ sở dữ liệu.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Học sinh bị rớt mạng giữa giờ thi có thể thi tiếp không?</div>
+                    <div class="faq-a">
+                        Có. Học sinh chỉ cần mở lại ứng dụng/trang web, hệ thống sẽ tự động khôi phục lại các đáp án đã lưu trước đó và cho phép học sinh tiếp tục thi đến hết thời gian quy định của máy chủ.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-q">Q: Thay đổi đề thi của tuần sau khi sự kiện đã bắt đầu có được không?</div>
+                    <div class="faq-a">
+                        Không. Khi sự kiện đã chuyển sang trạng thái "Đang thi" (InProgress), đề thi đã được phát và học sinh đang làm bài, bạn không thể thay đổi đề thi gán cho khối đó được nữa.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 UniClub - Hệ thống Vận hành Đấu trường Học tập 📅🏆</p>
+        </div>
+    </div>
+</body>
+</html>

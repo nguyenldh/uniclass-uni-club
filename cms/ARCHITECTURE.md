@@ -137,6 +137,37 @@ cms/
 - Nguồn truth cho config Mind Game hiện nằm ở backend, không nằm ở CMS
 - Nếu sau này thêm UI CMS cho Mind Game, cần cập nhật file này từ `Partial` sang `Implemented`
 
+## Weekly Event (Sự kiện tuần)
+
+### Snapshot
+
+| Mục | Giá trị |
+|---|---|
+| Status | `Implemented` |
+| Entry route | `/config/su-kien-tuan`, `/weekly-event` |
+| State | Zustand |
+| Real-time | Không (REST only) |
+
+### Source Of Truth Files
+
+- `src/pages/weekly-event/EventListPage.tsx`: Danh sách các sự kiện tuần, nút tạo sự kiện thủ công (tự động prefill khối lớp theo cấu hình chung).
+- `src/pages/weekly-event/EventDetailPage.tsx`: Màn hình giám sát và chi tiết phòng thi. Gồm:
+  - Thông tin chung, nút "Huỷ sự kiện" (huỷ khẩn cấp).
+  - Tab "Danh sách học sinh làm bài": hiển thị danh sách học sinh tham gia, điểm số thực tế.
+  - Tab "Bảng xếp hạng (Top 50)": hiển thị danh sách top vinh danh.
+- `src/pages/weekly-event/WeeklyEventGeneralSettingsPage.tsx`: Cấu hình thời gian mặc định (chờ, thi, vinh danh) và các khối lớp tham gia mặc định.
+- `src/stores/weekly-event.store.ts`: Zustand store quản lý state và gọi các API admin.
+- `src/services/weekly-event.service.ts`: REST API client cho admin endpoints.
+
+### Runtime Flows
+
+1. **Quản lý sự kiện**:
+   - Khi vào lobby `/weekly-event`, quản trị viên có thể xem các sự kiện đã lập lịch hoặc đã đóng.
+   - Khi tạo sự kiện tuần mới, hệ thống tự động nạp cấu hình chung từ `generalConfig` và điền trước danh sách khối lớp hoạt động mặc định (`activeGrades`).
+2. **Theo dõi trực quan (Monitor)**:
+   - Trong màn hình chi tiết sự kiện (`EventDetailPage`), admin theo dõi trạng thái phòng thi thực tế (Waiting, InProgress, Grading, Showing, Closed).
+   - Danh sách học sinh làm bài được hiển thị chi tiết (kết quả đúng/sai, số câu đã trả lời, thời điểm nộp bài).
+
 ## Environment Variables
 
 | Biến | Mô tả | Default |

@@ -20,6 +20,7 @@ export class WeeklyEventStateMachine {
     eventId: string,
     grade: number,
     toState: WeeklyEventRoomStatus,
+    nextTransitionAt?: string,
   ): Promise<{ success: boolean; alreadyInState: boolean }> {
     const lockKey = `${WEEKLY_EVENT_REDIS_KEYS.LOCK_TRANSITION}:${eventId}:${grade}`;
     const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`;
@@ -41,11 +42,19 @@ export class WeeklyEventStateMachine {
       const now = new Date();
       const nowISO = now.toISOString();
 
-      // Cập nhật Redis (DATA-R-006)
-      await redis.hset(roomStateKey, {
+      const stateData: Record<string, string> = {
         status: toState,
         transitionedAt: nowISO,
-      });
+      };
+
+      if (nextTransitionAt) {
+        stateData.nextTransitionAt = nextTransitionAt;
+      } else {
+        await redis.hdel(roomStateKey, 'nextTransitionAt');
+      }
+
+      // Cập nhật Redis (DATA-R-006)
+      await redis.hset(roomStateKey, stateData);
 
       // Persist xuống MongoDB (DATA-M-003)
       await WeeklyEventRoomModel.findOneAndUpdate(
@@ -77,12 +86,16 @@ export class WeeklyEventStateMachine {
    * Khởi tạo room state trong Redis (khi event được publish).
    * Ban đầu room ở trạng thái Scheduled — scheduler sẽ chuyển sang Waiting khi đến giờ.
    */
-  static async initRoomState(eventId: string, grade: number): Promise<void> {
+  static async initRoomState(eventId: string, grade: number, nextTransitionAt?: string): Promise<void> {
     const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`;
-    await redis.hset(roomStateKey, {
+    const data: Record<string, string> = {
       status: 'Scheduled',
       transitionedAt: new Date().toISOString(),
-    });
+    };
+    if (nextTransitionAt) {
+      data.nextTransitionAt = nextTransitionAt;
+    }
+    await redis.hset(roomStateKey, data);
   }
 
   /**

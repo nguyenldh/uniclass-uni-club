@@ -349,11 +349,13 @@ export interface JoinEventResponse {
   socketUrl: string;
 }
 
-/** GET /api/game/weekly-event/current — response */
 export interface CurrentEventResponse {
   event: WeeklyEvent | null;
   status: 'before-open' | 'open' | 'in-progress' | 'closed';
   nextEventAt?: string;
+  hasJoined?: boolean;
+  roomId?: string;
+  socketToken?: string;
 }
 
 // ---- Admin Request DTOs ----

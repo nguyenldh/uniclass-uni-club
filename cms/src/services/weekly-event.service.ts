@@ -140,6 +140,42 @@ export const weeklyEventService = {
     return res.data.rooms;
   },
 
+  async getRoomLeaderboard(eventId: string, grade: number): Promise<any[]> {
+    const res = await api.get<{ success: boolean; leaderboard: any[] }>(
+      `/weekly-event/events/${eventId}/rooms/${grade}/leaderboard`,
+    );
+    return res.data.leaderboard;
+  },
+
+  async getRoomParticipants(
+    eventId: string,
+    grade: number,
+    params: { page?: number; pageSize?: number; search?: string },
+  ): Promise<{ items: any[]; total: number; page: number; pageSize: number }> {
+    const res = await api.get<{
+      success: boolean;
+      items: any[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }>(`/weekly-event/events/${eventId}/rooms/${grade}/participants`, { params });
+    return res.data;
+  },
+
+  async getStudentAnswers(
+    eventId: string,
+    grade: number,
+    studentId: string,
+  ): Promise<{ result: any; answers: any[]; exam: any }> {
+    const res = await api.get<{
+      success: boolean;
+      result: any;
+      answers: any[];
+      exam: any;
+    }>(`/weekly-event/events/${eventId}/rooms/${grade}/participants/${studentId}/answers`);
+    return res.data;
+  },
+
   // ---- Exam Bank ----
   async listExams(params: ListExamsParams = {}): Promise<ListExamsResult> {
     const res = await api.get<{ success: boolean } & ListExamsResult>(

@@ -36,8 +36,12 @@ export class WeeklyEventRoomService {
     const roomState = await redis.hgetall(roomStateKey);
     const status = roomState.status || 'Waiting';
 
-    // Chỉ cho phép join khi Waiting hoặc InProgress (join muộn đến T+5)
-    if (!['Waiting', 'InProgress'].includes(status)) {
+    // Kiểm tra xem đã từng join trước đó chưa (rejoin)
+    const existingParticipation = await WeeklyEventParticipationModel.findOne({ eventId, studentId }).lean();
+    const isRejoining = !!existingParticipation;
+
+    // Chỉ cho phép join mới khi Waiting hoặc InProgress (join muộn đến T+5)
+    if (!isRejoining && !['Waiting', 'InProgress'].includes(status)) {
       throw new Error('EVENT_LATE');
     }
 
@@ -63,8 +67,10 @@ export class WeeklyEventRoomService {
       { upsert: true, new: true },
     );
 
-    // 5. Tăng participantCount
-    await WeeklyEventRoomModel.findByIdAndUpdate(room._id, { $inc: { participantCount: 1 } });
+    // 5. Tăng participantCount (chỉ khi join lần đầu)
+    if (!isRejoining) {
+      await WeeklyEventRoomModel.findByIdAndUpdate(room._id, { $inc: { participantCount: 1 } });
+    }
 
     // 6. SADD vào online set
     const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
@@ -79,6 +85,14 @@ export class WeeklyEventRoomService {
       socketToken,
       socketUrl: '/we',
     };
+  }
+
+  /**
+   * Học sinh vào phòng (online).
+   */
+  static async enterRoom(eventId: string, studentId: string, grade: number): Promise<void> {
+    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+    await redis.sadd(onlineKey, studentId);
   }
 
   /**

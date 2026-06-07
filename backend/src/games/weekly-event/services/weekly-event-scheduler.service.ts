@@ -8,13 +8,18 @@ import {
   WEEKLY_EVENT_REDIS_KEYS,
   WEEKLY_EVENT_SCHEDULER_LOCK_TTL,
   WEEKLY_EVENT_AUTOGEN_LOCK_TTL,
+  WEEKLY_EVENT_NAMESPACES,
+  WEEKLY_EVENT_SOCKET_EVENTS,
+  WEEKLY_EVENT_ROOM_PREFIX,
+  WEEKLY_EVENT_STUDENT_ROOM_PREFIX,
 } from '@uniclub/shared';
 import { WeeklyEventService } from './weekly-event.service';
 import { WeeklyEventStateMachine } from './weekly-event-state-machine.service';
-import { WeeklyEventModel, WeeklyEventRoomModel, ExamBankModel } from '../../../models/index';
+import { WeeklyEventModel, WeeklyEventRoomModel, WeeklyEventParticipationModel, ExamBankModel } from '../../../models/index';
 import { WeeklyEventGradingService } from './weekly-event-grading.service';
 import { WeeklyEventAnswerService } from './weekly-event-answer.service';
 import { WeeklyEventRoomService } from './weekly-event-room.service';
+import { ExamBankService } from './exam-bank.service';
 import { getIO } from '../../../sockets/index';
 import type { WeeklyEventStatus } from '@uniclub/shared';
 
@@ -131,26 +136,52 @@ export class WeeklyEventSchedulerService {
 
     // Scheduled → Waiting (đến giờ bắt đầu)
     if (currentState === 'Scheduled' as any && now >= scheduledStart) {
-      await WeeklyEventStateMachine.transition(eventId, grade, 'Waiting');
+      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Waiting', waitingEnd.toISOString());
+      if (!res.success || res.alreadyInState) return;
+      
+      // Xóa sạch tập hợp online trong Redis đề phòng dữ liệu rác trước đó
+      const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+      await redis.del(onlineKey);
+
       await WeeklyEventModel.findByIdAndUpdate(eventId, { $set: { actualStartAt: now } });
       await this.syncEventStatus(eventId, 'Waiting');
       this.broadcastRoomState(eventId, grade, 'Waiting');
       return;
     }
 
-    // Waiting → InProgress (T+5)
+    // Waiting → InProgress (T+5) — trigger FLOW-005: deliver exam
     if (currentState === 'Waiting' && now >= waitingEnd) {
-      await WeeklyEventStateMachine.transition(eventId, grade, 'InProgress');
+      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'InProgress', examEnd.toISOString());
+      if (!res.success || res.alreadyInState) return;
+
       await this.syncEventStatus(eventId, 'InProgress');
       this.broadcastRoomState(eventId, grade, 'InProgress');
+
+      // FLOW-005: Phát đề thi cho tất cả học sinh trong room
+      await this.deliverExam(eventId, grade, waitingEnd, examEnd);
       return;
     }
 
     // InProgress → Grading (T+25 hoặc all submitted)
     if (currentState === 'InProgress' && now >= examEnd) {
-      await WeeklyEventStateMachine.transition(eventId, grade, 'Grading');
+      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Grading', gradingEnd.toISOString());
+      if (!res.success || res.alreadyInState) return;
+
       await this.syncEventStatus(eventId, 'Grading');
       this.broadcastRoomState(eventId, grade, 'Grading');
+
+      // Tự động nộp bài cho tất cả học sinh chưa nộp thủ công (đánh dấu trong DB)
+      await WeeklyEventParticipationModel.updateMany(
+        { eventId, grade, submittedAt: null },
+        { $set: { submittedAt: examEnd, submissionType: 'auto' } }
+      );
+
+      // Cập nhật số lượng đã nộp trong phòng thi (bằng tổng số học sinh đã tham gia)
+      const totalParticipants = await WeeklyEventParticipationModel.countDocuments({ eventId, grade });
+      await WeeklyEventRoomModel.findOneAndUpdate(
+        { eventId, grade },
+        { $set: { submittedCount: totalParticipants } }
+      );
 
       // Đẩy tất cả học sinh chưa submit vào queue
       const onlineStudents = await WeeklyEventRoomService.getOnlineStudents(eventId, grade);
@@ -172,13 +203,15 @@ export class WeeklyEventSchedulerService {
       return;
     }
 
-    // Grading → Showing (T+27)
+    // Grading → Showing (T+27) — trigger FLOW-009 + FLOW-010
     if (currentState === 'Grading' && now >= gradingEnd) {
-      await WeeklyEventStateMachine.transition(eventId, grade, 'Showing');
+      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Showing', showingEnd.toISOString());
+      if (!res.success || res.alreadyInState) return;
+
       await this.syncEventStatus(eventId, 'Showing');
       this.broadcastRoomState(eventId, grade, 'Showing');
 
-      // Tính leaderboard
+      // FLOW-009: Tính leaderboard + FLOW-010: Broadcast
       const room = await WeeklyEventRoomModel.findOne({ eventId, grade }).lean();
       if (room) {
         const config = await import('@uniclub/shared').then((m) => m.DEFAULT_WEEKLY_EVENT_GENERAL_CONFIG);
@@ -189,19 +222,41 @@ export class WeeklyEventSchedulerService {
           config.leaderboardLimit,
         );
 
-        // Broadcast leaderboard
-        const io = getIO();
-        io.to(`${eventId}:${grade}`).emit('room:leaderboard', {
+        const weNs = getIO().of(WEEKLY_EVENT_NAMESPACES.STUDENT);
+        const room_ = `${WEEKLY_EVENT_ROOM_PREFIX}:${eventId}:${grade}`;
+
+        // Broadcast leaderboard tới cả room (S06)
+        weNs.to(room_).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_LEADERBOARD, {
           topN,
           computedAt: new Date().toISOString(),
         });
+
+        // FLOW-010: Emit personal:result riêng tới từng student (S07)
+        const participations = await WeeklyEventParticipationModel.find({ eventId, grade }).lean();
+        for (const p of participations) {
+          const personalResult = await WeeklyEventGradingService.getPersonalResult(eventId, p.studentId);
+          if (personalResult) {
+            weNs.to(`${WEEKLY_EVENT_STUDENT_ROOM_PREFIX}:${p.studentId}`).emit(
+              WEEKLY_EVENT_SOCKET_EVENTS.PERSONAL_RESULT,
+              {
+                correctCount: personalResult.correctCount,
+                totalAnswered: personalResult.totalAnswered,
+                rank: personalResult.rank,
+                score: personalResult.score,
+                totalTimeMs: personalResult.totalTimeMs,
+              },
+            );
+          }
+        }
       }
       return;
     }
 
     // Showing → Closed (T+30)
     if (currentState === 'Showing' && now >= showingEnd) {
-      await WeeklyEventStateMachine.transition(eventId, grade, 'Closed');
+      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Closed');
+      if (!res.success || res.alreadyInState) return;
+
       await this.syncEventStatus(eventId, 'Closed');
       this.broadcastRoomState(eventId, grade, 'Closed');
 
@@ -235,10 +290,57 @@ export class WeeklyEventSchedulerService {
     }
   }
 
+  /**
+   * FLOW-005: Phát đề thi cho tất cả học sinh trong room khi chuyển sang InProgress.
+   * Gửi exam:start (SOCK-EVT-S03) per-student vì mỗi student có shuffleSeed riêng.
+   */
+  private static async deliverExam(
+    eventId: string,
+    grade: number,
+    examStartedAt: Date,
+    examEndAt: Date,
+  ): Promise<void> {
+    try {
+      const room = await WeeklyEventRoomModel.findOne({ eventId, grade }).lean();
+      if (!room?.examId) return;
+
+      const exam = await ExamBankService.getExamById(room.examId);
+      if (!exam) return;
+
+      // Loại bỏ correctKey trước khi gửi cho client
+      const publicQuestions = ExamBankService.toPublicExam(exam).questions.map((q, idx) => ({
+        ...q,
+        questionIndex: idx,
+        totalQuestions: exam.totalQuestions,
+      }));
+
+      const weNs = getIO().of(WEEKLY_EVENT_NAMESPACES.STUDENT);
+
+      // Cập nhật examStartedAt cho tất cả participations
+      await WeeklyEventParticipationModel.updateMany(
+        { eventId, grade, examStartedAt: null },
+        { $set: { examStartedAt: examStartedAt } },
+      );
+
+      // Emit exam:start tới cả room (cùng bộ đề — shuffle sẽ do client-side seed sau nếu cần)
+      const roomName = `${WEEKLY_EVENT_ROOM_PREFIX}:${eventId}:${grade}`;
+      weNs.to(roomName).emit(WEEKLY_EVENT_SOCKET_EVENTS.EXAM_START, {
+        questions: publicQuestions,
+        examStartedAt: examStartedAt.toISOString(),
+        examEndAt: examEndAt.toISOString(),
+      });
+
+      console.log(`[WeeklyEvent] Delivered exam to room grade=${grade} (${publicQuestions.length} questions)`);
+    } catch (err) {
+      console.error(`[WeeklyEvent] deliverExam error grade=${grade}:`, err);
+    }
+  }
+
   private static broadcastRoomState(eventId: string, grade: number, status: WeeklyEventStatus): void {
     try {
-      const io = getIO();
-      io.to(`${eventId}:${grade}`).emit('room:state', {
+      const weNs = getIO().of(WEEKLY_EVENT_NAMESPACES.STUDENT);
+      const roomName = `${WEEKLY_EVENT_ROOM_PREFIX}:${eventId}:${grade}`;
+      weNs.to(roomName).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_STATE, {
         grade,
         status,
         transitionedAt: new Date().toISOString(),
