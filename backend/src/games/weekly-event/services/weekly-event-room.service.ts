@@ -36,9 +36,20 @@ export class WeeklyEventRoomService {
     const roomState = await redis.hgetall(roomStateKey);
     const status = roomState.status || 'Waiting';
 
-    // Kiểm tra xem đã từng join trước đó chưa (rejoin)
-    const existingParticipation = await WeeklyEventParticipationModel.findOne({ eventId, studentId }).lean();
-    const isRejoining = !!existingParticipation;
+    // Kiểm tra xem đã từng join trước đó chưa sử dụng Redis Set (joined)
+    const joinedSetKey = `we:joined:${eventId}:${grade}`;
+    const isJoinedInRedis = await redis.sismember(joinedSetKey, studentId);
+    let isRejoining = isJoinedInRedis === 1;
+
+    // Fallback kiểm tra DB nếu không tìm thấy trong Redis cache
+    if (!isRejoining) {
+      const existingParticipation = await WeeklyEventParticipationModel.findOne({ eventId, studentId }).lean();
+      if (existingParticipation) {
+        isRejoining = true;
+        // Phục hồi lại Set trong Redis
+        await redis.sadd(joinedSetKey, studentId);
+      }
+    }
 
     // Chỉ cho phép join mới khi Waiting hoặc InProgress (join muộn đến T+5)
     if (!isRejoining && !['Waiting', 'InProgress'].includes(status)) {
@@ -49,34 +60,42 @@ export class WeeklyEventRoomService {
     const room = await WeeklyEventRoomModel.findOne({ eventId, grade }).lean();
     if (!room) throw new Error('ROOM_NOT_FOUND');
 
-    // 4. Upsert participation
-    const shuffleSeed = crypto.randomBytes(8).toString('hex');
-    const participation = await WeeklyEventParticipationModel.findOneAndUpdate(
-      { eventId, studentId },
-      {
-        $setOnInsert: {
-          eventId,
-          roomId: room._id,
-          studentId,
-          grade,
-          joinedAt: new Date(),
-          shuffleSeed,
-          disconnectCount: 0,
-        },
-      },
-      { upsert: true, new: true },
-    );
-
-    // 5. Tăng participantCount (chỉ khi join lần đầu)
+    // 4. Upsert participation (Chỉ thực hiện cho lần đầu join)
     if (!isRejoining) {
-      await WeeklyEventRoomModel.findByIdAndUpdate(room._id, { $inc: { participantCount: 1 } });
+      const shuffleSeed = crypto.randomBytes(8).toString('hex');
+      
+      // Đảm bảo tính nguyên tử đa tiến trình trước khi tạo bản ghi MongoDB
+      const added = await redis.sadd(joinedSetKey, studentId);
+      if (added === 1) {
+        try {
+          await WeeklyEventParticipationModel.findOneAndUpdate(
+            { eventId, studentId },
+            {
+              $setOnInsert: {
+                eventId,
+                roomId: room._id,
+                studentId,
+                grade,
+                joinedAt: new Date(),
+                shuffleSeed,
+                disconnectCount: 0,
+              },
+            },
+            { upsert: true, new: true },
+          );
+        } catch (err) {
+          // Rollback Redis nếu ghi DB thất bại
+          await redis.srem(joinedSetKey, studentId);
+          throw err;
+        }
+      }
     }
 
-    // 6. SADD vào online set
+    // 5. SADD vào online set
     const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
     await redis.sadd(onlineKey, studentId);
 
-    // 7. Cấp socket token
+    // 6. Cấp socket token
     const socketToken = WeeklyEventSocketService.createSocketToken(studentId, eventId, grade);
 
     return {

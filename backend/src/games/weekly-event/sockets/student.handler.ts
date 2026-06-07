@@ -10,6 +10,7 @@ import {
   WEEKLY_EVENT_ROOM_PREFIX,
   WEEKLY_EVENT_STUDENT_ROOM_PREFIX,
 } from '@uniclub/shared';
+import { redis } from '../../../config/index';
 import { WeeklyEventSocketService } from '../services/weekly-event-socket.service';
 import { WeeklyEventRoomService } from '../services/weekly-event-room.service';
 import { WeeklyEventAnswerService } from '../services/weekly-event-answer.service';
@@ -54,13 +55,6 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
     try {
       // Ensure student is added to online set
       await WeeklyEventRoomService.enterRoom(eventId, studentId, grade);
-
-      // Broadcast online count
-      const count = await WeeklyEventRoomService.getOnlineCount(eventId, grade);
-      socket.nsp.to(roomName(eventId, grade)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
-        grade,
-        count,
-      });
 
       ack?.({ ok: true });
     } catch (err: any) {
@@ -246,19 +240,23 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
     try {
       await WeeklyEventAnswerService.submitFinal(eventId, studentId);
 
-      // Cập nhật participation (chỉ khi chưa nộp)
-      const participation = await WeeklyEventParticipationModel.findOneAndUpdate(
-        { eventId, studentId, submittedAt: null },
-        { $set: { submittedAt: new Date(), submissionType: 'manual' } },
-        { new: true }
-      );
+      const submittedSetKey = `we:submitted:${eventId}:${grade}`;
+      
+      // Atomic Check trên Redis Set
+      const isNewSubmit = await redis.sadd(submittedSetKey, studentId);
 
-      if (participation) {
-        // Tăng submittedCount trong Room
-        await WeeklyEventRoomModel.findOneAndUpdate(
-          { eventId, grade },
-          { $inc: { submittedCount: 1 } }
-        );
+      if (isNewSubmit === 1) {
+        try {
+          // Cập nhật trạng thái nộp bài của học sinh (phân tán theo key học sinh, không gây lock)
+          await WeeklyEventParticipationModel.findOneAndUpdate(
+            { eventId, studentId, submittedAt: null },
+            { $set: { submittedAt: new Date(), submissionType: 'manual' } }
+          );
+        } catch (err) {
+          // Rollback Redis nếu lưu DB thất bại
+          await redis.srem(submittedSetKey, studentId);
+          throw err;
+        }
       }
 
       ack?.({ ok: true });
@@ -280,18 +278,9 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
       // Rời khỏi online set
       await WeeklyEventRoomService.leaveRoom(eventId, studentId, grade);
 
-      // Tăng disconnectCount
-      await WeeklyEventParticipationModel.findOneAndUpdate(
-        { eventId, studentId },
-        { $inc: { disconnectCount: 1 } },
-      );
-
-      // Broadcast online count mới
-      const count = await WeeklyEventRoomService.getOnlineCount(eventId, grade);
-      socket.nsp.to(roomName(eventId, grade)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
-        grade,
-        count,
-      });
+      // Tăng disconnectCount trên Redis thay vì MongoDB
+      const disconnectKey = `we:disconnect_count:${eventId}:${studentId}`;
+      await redis.incr(disconnectKey);
     } catch (err) {
       console.error('[WeeklyEvent] Disconnect error:', err);
     }

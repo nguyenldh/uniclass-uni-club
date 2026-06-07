@@ -200,6 +200,7 @@ router.get('/result/:eventId', requireUserAuth, async (req: Request, res: Respon
     const result = await WeeklyEventGradingService.getPersonalResult(
       eventId,
       req.user!.userId,
+      req.user!.grade,
     );
 
     if (!result) {

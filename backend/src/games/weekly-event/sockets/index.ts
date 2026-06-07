@@ -5,12 +5,15 @@
 
 import type { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { env } from '../../../config/index';
-import { WEEKLY_EVENT_NAMESPACES } from '@uniclub/shared';
+import { redis, env } from '../../../config/index';
+import { WEEKLY_EVENT_NAMESPACES, WEEKLY_EVENT_SOCKET_EVENTS } from '@uniclub/shared';
 import { registerWeeklyEventStudentHandlers } from './student.handler';
 import { registerWeeklyEventAdminHandlers } from './admin.handler';
 import { WeeklyEventSocketService } from '../services/weekly-event-socket.service';
 import type { WeeklyEventSocketTokenPayload } from '../services/weekly-event-socket.service';
+import { WeeklyEventService } from '../services/weekly-event.service';
+import { WeeklyEventRoomService } from '../services/weekly-event-room.service';
+import { WeeklyEventGradingService } from '../services/weekly-event-grading.service';
 
 export function registerWeeklyEventHandlers(io: Server): void {
   // ============================================================
@@ -37,12 +40,9 @@ export function registerWeeklyEventHandlers(io: Server): void {
       );
 
       if (oldSocketId) {
-        // Kick socket cũ
-        const oldSocket = studentNamespace.sockets.get(oldSocketId);
-        if (oldSocket) {
-          oldSocket.emit('session:terminated', { reason: 'new_login' });
-          oldSocket.disconnect(true);
-        }
+        // Kick socket cũ hoạt động chính xác trên multi-process qua Redis Adapter
+        studentNamespace.to(oldSocketId).emit('session:terminated', { reason: 'new_login' });
+        studentNamespace.in(oldSocketId).disconnectSockets(true);
       }
 
       // Đăng ký socket mapping mới
@@ -91,6 +91,73 @@ export function registerWeeklyEventHandlers(io: Server): void {
   adminNamespace.on('connection', (socket) => {
     registerWeeklyEventAdminHandlers(io, socket);
   });
+
+  // 1. Khởi tạo Subscription Client cho các luồng Pub/Sub liên cụm (Clustering)
+  const subClient = redis.duplicate();
+  
+  subClient.on('message', async (channel, message) => {
+    if (channel === 'we:events:transitions') {
+      try {
+        const { eventId, grade, status } = JSON.parse(message);
+        if (status === 'Showing') {
+          // Lấy toàn bộ socket được kết nối cục bộ tới node này
+          const localSockets = await studentNamespace.in(`room:${eventId}:${grade}`).local.fetchSockets();
+          
+          // Đẩy kết quả bất đồng bộ cho từng học sinh online thông qua Redis Cache
+          for (const socket of localSockets) {
+            const studentId = socket.data.studentId;
+            if (studentId) {
+              WeeklyEventGradingService.getPersonalResult(eventId, studentId, grade)
+                .then((personalResult) => {
+                  if (personalResult) {
+                    socket.emit(WEEKLY_EVENT_SOCKET_EVENTS.PERSONAL_RESULT, {
+                      correctCount: personalResult.correctCount,
+                      totalAnswered: personalResult.totalAnswered,
+                      rank: personalResult.rank,
+                      score: personalResult.score,
+                      totalTimeMs: personalResult.totalTimeMs,
+                    });
+                  }
+                })
+                .catch((err) => console.error(`[WeeklyEvent] Push result failed for ${studentId}:`, err));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[WeeklyEvent] PubSub message error:', err);
+      }
+    }
+  });
+
+  subClient.connect().then(() => {
+    subClient.subscribe('we:events:transitions').catch((err) => {
+      console.error('[WeeklyEvent] SubClient subscribe error:', err);
+    });
+  }).catch((err) => {
+    console.error('[WeeklyEvent] SubClient connect error:', err);
+  });
+
+  // 2. Chạy timer định kỳ 5 giây để broadcast online-count cục bộ (Khử bão tin nhắn)
+  setInterval(async () => {
+    try {
+      const currentEvent = await WeeklyEventService.getCurrentEvent();
+      if (!currentEvent || !currentEvent._id) return;
+
+      const eventId = currentEvent._id;
+      for (const grade of currentEvent.activeGrades) {
+        const count = await WeeklyEventRoomService.getOnlineCount(eventId, grade);
+        const roomName = `room:${eventId}:${grade}`;
+        
+        // Chỉ emit cho các sockets kết nối trực tiếp trên server node này
+        studentNamespace.local.to(roomName).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
+          grade,
+          count,
+        });
+      }
+    } catch (err) {
+      console.error('[WeeklyEvent] Periodic online count broadcast failed:', err);
+    }
+  }, 5000);
 
   console.log('[WeeklyEvent] Socket.IO namespaces initialized: /we, /we-admin');
 }

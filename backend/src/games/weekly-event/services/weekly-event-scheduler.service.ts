@@ -154,6 +154,14 @@ export class WeeklyEventSchedulerService {
       const res = await WeeklyEventStateMachine.transition(eventId, grade, 'InProgress', examEnd.toISOString());
       if (!res.success || res.alreadyInState) return;
 
+      // Đồng bộ sĩ số thực tế từ Redis Set sang MongoDB Room một lần duy nhất khi bắt đầu thi
+      const joinedSetKey = `we:joined:${eventId}:${grade}`;
+      const participantCount = await redis.scard(joinedSetKey);
+      await WeeklyEventRoomModel.findOneAndUpdate(
+        { eventId, grade },
+        { $set: { participantCount } }
+      );
+
       await this.syncEventStatus(eventId, 'InProgress');
       this.broadcastRoomState(eventId, grade, 'InProgress');
 
@@ -173,14 +181,15 @@ export class WeeklyEventSchedulerService {
       // Tự động nộp bài cho tất cả học sinh chưa nộp thủ công (đánh dấu trong DB)
       await WeeklyEventParticipationModel.updateMany(
         { eventId, grade, submittedAt: null },
-        { $set: { submittedAt: examEnd, submissionType: 'auto' } }
+        { $set: { submittedAt: examEnd, submissionType: 'auto_timeout' } }
       );
 
-      // Cập nhật số lượng đã nộp trong phòng thi (bằng tổng số học sinh đã tham gia)
-      const totalParticipants = await WeeklyEventParticipationModel.countDocuments({ eventId, grade });
+      // Đồng bộ tổng số bài đã nộp (bằng kích cỡ tập hợp đã tham gia) vào MongoDB Room một lần duy nhất
+      const joinedSetKey = `we:joined:${eventId}:${grade}`;
+      const participantCount = await redis.scard(joinedSetKey);
       await WeeklyEventRoomModel.findOneAndUpdate(
         { eventId, grade },
-        { $set: { submittedCount: totalParticipants } }
+        { $set: { submittedCount: participantCount } }
       );
 
       // Đẩy tất cả học sinh chưa submit vào queue
@@ -231,23 +240,11 @@ export class WeeklyEventSchedulerService {
           computedAt: new Date().toISOString(),
         });
 
-        // FLOW-010: Emit personal:result riêng tới từng student (S07)
-        const participations = await WeeklyEventParticipationModel.find({ eventId, grade }).lean();
-        for (const p of participations) {
-          const personalResult = await WeeklyEventGradingService.getPersonalResult(eventId, p.studentId);
-          if (personalResult) {
-            weNs.to(`${WEEKLY_EVENT_STUDENT_ROOM_PREFIX}:${p.studentId}`).emit(
-              WEEKLY_EVENT_SOCKET_EVENTS.PERSONAL_RESULT,
-              {
-                correctCount: personalResult.correctCount,
-                totalAnswered: personalResult.totalAnswered,
-                rank: personalResult.rank,
-                score: personalResult.score,
-                totalTimeMs: personalResult.totalTimeMs,
-              },
-            );
-          }
-        }
+        // FLOW-010: Phát tín hiệu Pub/Sub để tất cả các server node cục bộ tự đẩy kết quả
+        await redis.publish(
+          'we:events:transitions',
+          JSON.stringify({ eventId, grade, status: 'Showing' })
+        );
       }
       return;
     }

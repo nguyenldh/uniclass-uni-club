@@ -74,6 +74,63 @@ export class ScoreService {
     return score;
   }
 
+  /** Cộng điểm hàng loạt khi thắng (cho weekly event hoặc các batch grading) */
+  static async addWinPointsBatch(
+    updates: Array<{ userId: string; points: number; gameType: GameType; subGameType?: 'gomoku' | 'card_flip' }>
+  ): Promise<void> {
+    if (updates.length === 0) return;
+
+    // 1. Chuẩn bị bulkWrite cho MongoDB
+    const bulkOps = updates.map(({ userId, points, gameType, subGameType }) => {
+      const $inc: Record<string, number> = {
+        totalPoints: points,
+        gamesPlayed: 1,
+        gamesWon: 1,
+        [`${gameType}.points`]: points,
+        [`${gameType}.played`]: 1,
+        [`${gameType}.won`]: 1,
+      };
+      if (subGameType) {
+        $inc[`${subGameType}.points`] = points;
+        $inc[`${subGameType}.played`] = 1;
+        $inc[`${subGameType}.won`] = 1;
+      }
+      return {
+        updateOne: {
+          filter: { userId },
+          update: { $inc, $set: { lastPlayedAt: new Date() } },
+          upsert: true,
+        }
+      };
+    });
+
+    await UserScoreModel.bulkWrite(bulkOps);
+
+    // 2. Lấy UserScores mới để cập nhật Redis cache
+    const userIds = updates.map((u) => u.userId);
+    const docs = await UserScoreModel.find({ userId: { $in: userIds } }).lean();
+    const docMap = new Map(docs.map((d) => [d.userId, d]));
+
+    // 3. Pipelined updates cho Redis
+    const pipeline = redis.pipeline();
+    for (const update of updates) {
+      const doc = docMap.get(update.userId);
+      if (!doc) continue;
+
+      const score = this.toUserScore(doc);
+      pipeline.set(`${REDIS_KEYS.USER_SCORE}:${update.userId}`, JSON.stringify(score), 'EX', 300);
+
+      // Cập nhật total leaderboard
+      pipeline.zadd(leaderboardKey('total'), score.totalPoints, update.userId);
+
+      // Cập nhật game leaderboard
+      if (score[update.gameType].points > 0) {
+        pipeline.zadd(leaderboardKey(update.gameType), score[update.gameType].points, update.userId);
+      }
+    }
+    await pipeline.exec();
+  }
+
   /** Ghi nhận thua (chỉ tăng played) */
   static async recordLoss(
     userId: string,

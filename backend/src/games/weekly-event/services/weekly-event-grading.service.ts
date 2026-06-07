@@ -153,17 +153,168 @@ export class WeeklyEventGradingService {
       grade,
     }).lean();
 
-    let gradedCount = 0;
+    if (participations.length === 0) return 0;
+
+    // 1. Pipeline lấy toàn bộ answers của các học sinh từ Redis
+    const pipeline = redis.pipeline();
     for (const p of participations) {
-      try {
-        const result = await this.gradeStudent(eventId, roomId, p.studentId, exam);
-        if (result) gradedCount++;
-      } catch (err) {
-        console.error(`[WeeklyEvent] Grade failed for ${p.studentId}:`, err);
+      const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS}:${eventId}:${p.studentId}`;
+      pipeline.hgetall(answersKey);
+    }
+    const rawAnswersList = (await pipeline.exec()) || [];
+
+    // 2. Query event parameters (examDuration)
+    const event = await WeeklyEventModel.findById(eventId).lean();
+    const examDurationMs = (event?.examDuration || 20) * 60 * 1000;
+    const questionCount = exam.questions.length;
+    const perQuestionMs = examDurationMs / questionCount;
+    const examQuestionMap = new Map(exam.questions.map((q) => [q.questionId, q]));
+
+    const resultsToInsert: any[] = [];
+    const zaddArgs: (string | number)[] = [];
+    const scoreUpdates: Array<{ userId: string; points: number; gameType: 'weekly_event' }> = [];
+    const studentsToClear: string[] = [];
+
+    // Đọc số lần disconnect của học sinh từ Redis
+    const disconnectPipeline = redis.pipeline();
+    for (const p of participations) {
+      disconnectPipeline.get(`we:disconnect_count:${eventId}:${p.studentId}`);
+    }
+    const rawDisconnects = (await disconnectPipeline.exec()) || [];
+
+    // 3. Chấm điểm trên RAM
+    for (let i = 0; i < participations.length; i++) {
+      const p = participations[i];
+      const rawAnswers = rawAnswersList[i]?.[1] as Record<string, string> || {};
+      const disconnectCountVal = rawDisconnects[i]?.[1] as string || '0';
+      const disconnectCount = parseInt(disconnectCountVal, 10) || 0;
+
+      const answers: Record<string, { key: string; at: number }> = {};
+      for (const [qId, data] of Object.entries(rawAnswers)) {
+        try {
+          answers[qId] = JSON.parse(data);
+        } catch {}
+      }
+
+      if (Object.keys(answers).length === 0) {
+        continue;
+      }
+
+      const resultAnswers: WeeklyEventAnswer[] = [];
+      let correctCount = 0;
+      let lastCorrectAnswerAt: Date | null = null;
+
+      for (const [questionId, answer] of Object.entries(answers)) {
+        const question = examQuestionMap.get(questionId);
+        const isCorrect = question ? answer.key === question.correctKey : false;
+        const answeredAt = new Date(answer.at);
+
+        resultAnswers.push({
+          questionId,
+          selectedKey: answer.key,
+          isCorrect,
+          answeredAt: answeredAt.toISOString(),
+        });
+
+        if (isCorrect) {
+          correctCount++;
+          if (!lastCorrectAnswerAt || answeredAt > lastCorrectAnswerAt) {
+            lastCorrectAnswerAt = answeredAt;
+          }
+        }
+      }
+
+      const examStartedAt = p.examStartedAt
+        ? new Date(p.examStartedAt).getTime()
+        : new Date(p.joinedAt).getTime();
+
+      let computedTotalTimeMs = 0;
+      for (let j = 0; j < questionCount; j++) {
+        const q = exam.questions[j];
+        const answer = answers[q.questionId];
+        if (answer) {
+          const questionStartAt = examStartedAt + j * perQuestionMs;
+          const answeredAt = new Date(answer.at).getTime();
+          let timeTaken = answeredAt - questionStartAt;
+          if (timeTaken < 0) timeTaken = 0;
+          if (timeTaken > perQuestionMs) timeTaken = perQuestionMs;
+          computedTotalTimeMs += timeTaken;
+        } else {
+          computedTotalTimeMs += perQuestionMs;
+        }
+      }
+
+      const score = correctCount * 10;
+
+      resultsToInsert.push({
+        participationId: p._id,
+        eventId,
+        roomId,
+        studentId: p.studentId,
+        correctCount,
+        totalAnswered: Object.keys(answers).length,
+        totalTimeMs: computedTotalTimeMs,
+        lastCorrectAnswerAt,
+        score,
+        answers: resultAnswers,
+      });
+
+      const compositeScore = this.computeCompositeScore(correctCount, computedTotalTimeMs, lastCorrectAnswerAt);
+      zaddArgs.push(compositeScore, p.studentId);
+
+      scoreUpdates.push({
+        userId: p.studentId,
+        points: score,
+        gameType: 'weekly_event',
+      });
+
+      studentsToClear.push(p.studentId);
+
+      // Đồng bộ disconnectCount từ Redis ngược lại MongoDB
+      if (disconnectCount > 0) {
+        WeeklyEventParticipationModel.updateOne(
+          { _id: p._id },
+          { $set: { disconnectCount } }
+        ).catch((err) => console.error('[WeeklyEvent] Sync disconnectCount error:', err));
       }
     }
 
-    return gradedCount;
+    // 4. Ghi DB & Redis theo chunks (size: 500)
+    const chunkSize = 500;
+    for (let i = 0; i < resultsToInsert.length; i += chunkSize) {
+      const resultsChunk = resultsToInsert.slice(i, i + chunkSize);
+      const scoreUpdatesChunk = scoreUpdates.slice(i, i + chunkSize);
+      const clearAnswersChunk = studentsToClear.slice(i, i + chunkSize);
+      const zaddChunk = zaddArgs.slice(i * 2, (i + chunkSize) * 2);
+
+      if (resultsChunk.length > 0) {
+        await WeeklyEventResultModel.insertMany(resultsChunk);
+      }
+
+      if (zaddChunk.length > 0) {
+        const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${grade}`;
+        await redis.zadd(lbKey, ...zaddChunk);
+      }
+
+      if (scoreUpdatesChunk.length > 0) {
+        await ScoreService.addWinPointsBatch(scoreUpdatesChunk);
+      }
+
+      // Pipeline lưu cache và xóa answers tạm trên Redis
+      const cachePipeline = redis.pipeline();
+      for (const res of resultsChunk) {
+        const cacheKey = `we:personal_result:${eventId}:${res.studentId}`;
+        cachePipeline.set(cacheKey, JSON.stringify(res), 'EX', 3600);
+      }
+      for (const studentId of clearAnswersChunk) {
+        const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS}:${eventId}:${studentId}`;
+        cachePipeline.del(answersKey);
+        cachePipeline.del(`we:disconnect_count:${eventId}:${studentId}`);
+      }
+      await cachePipeline.exec();
+    }
+
+    return resultsToInsert.length;
   }
 
   /**
@@ -224,21 +375,25 @@ export class WeeklyEventGradingService {
       { upsert: true, new: true },
     );
 
-    // Cập nhật rank vào tất cả results
-    const allResults = await WeeklyEventResultModel.find({ eventId, roomId })
+    // Cập nhật rank vào tất cả kết quả MongoDB (CHẠY BẤT ĐỒNG BỘ Ở BACKGROUND)
+    WeeklyEventResultModel.find({ eventId, roomId })
       .sort({ score: -1, totalTimeMs: 1 })
-      .lean();
+      .lean()
+      .then((allResults) => {
+        const bulkOps = allResults.map((r, idx) => ({
+          updateOne: {
+            filter: { _id: r._id },
+            update: { $set: { rank: idx + 1 } },
+          },
+        }));
 
-    const bulkOps = allResults.map((r, idx) => ({
-      updateOne: {
-        filter: { _id: r._id },
-        update: { $set: { rank: idx + 1 } },
-      },
-    }));
-
-    if (bulkOps.length > 0) {
-      await WeeklyEventResultModel.bulkWrite(bulkOps);
-    }
+        if (bulkOps.length > 0) {
+          WeeklyEventResultModel.bulkWrite(bulkOps).catch((err) =>
+            console.error('[WeeklyEvent] Async rank update failed:', err)
+          );
+        }
+      })
+      .catch((err) => console.error('[WeeklyEvent] Fetch results for rank failed:', err));
 
     return topNList;
   }
@@ -263,10 +418,39 @@ export class WeeklyEventGradingService {
   static async getPersonalResult(
     eventId: string,
     studentId: string,
+    grade?: number,
   ): Promise<WeeklyEventResult | null> {
-    const doc = await WeeklyEventResultModel.findOne({ eventId, studentId }).lean();
-    if (!doc) return null;
-    return this.toResult(doc);
+    const cacheKey = `we:personal_result:${eventId}:${studentId}`;
+    const cached = await redis.get(cacheKey);
+    
+    let result: WeeklyEventResult | null = null;
+    if (cached) {
+      result = JSON.parse(cached);
+    } else {
+      const doc = await WeeklyEventResultModel.findOne({ eventId, studentId }).lean();
+      if (doc) {
+        result = this.toResult(doc);
+        // Lưu lại cache
+        await redis.set(cacheKey, JSON.stringify(result), 'EX', 3600);
+      }
+    }
+
+    if (result) {
+      let finalGrade = grade;
+      if (!finalGrade) {
+        const participation = await WeeklyEventParticipationModel.findOne({ eventId, studentId }).lean();
+        finalGrade = participation?.grade;
+      }
+
+      if (finalGrade) {
+        // Tính toán rank real-time từ Redis sorted set
+        const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${finalGrade}`;
+        const redisRank = await redis.zrevrank(lbKey, studentId);
+        result.rank = redisRank !== null ? redisRank + 1 : undefined;
+      }
+    }
+
+    return result;
   }
 
   /**

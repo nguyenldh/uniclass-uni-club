@@ -346,9 +346,6 @@ export class WeeklyEventService {
     return this.toEvent(doc);
   }
 
-  /**
-   * Lấy danh sách rooms của 1 event.
-   */
   static async getRooms(eventId: string): Promise<Array<{
     grade: number;
     status: string;
@@ -357,13 +354,25 @@ export class WeeklyEventService {
     examId?: string;
   }>> {
     const rooms = await WeeklyEventRoomModel.find({ eventId }).sort({ grade: 1 }).lean();
-    return rooms.map((r) => ({
-      grade: r.grade,
-      status: r.status,
-      participantCount: r.participantCount,
-      submittedCount: r.submittedCount,
-      examId: r.examId,
-    }));
+    return Promise.all(
+      rooms.map(async (r) => {
+        const joinedSetKey = `we:joined:${eventId}:${r.grade}`;
+        const submittedSetKey = `we:submitted:${eventId}:${r.grade}`;
+        
+        const [redisPartCount, redisSubCount] = await Promise.all([
+          redis.scard(joinedSetKey),
+          redis.scard(submittedSetKey),
+        ]);
+
+        return {
+          grade: r.grade,
+          status: r.status,
+          participantCount: redisPartCount > 0 ? redisPartCount : r.participantCount,
+          submittedCount: redisSubCount > 0 ? redisSubCount : r.submittedCount,
+          examId: r.examId,
+        };
+      })
+    );
   }
 
   // ---- Helpers ----
