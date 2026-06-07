@@ -53,11 +53,12 @@ export interface EventEntryProps extends HTMLAttributes<HTMLDivElement> {
   onJoin?: () => void;
   onResume?: () => void;
   waitingDuration?: number;
+  topRight?: ReactNode;
 }
 
 export function EventEntry({
   status = 'open', weeklyTitle, grade, openAt, nextEventAt, alreadyJoined = false,
-  skewMs = 0, onJoin, onResume, waitingDuration = 5, className, ...rest
+  skewMs = 0, onJoin, onResume, waitingDuration = 5, topRight, className, ...rest
 }: EventEntryProps) {
   const formatOpenTime = (dateInput?: number | Date) => {
     if (!dateInput) return '';
@@ -79,7 +80,7 @@ export function EventEntry({
     switch (status) {
       case 'before-open': return '🚀 SẮP BẮT ĐẦU';
       case 'open': return '🔥 ĐÃ ĐẾN GIỜ TRANH TÀI';
-      case 'in-progress': return alreadyJoined ? '✍️ LƯỢT THI CHƯA HOÀN THÀNH' : '🕒 ĐẤU TRƯỜNG ĐÃ KHÓA';
+      case 'in-progress': return alreadyJoined ? '✍️ LƯỢT THI CHƯA HOÀN THÀNH' : '🕒 SỰ KIỆN TUẦN ĐÃ KHÓA';
       case 'closed': return '🎉 SỰ KIỆN ĐÃ KHÉP LẠI';
       default: return 'Chủ đề tuần này';
     }
@@ -89,10 +90,10 @@ export function EventEntry({
     <div data-scr="UI-S-001" className={cn('we-stage is-soft', className)} {...rest}>
       <div className="we-motes" aria-hidden><i /><i /><i /><i /><i /><i /></div>
       <div className="we-screen">
-        <WeHeader grade={grade} />
+        <WeHeader grade={grade} right={topRight} />
 
         <div className="we-body">
-          <div className="we-marquee"><span className="bulb" />Đấu Trường Số · Sự Kiện Tuần<span className="bulb" /></div>
+          <div className="we-marquee"><span className="bulb" />Sự Kiện Tuần<span className="bulb" /></div>
           <div className="we-eyebrow">{getStatusEyebrow()}</div>
           <h1 className="we-theme-title">{weeklyTitle}</h1>
 
@@ -107,28 +108,35 @@ export function EventEntry({
 
           {status === 'open' && (
             <div className="we-subtle" style={{ maxWidth: 460 }}>
-              Cổng đấu trường đã mở! Hãy nhanh chóng vào phòng chờ cùng các bạn khối {grade}. Đề thi sẽ được phát đồng loạt vào <strong style={{ color: 'var(--we-accent)' }}>{getStartExamTime()}</strong>.
+              Cổng sự kiện tuần đã mở! Hãy nhanh chóng vào phòng chờ cùng các bạn khối {grade}. Đề thi sẽ được phát đồng loạt vào <strong style={{ color: 'var(--we-accent)' }}>{getStartExamTime()}</strong>.
             </div>
           )}
 
           {status === 'in-progress' && !alreadyJoined && (
             <div className="we-note-plate warn">
               <span className="em">⏰</span>
-              Đấu trường tuần này đã bắt đầu và khóa cổng ghi danh lúc <strong style={{ marginLeft: 4 }}>{getStartExamTime()}</strong>. Hẹn gặp học sinh khối {grade} vào thứ Bảy tuần sau!
+              <div>
+                Sự kiện tuần này đã bắt đầu và khóa cổng ghi danh lúc <strong style={{ marginLeft: 4 }}>{getStartExamTime()}</strong>. Hẹn gặp học sinh khối {grade} vào thứ Bảy tuần sau!
+              </div>
             </div>
           )}
 
           {status === 'in-progress' && alreadyJoined && (
             <div className="we-note-plate">
               <span className="em">▶️</span>
-              Bạn có lượt làm bài đang diễn ra ở phòng thi khối {grade}. Hãy nhanh chóng quay lại để hoàn thành bài thi nhé!
+              <div>
+                Bạn có lượt làm bài đang diễn ra ở phòng thi khối {grade}. Hãy nhanh chóng quay lại để hoàn thành bài thi nhé!
+              </div>
             </div>
           )}
 
           {status === 'closed' && (
             <>
               <div className="we-note-plate">
-                <span className="em">🎉</span> Cảm ơn học sinh khối {grade} đã tham gia tranh tài tuần này! Bảng vinh danh đã được công bố.
+                <span className="em">🎉</span>
+                <div>
+                  Cảm ơn học sinh khối {grade} đã tham gia tranh tài tuần này! Bảng vinh danh đã được công bố.
+                </div>
               </div>
               {nextEventAt != null && (
                 <CountdownTimer to={nextEventAt} skewMs={skewMs} label="Sự kiện tiếp theo bắt đầu sau" />
