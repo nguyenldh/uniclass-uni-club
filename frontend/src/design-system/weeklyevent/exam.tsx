@@ -71,7 +71,7 @@ export function ExamScreen({
       <div className="we-exam">
         <div className="we-exam-bar">
           <GradeRoomBadge grade={grade} size="sm" />
-          <ProgressBar answered={answeredCount} total={total} label="Tiến độ" />
+          <ProgressBar answered={answeredCount} total={total} label="Số câu đã làm" />
           <SyncTimer remaining={remaining} total={perQuestionSec} />
         </div>
 

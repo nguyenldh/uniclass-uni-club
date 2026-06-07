@@ -335,6 +335,47 @@ backend/
 - Cron/BullMQ tự động recompute difficulty chưa có (thủ công qua admin endpoint)
 - `grade` lấy từ JWT payload (field `grade?: number`) — UniClass phải cấp khi sinh token
 
+## Weekly Event (Sự kiện tuần)
+
+### Snapshot
+
+| Mục | Giá trị |
+|---|---|
+| Status | `Implemented` |
+| Route REST Học sinh | `/api/game/weekly-event/*` |
+| Route REST Admin | `/api/admin/weekly-event/*` |
+| Entry Socket Học sinh | namespace `/we` |
+| Entry Socket Admin | namespace `/we-admin` |
+| State runtime | Redis (phòng thi, online) + MongoDB (kết quả, snapshot) |
+
+### Source Of Truth Files
+
+- `src/games/weekly-event/routes/index.ts`: REST API cho học sinh
+- `src/games/weekly-event/routes/admin.ts`: REST API cho admin (CMS)
+- `src/games/weekly-event/sockets/student.handler.ts`: Sockets cho học sinh (chạy thi, đồng bộ)
+- `src/games/weekly-event/sockets/admin.handler.ts`: Sockets cho admin (giám sát phòng thi)
+- `src/games/weekly-event/services/weekly-event-scheduler.service.ts`: Quản lý scheduler và chuyển đổi phase tự động bằng setTimeout đồng bộ server-time
+- `src/games/weekly-event/services/weekly-event-room.service.ts`: Quản lý tạo phòng thi cho từng khối lớp (1-12)
+- `src/games/weekly-event/services/weekly-event-grading.service.ts`: Chấm bài thi tự động, tính điểm dựa theo Response Time từng câu, lưu kết quả và snapshot BXH (Top 50)
+- `src/games/weekly-event/services/weekly-event-state-machine.service.ts`: Quản lý state phòng thi lưu trên Redis Hash
+
+### Runtime Flows
+
+- **Vòng đời sự kiện tuần**:
+  - `Scheduled`: Sự kiện được lập lịch (chờ mở).
+  - `Waiting`: Mở cổng phòng chờ (10h00 thứ Bảy). Reset online set trên Redis.
+  - `InProgress`: Bắt đầu thi (10h05). Broadcast đề thi (đã ẩn đáp án đúng). Client tự đếm ngược và khóa đề / tự nộp khi hết giờ câu.
+  - `Grading`: Chấm bài (10h25). Chốt thời gian làm bài, tính điểm theo Response Time từng câu, lưu `WeeklyEventResult`.
+  - `Showing`: Vinh danh (10h27). Tạo snapshot BXH trên MongoDB, emit `ROOM_LEADERBOARD` và `PERSONAL_RESULT`.
+  - `Closed`: Đóng sự kiện (10h30). Ngắt kết nối socket. Client có thể gọi REST API để xem lại BXH của sự kiện tuần trước.
+
+### Contracts
+
+- `GET /api/game/weekly-event/current`: Lấy sự kiện hiện tại, nextEventAt và lastEvent.
+- `POST /api/game/weekly-event/:eventId/join`: Học sinh đăng ký tham gia phòng thi.
+- `GET /api/game/weekly-event/leaderboard/:eventId/:grade`: Lấy BXH snapshot của tuần trước.
+- `GET /api/game/weekly-event/result/:eventId`: Lấy kết quả cá nhân của học sinh trong sự kiện.
+
 ## Environment Variables
 
 | Biến | Mô tả | Default |

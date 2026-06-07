@@ -4,3 +4,5 @@ export { QuestionFormModal } from './QuestionFormModal';
 export { ImportExcelModal } from './ImportExcelModal';
 export { BossQuestionFormModal } from './BossQuestionFormModal';
 export { BossImportExcelModal } from './BossImportExcelModal';
+export { ExamFormModal } from './ExamFormModal';
+export { WeeklyEventImportExcelModal } from './WeeklyEventImportExcelModal';

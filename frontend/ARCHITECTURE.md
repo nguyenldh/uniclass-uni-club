@@ -171,6 +171,39 @@ frontend/
 - Matchmaking page là shared page cho nhiều game, nên một số metadata vẫn game-agnostic thay vì MindGame-specific hoàn toàn
 - Nếu sửa tài liệu hoặc code Mind Game, cần đối chiếu với `@uniclub/shared` trước vì đó là contract event/type chung
 
+## Weekly Event (Sự kiện tuần)
+
+### Snapshot
+
+| Mục | Giá trị |
+|---|---|
+| Status | `Implemented` |
+| Entry route | `/weekly-event` |
+| State | Zustand |
+| Real-time | Socket.IO Client (namespace `/we`) |
+
+### Source Of Truth Files
+
+- `src/pages/weekly-event/WeeklyEventController.tsx`: Điều phối giao diện (State Machine Controller) dựa theo phase của sự kiện
+- `src/stores/weekly-event.ts`: Zustand store quản lý state làm bài, bộ đếm ngược, answers map, offline buffer và leaderboard của sự kiện tuần
+- `src/hooks/useWeeklyEventSocket.ts`: Socket connection handler, đồng bộ thời gian (NTP-style clock skew), khôi phục phiên (`session:resume`) và replay answers offline khi có mạng trở lại
+- `src/services/weekly-event.ts`: REST API client cho lấy sự kiện hiện tại, xem BXH cũ và kết quả cá nhân
+- `src/design-system/weeklyevent/`: Toàn bộ các UI component màn hình của Sự kiện tuần (`closed.tsx`, `entry.tsx`, `exam.tsx`, `leaderboard.tsx`, `loading.tsx`, `result.tsx`, `waiting.tsx`)
+
+### Runtime Flows
+
+1. **Khởi chạy / Rejoin**:
+   - Khi vào route `/weekly-event`, `WeeklyEventController` gọi REST API `/current` (kèm JWT token).
+   - Nếu học sinh đã đăng ký thi trước đó, API trả về `socketToken` và `roomId` để FE tự động kết nối Socket và khôi phục màn hình thi/vinh danh/chấm bài tương ứng.
+   - Nếu không có sự kiện đang chạy, FE render màn hình `EventClosedScreen` và lấy `lastEvent` để hiển thị nút "Xem bảng xếp hạng" của tuần trước.
+2. **Đồng bộ thời gian & Tự động chuyển câu**:
+   - Khi đang thi (`exam` phase), FE đếm ngược thời gian cho câu hiện tại dựa trên `skewMs` (clock skew đồng bộ định kỳ 10s qua `time:sync`).
+   - Hết giờ câu hỏi, FE tự động tăng `currentQuestionIdx` và khóa chọn đáp án câu cũ (Lockstep).
+   - Hết giờ thi, FE tự động gọi `submitFinal()` gửi bài lên server.
+3. **Offline Mode**:
+   - Khi mất kết nối mạng, đáp án chọn được tạm lưu vào `offlineBuffer`.
+   - Khi kết nối lại, FE tự động gọi `session:request-resume` để khôi phục trạng thái và replay toàn bộ đáp án trong `offlineBuffer`.
+
 ## Environment Variables
 
 | Biến | Mô tả | Default |

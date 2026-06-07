@@ -6,6 +6,7 @@ import { QuestionService } from '../../games/quiz-arena/services/question.servic
 import { requireAdminAuth } from '../../middleware';
 import adminAuthRouter from './auth';
 import bossBattleAdminRouter from '../../games/boss-battle/routes/admin';
+import weeklyEventAdminRouter from '../../games/weekly-event/routes/admin';
 import type { CreateBotProfileInput, UpdateBotProfileInput } from '@uniclub/shared';
 
 const router = Router();
@@ -69,6 +70,16 @@ router.post('/boss-battle/test/emit-defeated', (req: Request, res: Response) => 
 // Áp dụng middleware cho tất cả routes bên dưới
 // ============================================================
 router.use(requireAdminAuth);
+
+// ============================================================
+// Mount game-group admin routes
+// ============================================================
+
+/** Boss Battle (Săn Boss) */
+router.use('/boss-battle', bossBattleAdminRouter);
+
+/** Weekly Event (Sự kiện tuần) */
+router.use('/weekly-event', weeklyEventAdminRouter);
 
 // ============================================================
 // Game Config Management (CMS)
@@ -521,10 +532,5 @@ router.post('/bot-profiles/seed', async (_req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// ============================================================
-// Boss Battle (Săn Boss) admin
-// ============================================================
-router.use('/boss-battle', bossBattleAdminRouter);
 
 export default router;

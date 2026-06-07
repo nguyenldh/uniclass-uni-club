@@ -6,7 +6,7 @@
  * Game type trong Kafka event (UniClass format).
  * Mapping từ internal game types.
  */
-export type KafkaGameType = 'SO_TAI' | 'CARO' | 'LAT_MANH_GHEP' | 'SAN_BOSS';
+export type KafkaGameType = 'SO_TAI' | 'CARO' | 'LAT_MANH_GHEP' | 'SAN_BOSS' | 'SU_KIEN_TUAN';
 
 /**
  * Kafka topic: club-game-result
@@ -87,4 +87,5 @@ export const GAME_TYPE_TO_KAFKA: Record<string, KafkaGameType> = {
   gomoku: 'CARO',
   card_flip: 'LAT_MANH_GHEP',
   boss_battle: 'SAN_BOSS',
+  weekly_event: 'SU_KIEN_TUAN',
 };

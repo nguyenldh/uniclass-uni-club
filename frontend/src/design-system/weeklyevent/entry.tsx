@@ -27,7 +27,7 @@ export function WeHeader({ grade, right }: WeHeaderProps) {
     <div className="we-topbar">
       <div className="we-brand">
         <span className="crest"><WeCrest /></span>
-        <div>Sự kiện tuần<small>Uniclass · Đấu trường</small></div>
+        <div>Sự kiện tuần<small>Uniclass</small></div>
       </div>
       <div className="we-topright">
         {grade != null && <GradeRoomBadge grade={grade} size="sm" />}
@@ -52,12 +52,39 @@ export interface EventEntryProps extends HTMLAttributes<HTMLDivElement> {
   skewMs?: number;
   onJoin?: () => void;
   onResume?: () => void;
+  waitingDuration?: number;
 }
 
 export function EventEntry({
   status = 'open', weeklyTitle, grade, openAt, nextEventAt, alreadyJoined = false,
-  skewMs = 0, onJoin, onResume, className, ...rest
+  skewMs = 0, onJoin, onResume, waitingDuration = 5, className, ...rest
 }: EventEntryProps) {
+  const formatOpenTime = (dateInput?: number | Date) => {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    return `${pad(date.getHours())}h${pad(date.getMinutes())} — ${days[date.getDay()]} (${pad(date.getDate())}/${pad(date.getMonth() + 1)})`;
+  };
+
+  const getStartExamTime = () => {
+    if (!openAt) return '';
+    const date = new Date(openAt);
+    date.setMinutes(date.getMinutes() + waitingDuration);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(date.getHours())}h${pad(date.getMinutes())}`;
+  };
+
+  const getStatusEyebrow = () => {
+    switch (status) {
+      case 'before-open': return '🚀 SẮP BẮT ĐẦU';
+      case 'open': return '🔥 ĐÃ ĐẾN GIỜ TRANH TÀI';
+      case 'in-progress': return alreadyJoined ? '✍️ LƯỢT THI CHƯA HOÀN THÀNH' : '🕒 ĐẤU TRƯỜNG ĐÃ KHÓA';
+      case 'closed': return '🎉 SỰ KIỆN ĐÃ KHÉP LẠI';
+      default: return 'Chủ đề tuần này';
+    }
+  };
+
   return (
     <div data-scr="UI-S-001" className={cn('we-stage is-soft', className)} {...rest}>
       <div className="we-motes" aria-hidden><i /><i /><i /><i /><i /><i /></div>
@@ -65,42 +92,46 @@ export function EventEntry({
         <WeHeader grade={grade} />
 
         <div className="we-body">
-          <div className="we-marquee"><span className="bulb" />Đấu Trường Số · Thứ Bảy<span className="bulb" /></div>
-          <div className="we-eyebrow">Chủ đề tuần này</div>
+          <div className="we-marquee"><span className="bulb" />Đấu Trường Số · Sự Kiện Tuần<span className="bulb" /></div>
+          <div className="we-eyebrow">{getStatusEyebrow()}</div>
           <h1 className="we-theme-title">{weeklyTitle}</h1>
 
           {status === 'before-open' && openAt != null && (
             <>
-              <CountdownTimer to={openAt} skewMs={skewMs} label="Cổng mở sau" urgentBelowSec={60} />
-              <div className="we-subtle">10h00 — 10h30 · Mỗi thứ Bảy hàng tuần</div>
+              <CountdownTimer to={openAt} skewMs={skewMs} label="Cổng đăng ký mở sau" urgentBelowSec={60} />
+              <div className="we-subtle">
+                Thời gian mở cổng: <strong style={{ color: 'var(--we-accent)' }}>{formatOpenTime(openAt)}</strong>
+              </div>
             </>
           )}
 
           {status === 'open' && (
             <div className="we-subtle" style={{ maxWidth: 460 }}>
-              Cổng đã mở! Vào phòng chờ để cùng các bạn khối {grade} bắt đầu lúc 10h05.
+              Cổng đấu trường đã mở! Hãy nhanh chóng vào phòng chờ cùng các bạn khối {grade}. Đề thi sẽ được phát đồng loạt vào <strong style={{ color: 'var(--we-accent)' }}>{getStartExamTime()}</strong>.
             </div>
           )}
 
           {status === 'in-progress' && !alreadyJoined && (
             <div className="we-note-plate warn">
               <span className="em">⏰</span>
-              Sự kiện đang diễn ra — không thể tham gia muộn. Hẹn bạn vào lượt tuần sau nhé!
+              Đấu trường tuần này đã bắt đầu và khóa cổng ghi danh lúc <strong style={{ marginLeft: 4 }}>{getStartExamTime()}</strong>. Hẹn gặp học sinh khối {grade} vào thứ Bảy tuần sau!
             </div>
           )}
 
           {status === 'in-progress' && alreadyJoined && (
             <div className="we-note-plate">
               <span className="em">▶️</span>
-              Bạn đang trong một lượt thi. Quay lại để tiếp tục làm bài.
+              Bạn có lượt làm bài đang diễn ra ở phòng thi khối {grade}. Hãy nhanh chóng quay lại để hoàn thành bài thi nhé!
             </div>
           )}
 
           {status === 'closed' && (
             <>
-              <div className="we-note-plate"><span className="em">👋</span> Hẹn gặp lại tuần sau!</div>
+              <div className="we-note-plate">
+                <span className="em">🎉</span> Cảm ơn học sinh khối {grade} đã tham gia tranh tài tuần này! Bảng vinh danh đã được công bố.
+              </div>
               {nextEventAt != null && (
-                <CountdownTimer to={nextEventAt} skewMs={skewMs} label="Sự kiện tiếp theo" />
+                <CountdownTimer to={nextEventAt} skewMs={skewMs} label="Sự kiện tiếp theo bắt đầu sau" />
               )}
             </>
           )}
@@ -108,7 +139,7 @@ export function EventEntry({
 
         <div className="we-foot">
           {status === 'before-open' && (
-            <GameButton size="lg" disabled>Chờ mở cổng…</GameButton>
+            <GameButton size="lg" disabled>Chờ mở cổng đăng ký…</GameButton>
           )}
           {status === 'open' && (
             <GameButton size="lg" color="orange" onClick={onJoin}>Tham gia ngay</GameButton>
@@ -117,7 +148,7 @@ export function EventEntry({
             <GameButton size="lg" color="green" onClick={onResume}>Tiếp tục làm bài</GameButton>
           )}
           {status === 'in-progress' && !alreadyJoined && (
-            <GameButton size="lg" disabled>Đã đóng cổng vào</GameButton>
+            <GameButton size="lg" disabled>Đã đóng cổng ghi danh</GameButton>
           )}
           {status === 'closed' && (
             <GameButton size="lg" color="ghost" disabled>Sự kiện đã kết thúc</GameButton>

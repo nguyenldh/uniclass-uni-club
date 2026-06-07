@@ -3,6 +3,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import type { Server as HttpServer } from 'http';
 import { redis, env } from '../config';
 import { registerGameHandlers } from './handlers/index';
+import { registerWeeklyEventHandlers } from '../games/weekly-event/sockets/index';
 
 let io: Server;
 
@@ -28,6 +29,9 @@ export function initSocket(httpServer: HttpServer): Server {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
   });
+
+  // Đăng ký Weekly Event namespaces (/we, /we-admin)
+  registerWeeklyEventHandlers(io);
 
   console.log(`[Socket] Socket.IO initialized with Redis Adapter (${env.REDIS_MODE})`);
   return io;

@@ -4,11 +4,14 @@ import { QuizArenaLobbyPage, QuizArenaGamePage } from './pages/quiz-arena';
 import { BossLobbyPage, BossBattlePage, BossResultPage, BossLeaderboardPage, BossHonorPage } from './pages/boss-battle';
 import { ErrorPage } from './pages/ErrorPage';
 import { BossBattleSocketProvider } from './hooks/useBossBattleSocketProvider';
+import { WeeklyEventController } from './pages/weekly-event';
 
 export function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Weekly Event — Sự kiện tuần */}
+        <Route path="/weekly-event" element={<WeeklyEventController />} />
         {/* Matchmaking — game-agnostic, dùng chung cho mọi game PvP */}
         <Route path="/matchmaking/:gameType" element={<MatchmakingPage />} />
 

@@ -4,6 +4,7 @@ import { GameConfigService } from '../../services/game-config.service';
 import mindGameRoutes from '../../games/mind-game/routes/index';
 import quizArenaRoutes from '../../games/quiz-arena/routes/index';
 import bossBattleRoutes from '../../games/boss-battle/routes/index';
+import weeklyEventRoutes from '../../games/weekly-event/routes/index';
 import matchmakingRoutes from './matchmaking.routes';
 
 const router = Router();
@@ -20,6 +21,9 @@ router.use('/quiz-arena', quizArenaRoutes);
 
 /** Boss Battle (Săn Boss) */
 router.use('/boss-battle', bossBattleRoutes);
+
+/** Weekly Event (Sự kiện tuần) */
+router.use('/weekly-event', weeklyEventRoutes);
 
 /** Matchmaking — game-agnostic, dùng chung cho mọi game PvP */
 router.use('/matchmaking', matchmakingRoutes);

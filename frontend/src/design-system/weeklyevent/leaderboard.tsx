@@ -46,7 +46,7 @@ export function LeaderboardScreen({
         <WeHeader grade={grade} right={right} />
 
         <div className="we-board-head">
-          <div className="we-marquee"><span className="bulb" />Vinh danh Top {entries.length}<span className="bulb" /></div>
+          <div className="we-marquee"><span className="bulb" />Bảng xếp hạng<span className="bulb" /></div>
           {weeklyTitle && <div className="we-subtle" style={{ marginTop: 4 }}>{weeklyTitle}</div>}
         </div>
 
