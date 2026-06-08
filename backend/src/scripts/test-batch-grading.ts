@@ -72,7 +72,7 @@ async function runSimulation() {
   console.log('[Sim] Cleaning old simulation data...');
   await WeeklyEventParticipationModel.deleteMany({ eventId, grade, studentId: { $regex: /^sim_/ } });
   await WeeklyEventResultModel.deleteMany({ eventId, roomId: room._id, studentId: { $regex: /^sim_/ } });
-  const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${grade}`;
+  const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD(eventId)}:${grade}`;
   await redis.del(lbKey);
 
   // 3. Tạo 1,000 học sinh giả lập
@@ -96,7 +96,7 @@ async function runSimulation() {
     });
 
     // Tạo đáp án giả lập
-    const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS}:${eventId}:${studentId}`;
+    const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS(eventId)}:${studentId}`;
 
     // Mỗi học sinh trả lời ngẫu nhiên từ 15-25 câu hỏi
     const answersToSubmitCount = 15 + (i % 11);
@@ -115,7 +115,7 @@ async function runSimulation() {
 
     // Set disconnect count tạm thời trên Redis
     if (i % 10 === 0) {
-      answerPipeline.set(`we:disconnect_count:${eventId}:${studentId}`, '3');
+      answerPipeline.set(`${WEEKLY_EVENT_REDIS_KEYS.DISCONNECT_COUNT(eventId)}:${studentId}`, '3');
     }
   }
 
@@ -171,7 +171,7 @@ async function runSimulation() {
   const cleanupPipeline = redis.pipeline();
   for (let i = 1; i <= studentCount; i++) {
     const studentId = `sim_student_${String(i).padStart(4, '0')}`;
-    cleanupPipeline.del(`we:personal_result:${eventId}:${studentId}`);
+    cleanupPipeline.del(`${WEEKLY_EVENT_REDIS_KEYS.PERSONAL_RESULT(eventId)}:${studentId}`);
   }
   await cleanupPipeline.exec();
 

@@ -23,6 +23,8 @@ export interface WaitingRoomProps extends HTMLAttributes<HTMLDivElement> {
   /** Một vài gương mặt minh hoạ đám đông. */
   faces?: ReadonlyArray<CrowdFace>;
   tips?: ReadonlyArray<ReactNode>;
+  /** Slot bên phải topbar (vd: nút thoát). */
+  topRight?: ReactNode;
 }
 
 const DEFAULT_TIPS: ReactNode[] = [
@@ -33,7 +35,7 @@ const DEFAULT_TIPS: ReactNode[] = [
 
 export function WaitingRoom({
   weeklyTitle, grade, onlineCount, startAt, skewMs = 0,
-  faces = [], tips = DEFAULT_TIPS, className, ...rest
+  faces = [], tips = DEFAULT_TIPS, topRight, className, ...rest
 }: WaitingRoomProps) {
   const shown = faces.slice(0, 6);
   const extra = Math.max(0, onlineCount - shown.length);
@@ -41,7 +43,7 @@ export function WaitingRoom({
     <div data-scr="UI-S-002" className={cn('we-stage', className)} {...rest}>
       <div className="we-motes" aria-hidden><i /><i /><i /><i /><i /><i /></div>
       <div className="we-screen">
-        <WeHeader grade={grade} right={<OnlineCounter count={onlineCount} renderLabel={(n) => <><span className="n">{n.toLocaleString('vi-VN')}</span> trong phòng</>} />} />
+        <WeHeader grade={grade} right={topRight ?? <OnlineCounter count={onlineCount} renderLabel={(n) => <><span className="n">{n.toLocaleString('vi-VN')}</span> trong phòng</>} />} />
 
         <div className="we-body">
           <GradeRoomBadge grade={grade} />

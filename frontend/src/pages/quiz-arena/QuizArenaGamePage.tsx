@@ -21,6 +21,7 @@ import { quizArenaApi } from "../../services/quiz-arena";
 import { useUser } from "../../hooks/useUser";
 import { useQuizArenaSocket } from "../../hooks/useQuizArenaSocket";
 import { notifyGameEnded } from "../../utils";
+import { exitWebView } from "../../utils/webview";
 import type { QuizPlayerAnswer } from "@uniclub/shared";
 
 // ============================================================
@@ -104,6 +105,11 @@ export function QuizArenaGamePage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittedRef = useRef(false); // tránh double-submit khi timeout
   const gameEndedSentRef = useRef(false);
+
+  // ─── Handler: thoát giữa trận (forfeit) ───
+  const handleForfeit = useCallback(() => {
+    exitWebView("/quiz-arena/game");
+  }, [userId, session?.sessionId, timeElapsed]);
 
   // Xác định mình là playerA hay playerB
   const amIPlayerA = session?.playerA === userId;
@@ -288,7 +294,7 @@ export function QuizArenaGamePage() {
         gameType: 'quiz_arena',
         kafkaGameType: 'SO_TAI',
         sessionId: result.sessionId,
-        point: mySummary.totalScore,
+        point: mySummary.uniPointsEarned,
         playTime: Math.round(mySummary.totalCorrectTimeMs / 1000),
         sessionCompleted: true,
         isWin: amIWinner,
@@ -401,6 +407,23 @@ export function QuizArenaGamePage() {
       className="quiz-arena-page no-top"
       style={{ display: "flex", flexDirection: "column" }}
     >
+      {/* Nút thoát (X) */}
+      <button
+        type="button"
+        className="exit-button"
+        onClick={handleForfeit}
+        aria-label="Thoát"
+        title="Thoát"
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          zIndex: 100,
+        }}
+      >
+        ✕
+      </button>
+
       {/* Top scorebar */}
       <VersusBar
         me={{ name: myData?.name, avatar: myData?.avatar, score: meScore }}
@@ -436,6 +459,7 @@ export function QuizArenaGamePage() {
             selected={myAnswer}
             correct={correctKey}
             phase={questionPhase}
+            opponentAnswered={opponentAnswered}
             onSelect={handleSelect}
           />
 
@@ -445,28 +469,6 @@ export function QuizArenaGamePage() {
               points={myEarned}
               style={{ position: "absolute", top: 8, right: 24 }}
             />
-          )}
-
-          {/* Opponent answered indicator */}
-          {phase === "answering" && opponentAnswered && (
-            <div
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 24,
-                fontSize: 12,
-                fontWeight: 800,
-                color: "#FFD600", // vàng nổi bật
-                background: "rgba(0,0,0,0.7)",
-                borderRadius: 8,
-                padding: "2px 10px",
-                fontFamily: "Nunito, sans-serif",
-                letterSpacing: ".05em",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-              }}
-            >
-              Đối thủ đã trả lời&nbsp;✓
-            </div>
           )}
         </div>
       )}

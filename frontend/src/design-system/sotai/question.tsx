@@ -203,6 +203,8 @@ export interface QuestionCardProps extends Omit<HTMLAttributes<HTMLDivElement>, 
   correct?: AnswerKey | null;
   /** Phase hiện tại. */
   phase?: QuestionPhase;
+  /** Đối thủ đã trả lời chưa (chỉ dùng khi phase === 'answering'). */
+  opponentAnswered?: boolean;
   /** Callback khi click đáp án (chỉ hoạt động khi phase === 'answering'). */
   onSelect?: (key: AnswerKey) => void;
 }
@@ -238,6 +240,7 @@ export function QuestionCard({
   selected = null,
   correct = null,
   phase = 'answering',
+  opponentAnswered = false,
   onSelect,
   className,
   ...rest
@@ -270,6 +273,20 @@ export function QuestionCard({
         />
       </div>
 
+      {/* Unified status banner — trên phần chọn đáp án */}
+      {phase === 'waiting' && (
+        <div className="st-waiting-banner">
+          <span className="st-waiting-icon">⏳</span>
+          <span className="st-waiting-text">Đang chờ đối thủ trả lời...</span>
+        </div>
+      )}
+      {phase === 'answering' && opponentAnswered && (
+        <div className="st-waiting-banner is-answered">
+          <span className="st-waiting-icon">✓</span>
+          <span className="st-waiting-text">Đối thủ đã trả lời</span>
+        </div>
+      )}
+
       <div className="st-answers">
         {options.map((opt) => (
           <AnswerChoice
@@ -282,14 +299,6 @@ export function QuestionCard({
           </AnswerChoice>
         ))}
       </div>
-
-      {/* Waiting for opponent indicator */}
-      {phase === 'waiting' && (
-        <div className="st-waiting-banner">
-          <span className="st-waiting-icon">⏳</span>
-          <span className="st-waiting-text">Đang chờ đối thủ trả lời...</span>
-        </div>
-      )}
     </div>
   );
 }

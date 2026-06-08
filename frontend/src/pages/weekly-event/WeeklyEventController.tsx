@@ -8,6 +8,7 @@ import {
   LeaderboardScreen,
   PersonalResultScreen,
   EventClosedScreen,
+  OnlineCounter,
 } from '../../design-system/weeklyevent';
 import { GameButton } from '../../design-system/game';
 import { useUser } from '../../hooks/useUser';
@@ -402,7 +403,7 @@ export function WeeklyEventController() {
           onJoin={handleJoin}
           onResume={handleResume}
           waitingDuration={store.event?.waitingDuration}
-          topRight={<ExitButton from="/weekly-event" />}
+          topRight={<ExitButton from="/weekly-event" className="we-exit-btn">Thoát</ExitButton>}
         />
       );
 
@@ -414,6 +415,12 @@ export function WeeklyEventController() {
           onlineCount={store.onlineCount}
           startAt={getWaitingEndTime()}
           skewMs={store.skewMs}
+          topRight={
+            <>
+              <OnlineCounter count={store.onlineCount} renderLabel={(n) => <><span className="n">{n.toLocaleString('vi-VN')}</span> trong phòng</>} />
+              <ExitButton from="/weekly-event" className="we-exit-btn">Thoát</ExitButton>
+            </>
+          }
         />
       );
 

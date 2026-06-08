@@ -645,6 +645,11 @@
   }
 }
 
+/* 'idle' | 'searching' | 'matched' | 'timeout' */
+.mind-game-page.idle, .mind-game-page.searching, .mind-game-page.matched, .mind-game-page.timeout{
+  padding-top: 0 !important;
+}
+
 /* ============================================================
    GAME HUD — landscape phone (ngang, chiều cao hẹp)
    HUD xếp dọc bên trái, board chiếm phần còn lại
@@ -663,7 +668,7 @@
   .mind-game-page.idle, .mind-game-page.searching, .mind-game-page.matched, .mind-game-page.timeout{
     flex-direction: column !important;
     align-items: center !important;
-    padding-top: 0;
+    padding-top: 0 !important;
   }
 
   /* HUD: xếp dọc, thu gọn */

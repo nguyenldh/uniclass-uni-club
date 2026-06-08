@@ -25,6 +25,10 @@ export interface CardFlipConfig {
   pairCount: number;
   /** Danh sách item hình nền mặt trước thẻ. Nếu rỗng/undefined → dùng CARD_EMOJIS mặc định. */
   cardItems?: CardFlipItem[];
+  /** Thời gian tối đa cho một lượt (giây). Hết thời gian → forfeit. */
+  turnTimeout: number;
+  /** Thời gian tối đa cho toàn bộ trận đấu (giây). Hết giờ → người điểm cao thắng / hòa. */
+  maxGameDuration: number;
 }
 
 export interface CardFlipCard {
@@ -91,6 +95,10 @@ export interface GomokuConfig {
   winPoints: number;
   /** Kích thước bàn cờ */
   boardSize: number;
+  /** Thời gian tối đa cho một lượt (giây). Hết thời gian → forfeit. */
+  turnTimeout: number;
+  /** Thời gian tối đa cho toàn bộ trận đấu (giây). Hết giờ → hòa. */
+  maxGameDuration: number;
 }
 
 export type CellValue = 'X' | 'O' | null;

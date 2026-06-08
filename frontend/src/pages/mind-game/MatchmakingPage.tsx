@@ -80,42 +80,45 @@ export function MatchmakingPage() {
         if (cancelled) return;
 
         if (res.hasActiveSession && res.sessionId) {
-          // Có session đang diễn ra → tự động vào game
-          if (res.gameType === "gomoku") {
-            navigate("/mind-game/gomoku", {
-              state: {
-                sessionId: res.sessionId,
-                opponentId: null,
-                playerSymbol: "X", // sẽ được xác định lại từ session
-                isAI: res.isBot ?? false,
-                isReconnect: true,
-              },
-              replace: true,
-            });
-          } else if (res.gameType === "card_flip") {
-            navigate("/mind-game/card_flip", {
-              state: {
-                sessionId: res.sessionId,
-                opponentId: null,
-                isAI: res.isBot ?? false,
-                role: "first",
-                isReconnect: true,
-              },
-              replace: true,
-            });
-          } else if (res.gameType === "quiz") {
-            navigate("/quiz-arena/game", {
-              state: {
-                sessionId: res.sessionId,
-                opponentId: null,
-                isAI: res.isBot ?? false,
-                role: "first",
-                isReconnect: true,
-              },
-              replace: true,
-            });
+          // Chỉ reconnect nếu active session cùng gameType với game đang vào
+          if (res.gameType === validGameType) {
+            if (res.gameType === "gomoku") {
+              navigate("/mind-game/gomoku", {
+                state: {
+                  sessionId: res.sessionId,
+                  opponentId: null,
+                  playerSymbol: "X", // sẽ được xác định lại từ session
+                  isAI: res.isBot ?? false,
+                  isReconnect: true,
+                },
+                replace: true,
+              });
+            } else if (res.gameType === "card_flip") {
+              navigate("/mind-game/card_flip", {
+                state: {
+                  sessionId: res.sessionId,
+                  opponentId: null,
+                  isAI: res.isBot ?? false,
+                  role: "first",
+                  isReconnect: true,
+                },
+                replace: true,
+              });
+            } else if (res.gameType === "quiz") {
+              navigate("/quiz-arena/game", {
+                state: {
+                  sessionId: res.sessionId,
+                  opponentId: null,
+                  isAI: res.isBot ?? false,
+                  role: "first",
+                  isReconnect: true,
+                },
+                replace: true,
+              });
+            }
+            return;
           }
-          return;
+          // Active session khác gameType → session cũ đã stale, cho phép vào game mới
         }
       } catch {
         // Ignore error, cho phép user tiếp tục matchmaking

@@ -16,6 +16,10 @@ export interface ExitButtonProps {
   className?: string;
   /** Style tuỳ chỉnh */
   style?: React.CSSProperties;
+  /** Handler bổ sung khi click (chạy trước exitWebView) */
+  onClick?: () => void;
+  /** Nội dung hiển thị — mặc định '✕' */
+  children?: React.ReactNode;
 }
 
 export function ExitButton({
@@ -23,8 +27,11 @@ export function ExitButton({
   reason = 'user_action',
   className,
   style,
+  onClick,
+  children,
 }: ExitButtonProps) {
   const handleClick = () => {
+    if (onClick) onClick();
     exitWebView(from, reason);
   };
 
@@ -37,7 +44,7 @@ export function ExitButton({
       aria-label="Thoát"
       title="Thoát"
     >
-      ✕
+      {children ?? '✕'}
     </button>
   );
 }

@@ -62,16 +62,21 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
           return;
         }
 
-        // ---- Guard: chặn join queue nếu user đang trong session active ----
+        // ---- Guard: chặn join queue nếu user đang trong session active CÙNG gameType ----
         const activeSession = await MatchmakingService.getActiveSession(userId);
         if (activeSession) {
-          socket.emit(SOCKET_EVENTS.ERROR, {
-            message: `Bạn đang trong một trận đấu đang diễn ra (${activeSession.gameType}). Vui lòng hoàn thành hoặc rời trận trước khi tìm trận mới.`,
-            code: 'ACTIVE_SESSION_EXISTS',
-            activeSessionId: activeSession.sessionId,
-            activeGameType: activeSession.gameType,
-          });
-          return;
+          // Nếu active session khác gameType → session cũ đã stale, clear và cho phép tiếp tục
+          if (activeSession.gameType !== gameType) {
+            await MatchmakingService.clearActiveSession(userId);
+          } else {
+            socket.emit(SOCKET_EVENTS.ERROR, {
+              message: `Bạn đang trong một trận đấu đang diễn ra (${activeSession.gameType}). Vui lòng hoàn thành hoặc rời trận trước khi tìm trận mới.`,
+              code: 'ACTIVE_SESSION_EXISTS',
+              activeSessionId: activeSession.sessionId,
+              activeGameType: activeSession.gameType,
+            });
+            return;
+          }
         }
 
         socket.data.userId = userId;

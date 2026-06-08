@@ -233,6 +233,35 @@
   flex-wrap: wrap;
 }
 
+/* Exit button inline variant — nút "Thoát" cùng hàng với badge khối */
+.we-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, .35);
+  background: rgba(255, 255, 255, .08);
+  color: rgba(255, 255, 255, .75);
+  font-family: var(--f-game);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.we-exit-btn:hover {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .6);
+  color: #fff;
+}
+.we-exit-btn:active {
+  transform: scale(.96);
+}
+
 .we-body {
   display: flex;
   flex-direction: column;

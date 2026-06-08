@@ -9,27 +9,35 @@ import type { WeeklyEventGeneralConfig } from '../types/weekly-event';
 
 export const WEEKLY_EVENT_REDIS_KEYS = {
   /** Active Session Cache: we:{eventId}:session:{studentId} — Hash */
-  SESSION: 'we:session',
+  SESSION: (eventId: string) => `we:{${eventId}}:session`,
   /** Real-time Leaderboard: we:{eventId}:lb:{grade} — Sorted Set */
-  LEADERBOARD: 'we:lb',
+  LEADERBOARD: (eventId: string) => `we:{${eventId}}:lb`,
   /** Online Participants: we:{eventId}:online:{grade} — Set */
-  ONLINE: 'we:online',
+  ONLINE: (eventId: string) => `we:{${eventId}}:online`,
   /** Answer Staging Buffer: we:{eventId}:answers:{studentId} — Hash */
-  ANSWERS: 'we:answers',
+  ANSWERS: (eventId: string) => `we:{${eventId}}:answers`,
   /** Room State Machine: we:{eventId}:roomstate:{grade} — Hash */
-  ROOM_STATE: 'we:roomstate',
+  ROOM_STATE: (eventId: string) => `we:{${eventId}}:roomstate`,
   /** Distributed Lock (State Transition): we:{eventId}:lock:transition:{grade} */
-  LOCK_TRANSITION: 'we:lock:transition',
+  LOCK_TRANSITION: (eventId: string) => `we:{${eventId}}:lock:transition`,
   /** Submit Rate Limiter: we:{eventId}:rl:submit:{studentId} */
-  RL_SUBMIT: 'we:rl:submit',
+  RL_SUBMIT: (eventId: string) => `we:{${eventId}}:rl:submit`,
   /** Auto-submit Worker Queue: we:{eventId}:autosubmit:queue — List */
-  AUTOSUBMIT_QUEUE: 'we:autosubmit:queue',
+  AUTOSUBMIT_QUEUE: (eventId: string) => `we:{${eventId}}:autosubmit:queue`,
   /** Socket Session Mapping: we:{eventId}:socket:{studentId} — Hash */
-  SOCKET_MAPPING: 'we:socket',
+  SOCKET_MAPPING: (eventId: string) => `we:{${eventId}}:socket`,
   /** Socket Reverse Mapping: we:{eventId}:socket-reverse:{socketId} — String */
-  SOCKET_REVERSE: 'we:socket-reverse',
+  SOCKET_REVERSE: (eventId: string) => `we:{${eventId}}:socket-reverse`,
   /** Shuffled questions cache: we:{eventId}:shuffled:{studentId} — String (JSON) */
-  SHUFFLED: 'we:shuffled',
+  SHUFFLED: (eventId: string) => `we:{${eventId}}:shuffled`,
+  /** Students who joined the event: we:{eventId}:joined:{grade} — Set */
+  JOINED: (eventId: string) => `we:{${eventId}}:joined`,
+  /** Students who submitted: we:{eventId}:submitted:{grade} — Set */
+  SUBMITTED: (eventId: string) => `we:{${eventId}}:submitted`,
+  /** Disconnect count per student: we:{eventId}:disconnect:{studentId} — String */
+  DISCONNECT_COUNT: (eventId: string) => `we:{${eventId}}:disconnect`,
+  /** Personal result cache: we:{eventId}:personal-result:{studentId} — String (JSON) */
+  PERSONAL_RESULT: (eventId: string) => `we:{${eventId}}:personal-result`,
   /** General config cache */
   GENERAL_CONFIG: 'we:general-config',
   /** Event cache: we:event:{eventId} */
@@ -134,6 +142,9 @@ export const WEEKLY_EVENT_MAX_GRADES = 12;
 
 /** TTL mặc định cho Redis keys (event end + 1h buffer, tính bằng giây) */
 export const WEEKLY_EVENT_REDIS_TTL_BUFFER = 3600;
+
+/** TTL mặc định cho Redis keys khi không có event object (2h, tính bằng giây) */
+export const WEEKLY_EVENT_DEFAULT_KEY_TTL = 7200;
 
 /** Thời gian socket token hợp lệ (giây) */
 export const WEEKLY_EVENT_SOCKET_TOKEN_TTL = 60;

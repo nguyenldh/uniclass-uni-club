@@ -547,6 +547,7 @@ export interface IWeeklyHonor extends Document {
   rank: number;
   correctCountWeek: number;
   totalCorrectTimeSec: number;
+  pointsContributedWeek: number;
   frameGranted: boolean;
   frameExpiry: Date;
   bannerActive: boolean;
@@ -563,6 +564,7 @@ const WeeklyHonorSchema = new Schema<IWeeklyHonor>(
     rank: { type: Number, required: true, min: 1 },
     correctCountWeek: { type: Number, required: true, default: 0 },
     totalCorrectTimeSec: { type: Number, required: true, default: 0 },
+    pointsContributedWeek: { type: Number, required: true, default: 0 },
     frameGranted: { type: Boolean, required: true, default: true },
     frameExpiry: { type: Date, required: true },
     bannerActive: { type: Boolean, required: true, default: true },

@@ -99,6 +99,35 @@
   color:#fff;
 }
 
+/* Exit button inline variant — nút "Thoát" cùng hàng với badge */
+.st-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, .35);
+  background: rgba(255, 255, 255, .08);
+  color: rgba(255, 255, 255, .75);
+  font-family: var(--f-game);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.st-exit-btn:hover {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .6);
+  color: #fff;
+}
+.st-exit-btn:active {
+  transform: scale(.96);
+}
+
 .st-lobby-center{
   display: grid;
   grid-template-columns: 1fr;
@@ -637,6 +666,20 @@
   25% { transform: rotate(15deg);}
   75% { transform: rotate(-15deg);}
   100%{ transform: rotate(0deg);}
+}
+
+/* Answered variant — đối thủ đã trả lời */
+.st-waiting-banner.is-answered{
+  background: linear-gradient(135deg, rgba(76,175,80,.18), rgba(76,175,80,.08));
+  border-color: rgba(76,175,80,.55);
+  animation: none;
+}
+.st-waiting-banner.is-answered .st-waiting-icon{
+  animation: none;
+  font-size: 18px;
+}
+.st-waiting-banner.is-answered .st-waiting-text{
+  color: #4CAF50;
 }
 
 @keyframes st-correct-pop{

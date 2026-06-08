@@ -93,7 +93,7 @@ export function QuizArenaLobbyPage() {
       <Lobby
         player={{ name: displayName, grade, avatar: user?.avatar }}
         onFindMatch={startMatchmaking}
-        topRight={<ExitButton from="/quiz-arena" />}
+        topRight={<ExitButton from="/quiz-arena" className="st-exit-btn">Thoát</ExitButton>}
       />
     );
   }
@@ -131,9 +131,6 @@ export function QuizArenaLobbyPage() {
             <>
               <GameButton color="orange" onClick={handleEnterGame}>
                 ⚔️ Vào trận
-              </GameButton>
-              <GameButton color="ghost" onClick={cancelMatchmaking}>
-                ← Hủy
               </GameButton>
             </>
           ) : (

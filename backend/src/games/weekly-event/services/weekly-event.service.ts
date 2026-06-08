@@ -254,7 +254,12 @@ export class WeeklyEventService {
 
     // Khởi tạo room state trong Redis
     for (const grade of event.activeGrades) {
-      await WeeklyEventStateMachine.initRoomState(id, grade, event.scheduledStartAt.toISOString());
+      await WeeklyEventStateMachine.initRoomState(id, grade, event.scheduledStartAt.toISOString(), {
+        scheduledStartAt: event.scheduledStartAt,
+        waitingDuration: event.waitingDuration,
+        examDuration: event.examDuration,
+        leaderboardDuration: event.leaderboardDuration,
+      });
     }
 
     await redis.del(`${WEEKLY_EVENT_REDIS_KEYS.EVENT}:${id}`);
@@ -356,8 +361,8 @@ export class WeeklyEventService {
     const rooms = await WeeklyEventRoomModel.find({ eventId }).sort({ grade: 1 }).lean();
     return Promise.all(
       rooms.map(async (r) => {
-        const joinedSetKey = `we:joined:${eventId}:${r.grade}`;
-        const submittedSetKey = `we:submitted:${eventId}:${r.grade}`;
+        const joinedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.JOINED(eventId)}:${r.grade}`;
+        const submittedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.SUBMITTED(eventId)}:${r.grade}`;
         
         const [redisPartCount, redisSubCount] = await Promise.all([
           redis.scard(joinedSetKey),
