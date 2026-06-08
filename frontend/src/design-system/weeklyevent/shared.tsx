@@ -201,7 +201,7 @@ export function ProgressBar({ answered, total, pips = false, currentIndex, label
    reveal=true (kèm correct) chỉ dùng ở màn "Xem lại đáp án".
 ===================================================================== */
 export interface AnswerOption { key: 'A' | 'B' | 'C' | 'D'; label: ReactNode; }
-export interface QuestionCardProps extends HTMLAttributes<HTMLDivElement> {
+export interface QuestionCardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   index: number;
   total: number;
   question: ReactNode;

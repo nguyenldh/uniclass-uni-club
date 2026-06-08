@@ -26,7 +26,6 @@ export function BossBattlePage() {
     pips,
     timeRemaining,
     bossHpPercent,
-    bossStates,
     bossName,
     error,
     selectAnswer,
@@ -35,6 +34,15 @@ export function BossBattlePage() {
     completeAttempt,
     tick,
   } = useBossBattleStore();
+
+  const lobby = useBossBattleStore((s) => s.lobby);
+  const bossStates = lobby?.boss?.config?.bossStates?.map((s) => ({
+    min: s.minPercent,
+    max: s.maxPercent,
+    label: s.minPercent >= 71 ? 'BÌNH THƯỜNG' : s.minPercent >= 31 ? 'BỊ THƯƠNG' : s.minPercent >= 1 ? 'HUNG HÃN' : 'BỊ HẠ GỤC',
+    tone: (s.minPercent >= 71 ? 'normal' : s.minPercent >= 31 ? 'injured' : s.minPercent >= 1 ? 'rage' : 'defeated') as any,
+    img: s.img,
+  }));
 
   const grade = user?.grade ?? 4;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);

@@ -9,5 +9,6 @@
       "@uniclub/shared": ["../shared/src"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "exclude": ["src/design-system/**/*"]
 }

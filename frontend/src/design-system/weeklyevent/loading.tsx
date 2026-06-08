@@ -9,7 +9,7 @@ import { WeHeader } from './entry';
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
 
-export interface SubmissionLoadingProps extends HTMLAttributes<HTMLDivElement> {
+export interface SubmissionLoadingProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   grade: number;
   /** Giờ công bố (vd "10h27"). */
   announceAt?: ReactNode;
