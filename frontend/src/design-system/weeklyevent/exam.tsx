@@ -37,7 +37,7 @@ export function SyncTimer({ remaining, total }: SyncTimerProps) {
   );
 }
 
-export interface ExamScreenProps extends HTMLAttributes<HTMLDivElement> {
+export interface ExamScreenProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   grade: number;
   index: number;             // 1-based câu hiện tại
   total: number;

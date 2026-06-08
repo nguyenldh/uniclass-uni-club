@@ -13,6 +13,7 @@
     "dev:frontend": "npm -w @uniclub/frontend run dev",
     "dev:cms": "npm -w @uniclub/cms run dev",
     "build": "npm -w @uniclub/shared run build && npm -w @uniclub/backend run build && npm -w @uniclub/frontend run build && npm -w @uniclub/cms run build",
+    "build:fe": "npm -w @uniclub/shared run build && npm -w @uniclub/frontend run build",
     "build:shared": "npm -w @uniclub/shared run build",
     "typecheck": "npm -w @uniclub/shared run typecheck && npm -w @uniclub/backend run typecheck && npm -w @uniclub/frontend run typecheck && npm -w @uniclub/cms run typecheck",
     "postinstall": "npm run build:shared"

@@ -10,10 +10,10 @@ import { GameButton } from '../game';
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
 
-export interface PersonalResultScreenProps extends HTMLAttributes<HTMLDivElement> {
+export interface PersonalResultScreenProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className'> {
   grade: number;
   name: string;
-  className?: ReactNode;
+  className?: any;
   avatarBg?: string;
   correct: number;
   wrong: number;

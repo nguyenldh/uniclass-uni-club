@@ -142,7 +142,7 @@ export function AnswerGrid({ options, phase = 'answering', selected = null, corr
 }
 
 /* ---------- UI-201 · Question Card ---------- */
-export interface BattleQuestionCardProps extends HTMLAttributes<HTMLDivElement> {
+export interface BattleQuestionCardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   question: ReactNode;
   /** Ảnh đính kèm câu hỏi (DM-06.content). */
   image?: string;
@@ -165,7 +165,7 @@ export function BattleQuestionCard({
 }
 
 /* ---------- SCR-02 · BossBattle (composed) ---------- */
-export interface BossBattleProps extends HTMLAttributes<HTMLDivElement> {
+export interface BossBattleProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   bossName: ReactNode;
   bossHpPercent: number;
   states?: BossState[];
