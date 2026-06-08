@@ -10,7 +10,7 @@ import { BotProfileService } from '../../../services/bot-profile.service';
 import { GameResultEventService } from '../../../services/game-result-event.service';
 import { generateSessionId } from '../../../utils/index';
 import { createEmptyBoard, checkGomokuWin, isBoardFull } from '../utils/index';
-import { MIND_GAME_REDIS_KEYS } from '@uniclub/shared';
+import { MIND_GAME_REDIS_KEYS, MIND_GAME_SOCKET_EVENTS } from '@uniclub/shared';
 import type {
   GomokuSession,
   GomokuMove,
@@ -25,6 +25,18 @@ import { UserService } from '../../../services';
  */
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
 
+/**
+ * Map: sessionId → handle timeout cho lượt hiện tại.
+ * Khi hết thời gian lượt mà người chơi chưa đánh → forfeit.
+ */
+const turnTimers = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Map: sessionId → handle timeout cho toàn bộ trận đấu.
+ * Khi hết maxGameDuration → kết thúc trận (hòa với Gomoku).
+ */
+const gameTimers = new Map<string, NodeJS.Timeout>();
+
 /** Thời gian chờ reconnect trước khi kết thúc trận (giây) */
 const DISCONNECT_GRACE_SECONDS = 30;
 
@@ -37,6 +49,125 @@ export function setGomokuServerIO(io: import('socket.io').Server): void {
 }
 
 export class GomokuService {
+  // ---- Timer helpers ----
+
+  /** Bắt đầu turn timer cho lượt hiện tại */
+  private static startTurnTimer(sessionId: string, turnTimeoutSec: number): void {
+    this.clearTurnTimer(sessionId);
+    const timer = setTimeout(() => {
+      turnTimers.delete(sessionId);
+      this.handleTurnTimeout(sessionId);
+    }, turnTimeoutSec * 1000);
+    turnTimers.set(sessionId, timer);
+  }
+
+  /** Xóa turn timer */
+  private static clearTurnTimer(sessionId: string): void {
+    const timer = turnTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      turnTimers.delete(sessionId);
+    }
+  }
+
+  /** Bắt đầu game timer cho toàn bộ trận */
+  private static startGameTimer(sessionId: string, maxDurationSec: number): void {
+    this.clearGameTimer(sessionId);
+    const timer = setTimeout(() => {
+      gameTimers.delete(sessionId);
+      this.handleGameTimeout(sessionId);
+    }, maxDurationSec * 1000);
+    gameTimers.set(sessionId, timer);
+  }
+
+  /** Xóa game timer */
+  private static clearGameTimer(sessionId: string): void {
+    const timer = gameTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      gameTimers.delete(sessionId);
+    }
+  }
+
+  /** Xóa tất cả timer của session */
+  private static clearAllTimers(sessionId: string): void {
+    this.clearTurnTimer(sessionId);
+    this.clearGameTimer(sessionId);
+    const dcTimer = disconnectTimers.get(sessionId);
+    if (dcTimer) {
+      clearTimeout(dcTimer);
+      disconnectTimers.delete(sessionId);
+    }
+  }
+
+  /** Xử lý khi hết thời gian lượt → forfeit, đối thủ thắng */
+  private static async handleTurnTimeout(sessionId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session || session.status !== 'playing') return;
+
+    const currentPlayer = session.currentTurn === 'X' ? session.playerX : session.playerO;
+    const winnerId = session.isAI
+      ? 'AI'
+      : (session.playerX === currentPlayer ? session.playerO : session.playerX);
+
+    session.status = 'finished';
+    session.endedAt = new Date();
+    session.winner = winnerId;
+
+    if (!session.isAI) {
+      await ScoreService.addWinPoints(winnerId, session.config.winPoints, 'mind_game', 'gomoku');
+    }
+    await ScoreService.recordLoss(currentPlayer, 'mind_game', 'gomoku');
+
+    await MatchmakingService.clearActiveSession(currentPlayer);
+    if (!session.isAI) {
+      await MatchmakingService.clearActiveSession(winnerId);
+    }
+
+    this.clearAllTimers(sessionId);
+    await this.saveSession(session);
+
+    await GameResultEventService.emitGomokuResult(session, winnerId, false);
+
+    if (serverIO) {
+      serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
+        winner: winnerId,
+        isDraw: false,
+        reason: 'turn_timeout',
+      });
+    }
+  }
+
+  /** Xử lý khi hết thời gian toàn bộ trận → hòa */
+  private static async handleGameTimeout(sessionId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session || session.status !== 'playing') return;
+
+    session.status = 'finished';
+    session.endedAt = new Date();
+
+    this.clearAllTimers(sessionId);
+
+    await MatchmakingService.clearActiveSession(session.playerX);
+    if (!session.isAI) {
+      await MatchmakingService.clearActiveSession(session.playerO);
+    }
+
+    await this.saveSession(session);
+
+    await GameResultEventService.emitGomokuResult(session, undefined, true);
+
+    if (serverIO) {
+      serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
+        winner: null,
+        isDraw: true,
+        reason: 'game_timeout',
+      });
+    }
+  }
+
+  // ---- Session lifecycle ----
+
   /** Tạo session PvP */
   static async createPVPSession(
     playerX: string,
@@ -64,6 +195,10 @@ export class GomokuService {
       'EX',
       1800,
     );
+
+    // Khởi tạo timers
+    this.startTurnTimer(sessionId, config.turnTimeout);
+    this.startGameTimer(sessionId, config.maxGameDuration);
 
     return session;
   }
@@ -103,6 +238,10 @@ export class GomokuService {
       'EX',
       1800,
     );
+
+    // Khởi tạo timers
+    this.startTurnTimer(sessionId, config.turnTimeout);
+    this.startGameTimer(sessionId, config.maxGameDuration);
 
     return { session, botProfile: { name: botName, avatar: botAvatar } };
   }
@@ -194,6 +333,9 @@ export class GomokuService {
       session.endedAt = new Date();
       session.winningMove = move;
 
+      // Clear all timers
+      this.clearAllTimers(sessionId);
+
       // Chỉ lưu điểm cho người chơi thật, không lưu cho AI
       if (!session.isAI || userId === session.playerX) {
         await ScoreService.addWinPoints(userId, session.config.winPoints, 'mind_game', 'gomoku');
@@ -226,6 +368,9 @@ export class GomokuService {
       session.status = 'finished';
       session.endedAt = new Date();
 
+      // Clear all timers
+      this.clearAllTimers(sessionId);
+
       // Clear active session tracking (hòa)
       await MatchmakingService.clearActiveSession(session.playerX);
       if (!session.isAI) {
@@ -242,6 +387,9 @@ export class GomokuService {
 
     session.currentTurn = session.currentTurn === 'X' ? 'O' : 'X';
     await this.saveSession(session);
+
+    // Reset turn timer cho lượt mới
+    this.startTurnTimer(sessionId, session.config.turnTimeout);
 
     return { session, gameOver: false };
   }
@@ -272,6 +420,9 @@ export class GomokuService {
       currentSession.endedAt = new Date();
       currentSession.winner = winnerId;
 
+      // Clear all timers
+      GomokuService.clearAllTimers(sessionId);
+
       if (!currentSession.isAI) {
         await ScoreService.addWinPoints(winnerId, currentSession.config.winPoints, 'mind_game', 'gomoku');
       }
@@ -290,7 +441,6 @@ export class GomokuService {
 
       // Emit END event qua socket để người còn lại biết
       if (serverIO) {
-        const { MIND_GAME_SOCKET_EVENTS } = await import('@uniclub/shared');
         serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
           winner: winnerId,
           isDraw: false,

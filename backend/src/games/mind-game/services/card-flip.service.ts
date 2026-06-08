@@ -9,7 +9,7 @@ import { MatchmakingService } from '../../../services/matchmaking.service';
 import { BotProfileService } from '../../../services/bot-profile.service';
 import { GameResultEventService } from '../../../services/game-result-event.service';
 import { generateSessionId, shuffle } from '../../../utils/index';
-import { MIND_GAME_REDIS_KEYS, CARD_EMOJIS } from '@uniclub/shared';
+import { MIND_GAME_REDIS_KEYS, MIND_GAME_SOCKET_EVENTS, CARD_EMOJIS } from '@uniclub/shared';
 import type {
   CardFlipSession,
   CardFlipCard,
@@ -23,6 +23,18 @@ import { UserService } from '../../../services';
  * Cho user 30s để reconnect trước khi end match.
  */
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Map: sessionId → handle timeout cho lượt hiện tại.
+ * Khi hết thời gian lượt mà người chơi chưa lật thẻ → forfeit.
+ */
+const turnTimers = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Map: sessionId → handle timeout cho toàn bộ trận đấu.
+ * Khi hết maxGameDuration → kết thúc trận (người điểm cao thắng / hòa).
+ */
+const gameTimers = new Map<string, NodeJS.Timeout>();
 
 /** Thời gian chờ reconnect trước khi kết thúc trận (giây) */
 const DISCONNECT_GRACE_SECONDS = 30;
@@ -60,6 +72,145 @@ export function setCardFlipServerIO(io: import('socket.io').Server): void {
 }
 
 export class CardFlipService {
+  // ---- Timer helpers ----
+
+  /** Bắt đầu turn timer cho lượt hiện tại */
+  private static startTurnTimer(sessionId: string, turnTimeoutSec: number): void {
+    this.clearTurnTimer(sessionId);
+    const timer = setTimeout(() => {
+      turnTimers.delete(sessionId);
+      this.handleTurnTimeout(sessionId);
+    }, turnTimeoutSec * 1000);
+    turnTimers.set(sessionId, timer);
+  }
+
+  /** Xóa turn timer */
+  private static clearTurnTimer(sessionId: string): void {
+    const timer = turnTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      turnTimers.delete(sessionId);
+    }
+  }
+
+  /** Bắt đầu game timer cho toàn bộ trận */
+  private static startGameTimer(sessionId: string, maxDurationSec: number): void {
+    this.clearGameTimer(sessionId);
+    const timer = setTimeout(() => {
+      gameTimers.delete(sessionId);
+      this.handleGameTimeout(sessionId);
+    }, maxDurationSec * 1000);
+    gameTimers.set(sessionId, timer);
+  }
+
+  /** Xóa game timer */
+  private static clearGameTimer(sessionId: string): void {
+    const timer = gameTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      gameTimers.delete(sessionId);
+    }
+  }
+
+  /** Xóa tất cả timer của session */
+  private static clearAllTimers(sessionId: string): void {
+    this.clearTurnTimer(sessionId);
+    this.clearGameTimer(sessionId);
+    const dcTimer = disconnectTimers.get(sessionId);
+    if (dcTimer) {
+      clearTimeout(dcTimer);
+      disconnectTimers.delete(sessionId);
+    }
+  }
+
+  /** Xử lý khi hết thời gian lượt → forfeit, đối thủ thắng */
+  private static async handleTurnTimeout(sessionId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session || session.status !== 'playing') return;
+
+    const currentPlayer = session.currentTurn;
+    const winnerId = session.isAI
+      ? 'AI'
+      : (session.playerA === currentPlayer ? session.playerB : session.playerA);
+
+    session.status = 'finished';
+    session.endedAt = new Date();
+
+    if (!session.isAI) {
+      await ScoreService.addWinPoints(winnerId, session.config.winPoints, 'mind_game', 'card_flip');
+    }
+    await ScoreService.recordLoss(currentPlayer, 'mind_game', 'card_flip');
+
+    await MatchmakingService.clearActiveSession(currentPlayer);
+    if (!session.isAI) {
+      await MatchmakingService.clearActiveSession(winnerId);
+    }
+
+    this.clearAllTimers(sessionId);
+    await this.saveSession(session);
+
+    await GameResultEventService.emitCardFlipResult(session, winnerId, false);
+
+    if (serverIO) {
+      serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_END, {
+        winner: winnerId,
+        isDraw: false,
+        reason: 'turn_timeout',
+      });
+    }
+  }
+
+  /** Xử lý khi hết thời gian toàn bộ trận → người điểm cao thắng / hòa */
+  private static async handleGameTimeout(sessionId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session || session.status !== 'playing') return;
+
+    session.status = 'finished';
+    session.endedAt = new Date();
+
+    const playerAScore = session.scores.playerA;
+    const playerBScore = session.scores.playerB;
+    let winnerId: string | undefined;
+
+    if (playerAScore > playerBScore) {
+      winnerId = session.playerA;
+      await ScoreService.addWinPoints(session.playerA, session.config.winPoints, 'mind_game', 'card_flip');
+      if (!session.isAI) {
+        await ScoreService.recordLoss(session.playerB, 'mind_game', 'card_flip');
+      }
+    } else if (playerBScore > playerAScore) {
+      winnerId = session.isAI ? 'AI' : session.playerB;
+      if (!session.isAI) {
+        await ScoreService.addWinPoints(session.playerB, session.config.winPoints, 'mind_game', 'card_flip');
+        await ScoreService.recordLoss(session.playerA, 'mind_game', 'card_flip');
+      } else {
+        await ScoreService.recordLoss(session.playerA, 'mind_game', 'card_flip');
+      }
+    }
+    // Hòa: không cộng điểm ai cả
+
+    this.clearAllTimers(sessionId);
+
+    await MatchmakingService.clearActiveSession(session.playerA);
+    if (!session.isAI) {
+      await MatchmakingService.clearActiveSession(session.playerB);
+    }
+
+    await this.saveSession(session);
+
+    await GameResultEventService.emitCardFlipResult(session, winnerId, !winnerId);
+
+    if (serverIO) {
+      serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_END, {
+        winner: winnerId ?? null,
+        isDraw: !winnerId,
+        reason: 'game_timeout',
+      });
+    }
+  }
+
+  // ---- Session lifecycle ----
+
   /** Tạo session PvP */
   static async createPVPSession(
     playerA: string,
@@ -93,6 +244,10 @@ export class CardFlipService {
       'EX',
       1800,
     );
+
+    // Khởi tạo timers
+    this.startTurnTimer(sessionId, config.turnTimeout);
+    this.startGameTimer(sessionId, config.maxGameDuration);
 
     return session;
   }
@@ -138,6 +293,10 @@ export class CardFlipService {
       'EX',
       1800,
     );
+
+    // Khởi tạo timers
+    this.startTurnTimer(sessionId, config.turnTimeout);
+    this.startGameTimer(sessionId, config.maxGameDuration);
 
     return { session, botProfile: { name: botName, avatar: botAvatar } };
   }
@@ -249,6 +408,9 @@ export class CardFlipService {
         session.status = 'finished';
         session.endedAt = new Date();
 
+        // Clear all timers
+        this.clearAllTimers(sessionId);
+
         const playerAScore = session.scores.playerA;
         const playerBScore = session.scores.playerB;
 
@@ -291,6 +453,10 @@ export class CardFlipService {
       }
 
       await this.saveSession(session);
+
+      // Reset turn timer vì người chơi giữ lượt sau khi match
+      this.startTurnTimer(sessionId, session.config.turnTimeout);
+
       return { session, isMatch: true, gameOver: false };
     } else {
       // Không match — giữ nguyên lượt, đợi client gọi resetFlipped để úp bài rồi mới đổi lượt
@@ -331,6 +497,10 @@ export class CardFlipService {
     session.lastFlipped = [];
 
     await this.saveSession(session);
+
+    // Reset turn timer cho lượt mới
+    this.startTurnTimer(sessionId, session.config.turnTimeout);
+
     return session;
     });
   }
@@ -360,6 +530,9 @@ export class CardFlipService {
       currentSession.status = 'finished';
       currentSession.endedAt = new Date();
 
+      // Clear all timers
+      CardFlipService.clearAllTimers(sessionId);
+
       if (!currentSession.isAI) {
         await ScoreService.addWinPoints(winnerId, currentSession.config.winPoints, 'mind_game', 'card_flip');
       }
@@ -378,7 +551,6 @@ export class CardFlipService {
 
       // Emit END event qua socket để người còn lại biết
       if (serverIO) {
-        const { MIND_GAME_SOCKET_EVENTS } = await import('@uniclub/shared');
         serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_END, {
           winner: winnerId,
           isDraw: false,

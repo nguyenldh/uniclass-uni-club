@@ -140,7 +140,7 @@ export class WeeklyEventSchedulerService {
       if (!res.success || res.alreadyInState) return;
       
       // Xóa sạch tập hợp online trong Redis đề phòng dữ liệu rác trước đó
-      const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+      const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`;
       await redis.del(onlineKey);
 
       await WeeklyEventModel.findByIdAndUpdate(eventId, { $set: { actualStartAt: now } });
@@ -155,7 +155,7 @@ export class WeeklyEventSchedulerService {
       if (!res.success || res.alreadyInState) return;
 
       // Đồng bộ sĩ số thực tế từ Redis Set sang MongoDB Room một lần duy nhất khi bắt đầu thi
-      const joinedSetKey = `we:joined:${eventId}:${grade}`;
+      const joinedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.JOINED(eventId)}:${grade}`;
       const participantCount = await redis.scard(joinedSetKey);
       await WeeklyEventRoomModel.findOneAndUpdate(
         { eventId, grade },
@@ -185,7 +185,7 @@ export class WeeklyEventSchedulerService {
       );
 
       // Đồng bộ tổng số bài đã nộp (bằng kích cỡ tập hợp đã tham gia) vào MongoDB Room một lần duy nhất
-      const joinedSetKey = `we:joined:${eventId}:${grade}`;
+      const joinedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.JOINED(eventId)}:${grade}`;
       const participantCount = await redis.scard(joinedSetKey);
       await WeeklyEventRoomModel.findOneAndUpdate(
         { eventId, grade },

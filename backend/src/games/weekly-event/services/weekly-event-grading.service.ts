@@ -17,6 +17,7 @@ import { ScoreService } from '../../../services/score.service';
 import { KafkaProducerService } from '../../../services/kafka-producer.service';
 import {
   WEEKLY_EVENT_REDIS_KEYS,
+  WEEKLY_EVENT_DEFAULT_KEY_TTL,
 } from '@uniclub/shared';
 import type {
   WeeklyEventResult,
@@ -25,6 +26,7 @@ import type {
   ExamBank,
 } from '@uniclub/shared';
 import { WeeklyEventAnswerService } from './weekly-event-answer.service';
+import { WeeklyEventStateMachine } from './weekly-event-state-machine.service';
 
 export class WeeklyEventGradingService {
   /**
@@ -127,9 +129,15 @@ export class WeeklyEventGradingService {
     });
 
     // 6. Cập nhật sorted set (DATA-R-002)
-    const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${participation.grade}`;
+    const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD(eventId)}:${participation.grade}`;
     const compositeScore = this.computeCompositeScore(correctCount, totalTimeMs, lastCorrectAnswerAt);
     await redis.zadd(lbKey, compositeScore, studentId);
+
+    // Set TTL cho leaderboard dựa trên event end + buffer
+    if (event) {
+      const keyTTL = WeeklyEventStateMachine.getEventKeyTTL(event);
+      await redis.expire(lbKey, keyTTL);
+    }
 
     // 7. Cập nhật UserScore
     await ScoreService.addWinPoints(studentId, score, 'weekly_event');
@@ -159,7 +167,7 @@ export class WeeklyEventGradingService {
     // 1. Pipeline lấy toàn bộ answers của các học sinh từ Redis
     const pipeline = redis.pipeline();
     for (const p of participations) {
-      const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS}:${eventId}:${p.studentId}`;
+      const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS(eventId)}:${p.studentId}`;
       pipeline.hgetall(answersKey);
     }
     const rawAnswersList = (await pipeline.exec()) || [];
@@ -181,7 +189,7 @@ export class WeeklyEventGradingService {
     // Đọc số lần disconnect của học sinh từ Redis
     const disconnectPipeline = redis.pipeline();
     for (const p of participations) {
-      disconnectPipeline.get(`we:disconnect_count:${eventId}:${p.studentId}`);
+      disconnectPipeline.get(`${WEEKLY_EVENT_REDIS_KEYS.DISCONNECT_COUNT(eventId)}:${p.studentId}`);
     }
     const rawDisconnects = (await disconnectPipeline.exec()) || [];
 
@@ -315,8 +323,11 @@ export class WeeklyEventGradingService {
       }
 
       if (zaddChunk.length > 0) {
-        const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${grade}`;
+        const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD(eventId)}:${grade}`;
         await redis.zadd(lbKey, ...zaddChunk);
+        // Set TTL cho leaderboard dựa trên event end + buffer
+        const keyTTL = WeeklyEventStateMachine.getEventKeyTTL(event);
+        await redis.expire(lbKey, keyTTL);
       }
 
       if (scoreUpdatesChunk.length > 0) {
@@ -326,13 +337,13 @@ export class WeeklyEventGradingService {
       // Pipeline lưu cache và xóa answers tạm trên Redis
       const cachePipeline = redis.pipeline();
       for (const res of resultsChunk) {
-        const cacheKey = `we:personal_result:${eventId}:${res.studentId}`;
+        const cacheKey = `${WEEKLY_EVENT_REDIS_KEYS.PERSONAL_RESULT(eventId)}:${res.studentId}`;
         cachePipeline.set(cacheKey, JSON.stringify(res), 'EX', 3600);
       }
       for (const studentId of clearAnswersChunk) {
-        const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS}:${eventId}:${studentId}`;
+        const answersKey = `${WEEKLY_EVENT_REDIS_KEYS.ANSWERS(eventId)}:${studentId}`;
         cachePipeline.del(answersKey);
-        cachePipeline.del(`we:disconnect_count:${eventId}:${studentId}`);
+        cachePipeline.del(`${WEEKLY_EVENT_REDIS_KEYS.DISCONNECT_COUNT(eventId)}:${studentId}`);
       }
       await cachePipeline.exec();
     }
@@ -350,7 +361,7 @@ export class WeeklyEventGradingService {
     grade: number,
     topN: number,
   ): Promise<LeaderboardEntry[]> {
-    const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${grade}`;
+    const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD(eventId)}:${grade}`;
 
     // Lấy top N từ sorted set
     const topEntries = await redis.zrevrange(lbKey, 0, topN - 1, 'WITHSCORES');
@@ -443,7 +454,7 @@ export class WeeklyEventGradingService {
     studentId: string,
     grade?: number,
   ): Promise<WeeklyEventResult | null> {
-    const cacheKey = `we:personal_result:${eventId}:${studentId}`;
+    const cacheKey = `${WEEKLY_EVENT_REDIS_KEYS.PERSONAL_RESULT(eventId)}:${studentId}`;
     const cached = await redis.get(cacheKey);
     
     let result: WeeklyEventResult | null = null;
@@ -467,7 +478,7 @@ export class WeeklyEventGradingService {
 
       if (finalGrade) {
         // Tính toán rank real-time từ Redis sorted set
-        const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${finalGrade}`;
+        const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD(eventId)}:${finalGrade}`;
         const redisRank = await redis.zrevrank(lbKey, studentId);
         result.rank = redisRank !== null ? redisRank + 1 : undefined;
       }

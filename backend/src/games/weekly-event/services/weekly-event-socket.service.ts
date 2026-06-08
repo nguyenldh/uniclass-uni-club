@@ -8,6 +8,7 @@ import { redis, env } from '../../../config/index';
 import {
   WEEKLY_EVENT_REDIS_KEYS,
   WEEKLY_EVENT_SOCKET_TOKEN_TTL,
+  WEEKLY_EVENT_DEFAULT_KEY_TTL,
 } from '@uniclub/shared';
 
 export interface WeeklyEventSocketTokenPayload {
@@ -47,8 +48,8 @@ export class WeeklyEventSocketService {
     socketId: string,
     beInstanceId: string,
   ): Promise<void> {
-    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING}:${eventId}:${studentId}`;
-    const reverseKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_REVERSE}:${eventId}:${socketId}`;
+    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING(eventId)}:${studentId}`;
+    const reverseKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_REVERSE(eventId)}:${socketId}`;
 
     const now = Date.now().toString();
 
@@ -61,6 +62,8 @@ export class WeeklyEventSocketService {
         lastActivityAt: now,
       })
       .set(reverseKey, studentId)
+      .expire(hashKey, WEEKLY_EVENT_DEFAULT_KEY_TTL)
+      .expire(reverseKey, WEEKLY_EVENT_DEFAULT_KEY_TTL)
       .exec();
   }
 
@@ -68,7 +71,7 @@ export class WeeklyEventSocketService {
    * Cập nhật lastActivityAt.
    */
   static async touchActivity(eventId: string, studentId: string): Promise<void> {
-    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING}:${eventId}:${studentId}`;
+    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING(eventId)}:${studentId}`;
     await redis.hset(hashKey, 'lastActivityAt', Date.now().toString());
   }
 
@@ -76,8 +79,8 @@ export class WeeklyEventSocketService {
    * Xóa socket mapping khi disconnect.
    */
   static async removeSocketMapping(eventId: string, studentId: string, socketId: string): Promise<void> {
-    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING}:${eventId}:${studentId}`;
-    const reverseKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_REVERSE}:${eventId}:${socketId}`;
+    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING(eventId)}:${studentId}`;
+    const reverseKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_REVERSE(eventId)}:${socketId}`;
 
     await redis
       .multi()
@@ -91,7 +94,7 @@ export class WeeklyEventSocketService {
    * Trả về null nếu không có conflict.
    */
   static async detectMultiTab(eventId: string, studentId: string): Promise<string | null> {
-    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING}:${eventId}:${studentId}`;
+    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING(eventId)}:${studentId}`;
     const existing = await redis.hgetall(hashKey);
 
     if (existing && existing.socketId && !existing.disconnectedAt) {
@@ -104,7 +107,7 @@ export class WeeklyEventSocketService {
    * Lấy socketId hiện tại của student.
    */
   static async getSocketId(eventId: string, studentId: string): Promise<string | null> {
-    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING}:${eventId}:${studentId}`;
+    const hashKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_MAPPING(eventId)}:${studentId}`;
     const socketId = await redis.hget(hashKey, 'socketId');
     return socketId || null;
   }
@@ -113,7 +116,7 @@ export class WeeklyEventSocketService {
    * Lấy studentId từ socketId (reverse lookup).
    */
   static async getStudentIdBySocket(eventId: string, socketId: string): Promise<string | null> {
-    const reverseKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_REVERSE}:${eventId}:${socketId}`;
+    const reverseKey = `${WEEKLY_EVENT_REDIS_KEYS.SOCKET_REVERSE(eventId)}:${socketId}`;
     return redis.get(reverseKey);
   }
 }

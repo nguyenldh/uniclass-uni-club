@@ -38,6 +38,8 @@ export const DEFAULT_GOMOKU_CONFIG: GomokuConfig = {
   matchmakingTimeout: 5,
   winPoints: 100,
   boardSize: 15,
+  turnTimeout: 60 * 2,
+  maxGameDuration: 600,
 };
 
 /** Default Card Flip config */
@@ -45,6 +47,8 @@ export const DEFAULT_CARD_FLIP_CONFIG: CardFlipConfig = {
   matchmakingTimeout: 30,
   winPoints: 50,
   pairCount: 15,
+  turnTimeout: 60 * 2,
+  maxGameDuration: 600,
 };
 
 /** Emoji pool cho Card Flip / Memory Match */

@@ -111,24 +111,23 @@ export class ScoreService {
     const docs = await UserScoreModel.find({ userId: { $in: userIds } }).lean();
     const docMap = new Map(docs.map((d) => [d.userId, d]));
 
-    // 3. Pipelined updates cho Redis
-    const pipeline = redis.pipeline();
+    // 3. Cập nhật Redis — từng lệnh riêng biệt để tránh CROSSSLOT trên Redis Cluster
+    // (các key user:score:{userId}, leaderboard:total, leaderboard:{gameType} nằm ở các slot khác nhau)
     for (const update of updates) {
       const doc = docMap.get(update.userId);
       if (!doc) continue;
 
       const score = this.toUserScore(doc);
-      pipeline.set(`${REDIS_KEYS.USER_SCORE}:${update.userId}`, JSON.stringify(score), 'EX', 300);
+      await redis.set(`${REDIS_KEYS.USER_SCORE}:${update.userId}`, JSON.stringify(score), 'EX', 300);
 
       // Cập nhật total leaderboard
-      pipeline.zadd(leaderboardKey('total'), score.totalPoints, update.userId);
+      await redis.zadd(leaderboardKey('total'), score.totalPoints, update.userId);
 
       // Cập nhật game leaderboard
       if (score[update.gameType].points > 0) {
-        pipeline.zadd(leaderboardKey(update.gameType), score[update.gameType].points, update.userId);
+        await redis.zadd(leaderboardKey(update.gameType), score[update.gameType].points, update.userId);
       }
     }
-    await pipeline.exec();
   }
 
   /** Ghi nhận thua (chỉ tăng played) */

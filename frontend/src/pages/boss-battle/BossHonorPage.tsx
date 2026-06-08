@@ -20,7 +20,7 @@ function honorToRankEntry(h: WeeklyHonor): RankEntry {
     avatar: h.avatar ?? '',
     correctCount: h.correctCountWeek,
     totalCorrectTimeSec: h.totalCorrectTimeSec,
-    pointsContributed: 0, // WeeklyHonor không có điểm, chỉ hiển thị câu + thời gian
+    pointsContributed: h.pointsContributedWeek,
     isMe: false, // sẽ được set sau
   };
 }

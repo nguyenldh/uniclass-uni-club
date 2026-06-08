@@ -12,9 +12,11 @@ import {
 import {
   WEEKLY_EVENT_REDIS_KEYS,
   WEEKLY_EVENT_ONLINE_COUNT_THROTTLE_MS,
+  WEEKLY_EVENT_DEFAULT_KEY_TTL,
 } from '@uniclub/shared';
 import type { JoinEventResponse } from '@uniclub/shared';
 import { WeeklyEventSocketService } from './weekly-event-socket.service';
+import { WeeklyEventStateMachine } from './weekly-event-state-machine.service';
 import crypto from 'crypto';
 
 export class WeeklyEventRoomService {
@@ -32,12 +34,12 @@ export class WeeklyEventRoomService {
     if (!event) throw new Error('EVENT_NOT_FOUND');
 
     // 2. Kiểm tra state phòng
-    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`;
+    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE(eventId)}:${grade}`;
     const roomState = await redis.hgetall(roomStateKey);
     const status = roomState.status || 'Waiting';
 
     // Kiểm tra xem đã từng join trước đó chưa sử dụng Redis Set (joined)
-    const joinedSetKey = `we:joined:${eventId}:${grade}`;
+    const joinedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.JOINED(eventId)}:${grade}`;
     const isJoinedInRedis = await redis.sismember(joinedSetKey, studentId);
     let isRejoining = isJoinedInRedis === 1;
 
@@ -92,8 +94,13 @@ export class WeeklyEventRoomService {
     }
 
     // 5. SADD vào online set
-    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`;
     await redis.sadd(onlineKey, studentId);
+
+    // Set TTL cho joined & online sets dựa trên event end + buffer
+    const keyTTL = WeeklyEventStateMachine.getEventKeyTTL(event);
+    await redis.expire(joinedSetKey, keyTTL);
+    await redis.expire(onlineKey, keyTTL);
 
     // 6. Cấp socket token
     const socketToken = WeeklyEventSocketService.createSocketToken(studentId, eventId, grade);
@@ -110,15 +117,17 @@ export class WeeklyEventRoomService {
    * Học sinh vào phòng (online).
    */
   static async enterRoom(eventId: string, studentId: string, grade: number): Promise<void> {
-    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`;
     await redis.sadd(onlineKey, studentId);
+    // Set TTL fallback (key đã được set TTL chính xác từ joinRoom, đây là safety net)
+    await redis.expire(onlineKey, WEEKLY_EVENT_DEFAULT_KEY_TTL);
   }
 
   /**
    * Học sinh rời phòng (disconnect).
    */
   static async leaveRoom(eventId: string, studentId: string, grade: number): Promise<void> {
-    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`;
     await redis.srem(onlineKey, studentId);
   }
 
@@ -126,7 +135,7 @@ export class WeeklyEventRoomService {
    * Lấy số học sinh online trong phòng.
    */
   static async getOnlineCount(eventId: string, grade: number): Promise<number> {
-    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`;
     return redis.scard(onlineKey);
   }
 
@@ -134,7 +143,7 @@ export class WeeklyEventRoomService {
    * Lấy danh sách học sinh online trong phòng.
    */
   static async getOnlineStudents(eventId: string, grade: number): Promise<string[]> {
-    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`;
+    const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`;
     return redis.smembers(onlineKey);
   }
 
@@ -146,7 +155,7 @@ export class WeeklyEventRoomService {
     transitionedAt: string;
     nextTransitionAt?: string;
   }> {
-    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`;
+    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE(eventId)}:${grade}`;
     const state = await redis.hgetall(roomStateKey);
 
     if (state && state.status) {

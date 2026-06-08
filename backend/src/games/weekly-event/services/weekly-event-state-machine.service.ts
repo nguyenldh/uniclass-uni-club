@@ -8,6 +8,8 @@ import { WeeklyEventRoomModel } from '../../../models/index';
 import {
   WEEKLY_EVENT_REDIS_KEYS,
   WEEKLY_EVENT_TRANSITION_LOCK_TTL,
+  WEEKLY_EVENT_REDIS_TTL_BUFFER,
+  WEEKLY_EVENT_DEFAULT_KEY_TTL,
 } from '@uniclub/shared';
 import type { WeeklyEventRoomStatus } from '@uniclub/shared';
 
@@ -22,8 +24,8 @@ export class WeeklyEventStateMachine {
     toState: WeeklyEventRoomStatus,
     nextTransitionAt?: string,
   ): Promise<{ success: boolean; alreadyInState: boolean }> {
-    const lockKey = `${WEEKLY_EVENT_REDIS_KEYS.LOCK_TRANSITION}:${eventId}:${grade}`;
-    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`;
+    const lockKey = `${WEEKLY_EVENT_REDIS_KEYS.LOCK_TRANSITION(eventId)}:${grade}`;
+    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE(eventId)}:${grade}`;
 
     // Acquire lock
     const locked = await redis.set(lockKey, '1', 'EX', WEEKLY_EVENT_TRANSITION_LOCK_TTL, 'NX');
@@ -77,7 +79,7 @@ export class WeeklyEventStateMachine {
    * Lấy trạng thái hiện tại của phòng từ Redis.
    */
   static async getState(eventId: string, grade: number): Promise<WeeklyEventRoomStatus | null> {
-    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`;
+    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE(eventId)}:${grade}`;
     const status = await redis.hget(roomStateKey, 'status');
     return status as WeeklyEventRoomStatus | null;
   }
@@ -86,8 +88,13 @@ export class WeeklyEventStateMachine {
    * Khởi tạo room state trong Redis (khi event được publish).
    * Ban đầu room ở trạng thái Scheduled — scheduler sẽ chuyển sang Waiting khi đến giờ.
    */
-  static async initRoomState(eventId: string, grade: number, nextTransitionAt?: string): Promise<void> {
-    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`;
+  static async initRoomState(
+    eventId: string,
+    grade: number,
+    nextTransitionAt?: string,
+    event?: { scheduledStartAt: Date | string; waitingDuration: number; examDuration: number; leaderboardDuration: number },
+  ): Promise<void> {
+    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE(eventId)}:${grade}`;
     const data: Record<string, string> = {
       status: 'Scheduled',
       transitionedAt: new Date().toISOString(),
@@ -96,6 +103,29 @@ export class WeeklyEventStateMachine {
       data.nextTransitionAt = nextTransitionAt;
     }
     await redis.hset(roomStateKey, data);
+
+    // Set TTL dựa trên event end + buffer
+    if (event) {
+      const ttl = this.getEventKeyTTL(event);
+      await redis.expire(roomStateKey, ttl);
+    }
+  }
+
+  /**
+   * Tính TTL cho Redis key dựa trên thời gian kết thúc event + buffer.
+   * Công thức: (scheduledStart + waiting + exam + 2min grading + leaderboard) - now + buffer
+   */
+  static getEventKeyTTL(event: {
+    scheduledStartAt: Date | string;
+    waitingDuration: number;
+    examDuration: number;
+    leaderboardDuration: number;
+  }): number {
+    const startMs = new Date(event.scheduledStartAt).getTime();
+    const totalMin = event.waitingDuration + event.examDuration + 2 + event.leaderboardDuration;
+    const endMs = startMs + totalMin * 60000;
+    const remainingSec = Math.ceil((endMs - Date.now()) / 1000);
+    return Math.max(remainingSec, 0) + WEEKLY_EVENT_REDIS_TTL_BUFFER;
   }
 
   /**
@@ -104,11 +134,16 @@ export class WeeklyEventStateMachine {
   static async cleanupEventState(eventId: string, grades: number[]): Promise<void> {
     const keys: string[] = [];
     for (const grade of grades) {
-      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE}:${eventId}:${grade}`);
-      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.ONLINE}:${eventId}:${grade}`);
-      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD}:${eventId}:${grade}`);
-      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.LOCK_TRANSITION}:${eventId}:${grade}`);
+      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE(eventId)}:${grade}`);
+      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`);
+      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD(eventId)}:${grade}`);
+      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.LOCK_TRANSITION(eventId)}:${grade}`);
+      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.JOINED(eventId)}:${grade}`);
+      keys.push(`${WEEKLY_EVENT_REDIS_KEYS.SUBMITTED(eventId)}:${grade}`);
     }
+    // Keys không có grade suffix
+    keys.push(`${WEEKLY_EVENT_REDIS_KEYS.AUTOSUBMIT_QUEUE(eventId)}`);
+
     if (keys.length > 0) {
       await redis.del(...keys);
     }

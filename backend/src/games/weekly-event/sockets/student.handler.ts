@@ -9,6 +9,8 @@ import {
   WEEKLY_EVENT_CLIENT_EVENTS,
   WEEKLY_EVENT_ROOM_PREFIX,
   WEEKLY_EVENT_STUDENT_ROOM_PREFIX,
+  WEEKLY_EVENT_REDIS_KEYS,
+  WEEKLY_EVENT_DEFAULT_KEY_TTL,
 } from '@uniclub/shared';
 import { redis } from '../../../config/index';
 import { WeeklyEventSocketService } from '../services/weekly-event-socket.service';
@@ -240,10 +242,13 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
     try {
       await WeeklyEventAnswerService.submitFinal(eventId, studentId);
 
-      const submittedSetKey = `we:submitted:${eventId}:${grade}`;
+      const submittedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.SUBMITTED(eventId)}:${grade}`;
       
       // Atomic Check trên Redis Set
       const isNewSubmit = await redis.sadd(submittedSetKey, studentId);
+
+      // Set TTL safety net cho submitted set
+      await redis.expire(submittedSetKey, WEEKLY_EVENT_DEFAULT_KEY_TTL);
 
       if (isNewSubmit === 1) {
         try {
@@ -279,8 +284,10 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
       await WeeklyEventRoomService.leaveRoom(eventId, studentId, grade);
 
       // Tăng disconnectCount trên Redis thay vì MongoDB
-      const disconnectKey = `we:disconnect_count:${eventId}:${studentId}`;
+      const disconnectKey = `${WEEKLY_EVENT_REDIS_KEYS.DISCONNECT_COUNT(eventId)}:${studentId}`;
       await redis.incr(disconnectKey);
+      // Set TTL safety net (sẽ bị xóa sau grading)
+      await redis.expire(disconnectKey, WEEKLY_EVENT_DEFAULT_KEY_TTL);
     } catch (err) {
       console.error('[WeeklyEvent] Disconnect error:', err);
     }

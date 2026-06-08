@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import type {
   RoomStatePayload,
@@ -290,12 +290,15 @@ export function useWeeklyEventSocket({
     };
   }, [enabled, socketToken, syncTime, joinRoom, requestResume, drainOfflineBuffer]);
 
-  return {
-    joinRoom,
-    submitAnswer,
-    requestResume,
-    syncTime,
-    submitFinal,
-    isConnected: connState === 'connected',
-  };
+  return useMemo(
+    () => ({
+      joinRoom,
+      submitAnswer,
+      requestResume,
+      syncTime,
+      submitFinal,
+      isConnected: connState === 'connected',
+    }),
+    [joinRoom, submitAnswer, requestResume, syncTime, submitFinal, connState]
+  );
 }

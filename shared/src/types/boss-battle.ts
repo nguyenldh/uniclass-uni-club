@@ -260,6 +260,8 @@ export interface WeeklyHonor {
   rank: number;
   correctCountWeek: number;
   totalCorrectTimeSec: number;
+  /** Điểm đóng góp trong tuần */
+  pointsContributedWeek: number;
   /** Đã cấp khung avatar chưa */
   frameGranted: boolean;
   /** Hết hạn khung (cấp + 7 ngày) */
