@@ -65,7 +65,7 @@ export function BossLobbyPage() {
       <GameCanvas
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}
       >
-        <ExitButton from="/boss-battle" />
+        <ExitButton from="/boss-battle" className="bb-exit-btn">Thoát</ExitButton>
         <div style={{ color: '#ff6a5a', fontSize: 18, fontWeight: 800 }}>Lỗi</div>
         <div style={{ color: '#fff', fontSize: 14, opacity: 0.8 }}>{error}</div>
       </GameCanvas>
@@ -78,7 +78,7 @@ export function BossLobbyPage() {
       <GameCanvas
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}
       >
-        <ExitButton from="/boss-battle" />
+        <ExitButton from="/boss-battle" className="bb-exit-btn">Thoát</ExitButton>
         <div style={{ color: '#fff', fontSize: 18, textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🐉</div>
           <div style={{ fontWeight: 900 }}>Chưa có Boss tuần này</div>
@@ -117,10 +117,10 @@ export function BossLobbyPage() {
       shaking={shaking}
       topRight={
         <>
-          <ExitButton from="/boss-battle" />
           <GameButton size="sm" color="ghost" onClick={() => navigate('/boss-battle/leaderboard')}>
             🏆 Bảng xếp hạng
           </GameButton>
+          <ExitButton from="/boss-battle" className="bb-exit-btn">Thoát</ExitButton>
         </>
       }
     />

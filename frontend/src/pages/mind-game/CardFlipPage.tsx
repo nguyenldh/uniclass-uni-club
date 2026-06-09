@@ -183,6 +183,16 @@ export function CardFlipPage() {
     },
   });
 
+  // Preload card images to avoid delay/blank cards when flipped
+  useEffect(() => {
+    cards.forEach((card) => {
+      if (card.type === "image" && typeof card.content === "string") {
+        const img = new Image();
+        img.src = card.content;
+      }
+    });
+  }, [cards]);
+
   // Timer
   useEffect(() => {
     if (!session || session.status !== "playing") {

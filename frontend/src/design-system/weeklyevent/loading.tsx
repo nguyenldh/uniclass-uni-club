@@ -36,9 +36,6 @@ export function SubmissionLoading({
             <h2 className="we-theme-title" style={{ fontSize: 28 }}>{title}</h2>
             <div className="we-subtle">Kết quả sẽ được công bố lúc <b style={{ color: 'var(--we-gold)' }}>{announceAt}</b></div>
           </div>
-          <div className="we-skel" aria-hidden>
-            <div className="row" /><div className="row" /><div className="row" />
-          </div>
         </div>
       </div>
     </div>

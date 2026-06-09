@@ -23,7 +23,9 @@ export class GameConfigService {
     if (cached) return JSON.parse(cached);
 
     const doc = await GameConfigModel.findOne({ gameType: 'gomoku' });
-    const config = doc?.gomoku ?? DEFAULT_GOMOKU_CONFIG;
+    const config = doc?.gomoku
+      ? { ...DEFAULT_GOMOKU_CONFIG, ...doc.gomoku.toObject() }
+      : DEFAULT_GOMOKU_CONFIG;
 
     await redis.set(
       `${REDIS_KEYS.GAME_CONFIG}:mind-game:gomoku`,
@@ -40,7 +42,9 @@ export class GameConfigService {
     if (cached) return JSON.parse(cached);
 
     const doc = await GameConfigModel.findOne({ gameType: 'card_flip' });
-    const config = doc?.cardFlip ?? DEFAULT_CARD_FLIP_CONFIG;
+    const config = doc?.cardFlip
+      ? { ...DEFAULT_CARD_FLIP_CONFIG, ...doc.cardFlip.toObject() }
+      : DEFAULT_CARD_FLIP_CONFIG;
 
     await redis.set(
       `${REDIS_KEYS.GAME_CONFIG}:mind-game:card_flip`,

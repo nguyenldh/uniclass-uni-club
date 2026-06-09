@@ -40,12 +40,13 @@ const fallbackBg = (i: number) =>
 
 const initialOf = (name: ReactNode) =>
   typeof name === 'string' && name.length > 0 ? name.trim().charAt(0).toUpperCase() : '?';
-const fmtTime = (s: number) => {
-  const m = Math.floor(s / 60);
-  const r = Math.round(s % 60);
-  return m > 0 ? `${m}p${r.toString().padStart(2, '0')}` : `${Math.round(s)}s`;
+const fmtTime = (s?: number | null) => {
+  const safeS = s ?? 0;
+  const m = Math.floor(safeS / 60);
+  const r = Math.round(safeS % 60);
+  return m > 0 ? `${m}p${r.toString().padStart(2, '0')}` : `${Math.round(safeS)}s`;
 };
-const fmtPts = (n: number) => n.toLocaleString('vi-VN');
+const fmtPts = (n?: number | null) => (n ?? 0).toLocaleString('vi-VN');
 
 /* ---------- UI-401 · Podium ---------- */
 export interface PodiumProps extends HTMLAttributes<HTMLDivElement> {

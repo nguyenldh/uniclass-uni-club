@@ -15,6 +15,7 @@ export interface PersonalResultScreenProps extends Omit<HTMLAttributes<HTMLDivEl
   name: string;
   className?: any;
   avatarBg?: string;
+  avatarUrl?: string;
   correct: number;
   wrong: number;
   skipped: number;
@@ -30,7 +31,7 @@ export interface PersonalResultScreenProps extends Omit<HTMLAttributes<HTMLDivEl
 }
 
 export function PersonalResultScreen({
-  grade, name, className: cls, avatarBg, correct, wrong, skipped, score, rank,
+  grade, name, className: cls, avatarBg, avatarUrl, correct, wrong, skipped, score, rank,
   totalParticipants, totalTimeMs, allowReview = false, onReview, onLeaderboard,
   className, ...rest
 }: PersonalResultScreenProps) {
@@ -50,7 +51,7 @@ export function PersonalResultScreen({
             </div>
           </div>
           <PersonalStatsCard
-            name={name} className={cls} avatarBg={avatarBg}
+            name={name} className={cls} avatarBg={avatarBg} avatarUrl={avatarUrl}
             correct={correct} wrong={wrong} skipped={skipped}
             score={score} rank={rank} totalTimeMs={totalTimeMs}
           />

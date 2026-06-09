@@ -914,4 +914,66 @@
   .st-compare-vs{ flex-direction: row; padding: 6px 0;}
   .st-compare-vs .line{ width: auto; height: 2px;}
   .st-answers{ grid-template-columns: 1fr; grid-template-rows: repeat(4, 1fr);}
+
+  .st-vbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+  }
+
+  .st-vbar > :nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .st-vbar > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .st-vbar > :nth-child(2) {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    width: 100%;
+  }
+
+  .st-game {
+    padding: 14px 10px 20px;
+    gap: 14px;
+  }
+
+  .st-qcard {
+    padding: 18px 16px;
+    border-radius: 16px;
+    gap: 14px;
+  }
+
+  .st-qcard .qtext {
+    font-size: 18px;
+  }
+
+  .st-answer {
+    padding: 12px 16px;
+    border-radius: 12px;
+    min-height: 56px;
+    gap: 10px;
+    font-size: 15px;
+  }
+
+  .st-answer .letter {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 8px;
+  }
+
+  .st-decay {
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+  }
+
+  .st-decay .track {
+    display: none;
+  }
 }

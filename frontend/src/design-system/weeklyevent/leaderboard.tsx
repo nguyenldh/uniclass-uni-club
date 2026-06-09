@@ -4,6 +4,7 @@
    Đọc: DATA-M-007 snapshot, DATA-M-006 · SOCK-EVT-S06/S07 · FLOW-010
    ============================================================ */
 import React, { type ReactNode, type HTMLAttributes } from 'react';
+import { AvatarImage } from '../../components/AvatarImage';
 import {
   LeaderboardRow, PersonalStatsCard, GradeRoomBadge, gradeColor, initialOf,
   fmtDuration, type LeaderboardEntry,
@@ -16,6 +17,7 @@ const cn = (...xs: Array<string | false | null | undefined>) =>
 
 export interface PersonalResult {
   name: string; className?: ReactNode; avatarBg?: string;
+  avatarUrl?: string;
   correct: number; wrong: number; skipped: number;
   score: number; rank: number; totalTimeMs: number;
 }
@@ -57,7 +59,12 @@ export function LeaderboardScreen({
                 <div key={e.rank} className={cn('we-pod', `r${e.rank}`)}>
                   {e.rank === 1 && <TrophyIcon size={34} className="crown" />}
                   <span className="rk">{e.rank}</span>
-                  <span className="av" style={{ background: e.avatarBg ?? gradeColor(grade) }}>{e.avatar ?? initialOf(e.displayName)}</span>
+                  <AvatarImage
+                    src={e.avatarUrl}
+                    name={e.displayName}
+                    avatarBg={e.avatarBg ?? gradeColor(grade)}
+                    className="av"
+                  />
                   <span className="nm">{e.displayName}{e.isMe && ' (Bạn)'}</span>
                   <span className="sc">{e.correctCount}/{total} · {fmtDuration(e.totalTimeMs / 1000)}</span>
                 </div>
@@ -75,7 +82,7 @@ export function LeaderboardScreen({
         <div className="we-foot" style={{ flexDirection: 'column' }}>
           {me ? (
             <PersonalStatsCard
-              name={me.name} className={me.className} avatarBg={me.avatarBg}
+              name={me.name} className={me.className} avatarBg={me.avatarBg} avatarUrl={me.avatarUrl}
               correct={me.correct} wrong={me.wrong} skipped={me.skipped}
               score={me.score} rank={me.rank} totalTimeMs={me.totalTimeMs}
             />

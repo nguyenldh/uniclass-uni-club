@@ -342,7 +342,7 @@ export class QuizArenaService {
     const handle = setTimeout(() => {
       questionTimeouts.delete(sessionId);
       this.handleQuestionTimeout(sessionId, currentQuestionIndex, io).catch(
-        () => {},
+        () => { },
       );
     }, timeLimitMs + 200); // +200ms buffer để đảm bảo client nhận đủ
 
@@ -358,7 +358,7 @@ export class QuizArenaService {
         botTurnTimers.delete(sessionId);
         // Bot submit đáp án
         this.submitAnswer(sessionId, session.playerB, selectedIndex, io).catch(
-          () => {},
+          () => { },
         );
       }, responseTimeMs);
       botTurnTimers.set(sessionId, botHandle);
@@ -452,7 +452,7 @@ export class QuizArenaService {
         isCorrect,
         config.easyQuestionThreshold,
         config.hardQuestionThreshold,
-      ).catch(() => {});
+      ).catch(() => { });
     }
 
     // Notify đối thủ: opponent đã trả lời (không tiết lộ đáp án)
@@ -565,7 +565,7 @@ export class QuizArenaService {
       // Kết thúc trận sau delay
       const handle = setTimeout(() => {
         nextQuestionTimers.delete(sessionId);
-        this.endMatch(sessionId, io).catch(() => {});
+        this.endMatch(sessionId, io).catch(() => { });
       }, config.nextQuestionDelayMs);
       nextQuestionTimers.set(sessionId, handle);
     } else {
@@ -575,7 +575,7 @@ export class QuizArenaService {
 
       const handle = setTimeout(() => {
         nextQuestionTimers.delete(sessionId);
-        this.startNextQuestion(sessionId, io).catch(() => {});
+        this.startNextQuestion(sessionId, io).catch(() => { });
       }, config.nextQuestionDelayMs);
       nextQuestionTimers.set(sessionId, handle);
     }
@@ -744,13 +744,11 @@ export class QuizArenaService {
         config.recentMatchesForAbility,
       );
     };
-    console.log("Here 1");
 
     await Promise.all([
       recordAbility(session.playerA, session.playerAState),
       recordAbility(session.playerB, session.playerBState),
     ]);
-    console.log("Here 2");
 
     // Ghi lịch sử câu hỏi đã làm
     await Promise.all([
@@ -761,9 +759,9 @@ export class QuizArenaService {
       session.isBot
         ? Promise.resolve()
         : QuestionService.recordRecentQuestions(
-            session.playerB,
-            session.questions.map((q) => q.id),
-          ),
+          session.playerB,
+          session.questions.map((q) => q.id),
+        ),
     ]);
     console.log("Here 3");
 
@@ -788,7 +786,7 @@ export class QuizArenaService {
     io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.END, result);
 
     // Emit Kafka event for UniClass integration
-    await GameResultEventService.emitQuizArenaResult(session);
+    await GameResultEventService.emitQuizArenaResult(session, result);
   }
 
   /**

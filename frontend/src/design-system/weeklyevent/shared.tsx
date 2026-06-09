@@ -10,6 +10,7 @@
    chấm điểm) do consumer truyền vào qua props (xem FLOW-* / SOCK-EVT-*).
    ============================================================ */
 import React, { type ReactNode, type HTMLAttributes } from 'react';
+import { AvatarImage } from '../../components/AvatarImage';
 
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
@@ -277,6 +278,7 @@ export interface LeaderboardEntry {
   className?: ReactNode;       // lớp/sub-label
   avatar?: ReactNode;
   avatarBg?: string;
+  avatarUrl?: string;
   correctCount: number;
   totalTimeMs: number;
   isMe?: boolean;
@@ -290,9 +292,12 @@ export function LeaderboardRow({ entry, total = 25 }: LeaderboardRowProps) {
   return (
     <div data-ui="UI-C-006" className={cn('we-row', entry.isMe && 'is-me')}>
       <span className="rank">{entry.rank}</span>
-      <span className="av" style={{ background: entry.avatarBg ?? gradeColor(1) }}>
-        {entry.avatar ?? initialOf(entry.displayName)}
-      </span>
+      <AvatarImage
+        src={entry.avatarUrl}
+        name={entry.displayName}
+        avatarBg={entry.avatarBg ?? gradeColor(1)}
+        className="av"
+      />
       <span className="info">
         <span className="nm">{entry.displayName}{entry.isMe && ' (Bạn)'}</span>
         {entry.className && <span className="sub">{entry.className}</span>}
@@ -311,6 +316,7 @@ export interface PersonalStatsCardProps {
   className?: ReactNode;
   avatar?: ReactNode;
   avatarBg?: string;
+  avatarUrl?: string;
   correct: number;
   wrong: number;
   skipped: number;
@@ -319,13 +325,18 @@ export interface PersonalStatsCardProps {
   totalTimeMs: number;
 }
 export function PersonalStatsCard({
-  name, className, avatar, avatarBg, correct, wrong, skipped, score, rank, totalTimeMs,
+  name, className, avatar, avatarBg, avatarUrl, correct, wrong, skipped, score, rank, totalTimeMs,
 }: PersonalStatsCardProps) {
   return (
     <div data-ui="UI-C-007" className="we-stats">
       <div className="st-head">
         <div className="st-id">
-          <span className="av" style={{ background: avatarBg ?? gradeColor(4) }}>{avatar ?? initialOf(name)}</span>
+          <AvatarImage
+            src={avatarUrl}
+            name={name}
+            avatarBg={avatarBg ?? gradeColor(4)}
+            className="av"
+          />
           <div className="who">
             <div className="nm">{name}</div>
             {className && <div className="sub">{className}</div>}

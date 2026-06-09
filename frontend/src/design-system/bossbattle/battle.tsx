@@ -200,6 +200,7 @@ export function BossBattle({
           <QuestionTimer remaining={remaining} total={timeLimit} />
         </div>
         <BattleQuestionCard
+          key={index}
           question={question} image={image} options={options}
           phase={phase} selected={selected} correct={correct} onSelect={onSelect}
         />

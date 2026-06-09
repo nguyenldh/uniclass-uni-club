@@ -481,6 +481,7 @@ export function WeeklyEventController() {
             store.personalResult
               ? {
                   name: user.name,
+                  avatarUrl: user.avatar,
                   correct: store.personalResult.correctCount,
                   wrong: store.personalResult.totalAnswered - store.personalResult.correctCount,
                   skipped: (store.questions.length || 25) - store.personalResult.totalAnswered,
@@ -516,6 +517,7 @@ export function WeeklyEventController() {
         <PersonalResultScreen
           grade={userGrade}
           name={user.name}
+          avatarUrl={user.avatar}
           correct={store.personalResult?.correctCount ?? 0}
           wrong={
             (store.personalResult?.totalAnswered ?? 0) -

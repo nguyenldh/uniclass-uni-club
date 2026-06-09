@@ -26,6 +26,8 @@ const GomokuConfigSchema = new Schema<GomokuConfig>(
     matchmakingTimeout: { type: Number, required: true, default: 30 },
     winPoints: { type: Number, required: true, default: 100 },
     boardSize: { type: Number, required: true, default: 15 },
+    turnTimeout: { type: Number, required: true, default: 120 },
+    maxGameDuration: { type: Number, required: true, default: 600 },
   },
   { _id: false },
 );
@@ -44,6 +46,8 @@ const CardFlipConfigSchema = new Schema<CardFlipConfig>(
     winPoints: { type: Number, required: true, default: 50 },
     pairCount: { type: Number, required: true, default: 8 },
     cardItems: { type: [CardFlipItemSchema], default: undefined },
+    turnTimeout: { type: Number, required: true, default: 120 },
+    maxGameDuration: { type: Number, required: true, default: 600 },
   },
   { _id: false },
 );

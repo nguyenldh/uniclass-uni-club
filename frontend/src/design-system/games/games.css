@@ -85,7 +85,7 @@
 
 /* X mark — orange brand, hand-drawn stroke that draws on placement */
 .caro-x, .caro-o{
-  width: 72%; height: 72%;
+  width: 88%; height: 88%;
   overflow: visible;
 }
 .caro-x path, .caro-o circle{
@@ -281,7 +281,7 @@
   border-color: rgba(0,0,0,.25);
 }
 .memory-front img{
-  width: 80%; height: 80%; object-fit: contain;
+  width: 100%; height: 100%; object-fit: cover;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
 }
 
@@ -373,11 +373,14 @@
   50%      { box-shadow: 0 4px 0 rgba(110,63,23,.35), 0 0 0 8px rgba(246,195,68,.35); }
 }
 .player-card .pc-av{
-  width: 40px; height: 40px; border-radius: 50%;
+  width: 40px !important; height: 40px !important;
+  min-width: 40px !important; min-height: 40px !important;
+  font-size: 15px !important;
+  border-radius: 50%;
   border: 2px solid var(--g-wood-4);
   background: radial-gradient(circle at 30% 30%, #fff, var(--o-300));
   display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 15px; color: var(--g-wood-4);
+  font-weight: 900; color: var(--g-wood-4);
   flex-shrink: 0;
 }
 .player-card .pc-meta{ display: flex; flex-direction: column; min-width: 0; }
@@ -617,13 +620,14 @@
     padding: 4px 8px 4px 4px;
     gap: 6px;
     border-width: 2px;
-    border-radius: 999px;
+    border-radius: 12px;
     box-shadow: 0 3px 0 rgba(110,63,23,.35);
   }
   .player-card .pc-av{
-    width: 30px; height: 30px;
-    font-size: 12px;
-    border-width: 2px;
+    width: 24px !important; height: 24px !important;
+    min-width: 24px !important; min-height: 24px !important;
+    font-size: 10px !important;
+    border-width: 1.5px;
   }
   .player-card .pc-name{
     font-size: 12px;

@@ -9,6 +9,7 @@ import type {
   CardFlipSession,
   GomokuSession,
   QuizArenaSession,
+  QuizArenaResult,
 } from '@uniclub/shared';
 import { GAME_TYPE_TO_KAFKA } from '@uniclub/shared';
 
@@ -26,7 +27,7 @@ export class GameResultEventService {
    * Emit kết quả Quiz Arena (So Tài) cho cả 2 người chơi.
    * Gọi sau khi endMatch() hoàn tất.
    */
-  static async emitQuizArenaResult(session: QuizArenaSession): Promise<void> {
+  static async emitQuizArenaResult(session: QuizArenaSession, result: QuizArenaResult): Promise<void> {
     const playTime = calculatePlayTime(session.startedAt, session.endedAt);
     const totalQuestions = session.questions.length;
 
@@ -34,7 +35,7 @@ export class GameResultEventService {
     const playerAResult: ClubGameResultDto = {
       profileId: session.playerA,
       gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
-      point: session.playerAState.totalScore,
+      point: result.playerA.uniPointsEarned,
       playTime: playTime,
       sessionCompleted: session.status === 'finished',
       isWin: session.winner === session.playerA,
@@ -48,7 +49,7 @@ export class GameResultEventService {
       const playerBResult: ClubGameResultDto = {
         profileId: session.playerB,
         gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
-        point: session.playerBState.totalScore,
+        point: result.playerB.uniPointsEarned,
         playTime: playTime,
         sessionCompleted: session.status === 'finished',
         isWin: session.winner === session.playerB,
