@@ -155,7 +155,7 @@ export function MatchProgress({ current, total, mePips }: MatchProgressProps) {
         ))}
       </div>
       <div className="st-progress-counter" style={{ marginTop: 4 }}>
-        Câu <span className="big">{current}</span>/{total}
+        <span className="big">{current}</span>/{total}
       </div>
     </div>
   );

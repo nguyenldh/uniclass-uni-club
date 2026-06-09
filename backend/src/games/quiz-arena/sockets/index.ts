@@ -5,6 +5,7 @@
 import type { Socket, Server } from 'socket.io';
 import { QuizArenaService } from '../services/quiz-arena.service';
 import { QUIZ_ARENA_SOCKET_EVENTS, SOCKET_EVENTS } from '@uniclub/shared';
+import { SocketRegistry } from '../../../services';
 
 /**
  * Đăng ký tất cả socket event handlers cho Quiz Arena (So Tài).
@@ -26,6 +27,10 @@ export function registerQuizArenaHandlers(io: Server, socket: Socket): void {
       // Set userId từ payload nếu chưa có (game socket khác với matchmaking socket)
       if (data.userId && !socket.data.userId) {
         socket.data.userId = data.userId;
+      }
+
+      if (socket.data.userId) {
+        await SocketRegistry.register(socket.data.userId, socket.id);
       }
 
       socket.data.quizSessionId = sessionId;

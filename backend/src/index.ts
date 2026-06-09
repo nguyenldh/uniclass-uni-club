@@ -2,10 +2,15 @@ import { httpServer } from './app';
 import { env, connectDB, connectRedis, connectKafka } from './config';
 import { BotProfileService } from './services/bot-profile.service';
 import { WeeklyEventSchedulerService } from './games/weekly-event/services';
+import { TimerQueueService } from './services';
 
 async function bootstrap(): Promise<void> {
   await connectDB();
   await connectRedis();
+  
+  // Khởi động TimerQueueService
+  TimerQueueService.init();
+
   await connectKafka();
 
   // Seed default bot profiles if collection is empty

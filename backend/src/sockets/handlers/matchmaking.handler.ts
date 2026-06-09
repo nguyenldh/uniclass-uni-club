@@ -12,28 +12,10 @@ import {
 import type { MatchmakingGameType } from '@uniclub/shared';
 import { UserAbilityService } from '../../games/quiz-arena/services/user-ability.service';
 import { setPendingContext } from '../../games/quiz-arena/services/quiz-matchmaking.factory';
-import { UserService } from '../../services';
+import { UserService, SocketRegistry, TimerQueueService } from '../../services';
 
-/**
- * Lưu timeout handle cho mỗi user đang chờ matchmaking.
- * Key: `${userId}:${gameType}`
- * Dùng để clear timeout khi user được ghép trận hoặc rời queue.
- */
-const timeoutMap = new Map<string, NodeJS.Timeout>();
-/** Lưu partitionKey theo userId:gameType để dùng khi leaveQueue hoặc timeout */
-const partitionKeyMap = new Map<string, string | undefined>();
-
-function timeoutKey(userId: string, gameType: MatchmakingGameType): string {
-  return `${userId}:${gameType}`;
-}
-
-function clearMatchmakingTimeout(userId: string, gameType: MatchmakingGameType): void {
-  const key = timeoutKey(userId, gameType);
-  const handle = timeoutMap.get(key);
-  if (handle) {
-    clearTimeout(handle);
-    timeoutMap.delete(key);
-  }
+async function clearMatchmakingTimeout(userId: string, gameType: MatchmakingGameType): Promise<void> {
+  await TimerQueueService.cancelMatchmakingTimeout(userId, gameType);
 }
 
 /**
@@ -81,6 +63,7 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
 
         socket.data.userId = userId;
         socket.data.gameType = gameType;
+        await SocketRegistry.register(userId, socket.id);
 
         // ---- Quiz Arena: tính partitionKey và lưu pending context ----
         let partitionKey: string | undefined;
@@ -108,8 +91,6 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
           });
         }
 
-        partitionKeyMap.set(timeoutKey(userId, gameType), partitionKey);
-
         const result = await MatchmakingService.joinQueue({
           userId,
           gameType,
@@ -121,7 +102,7 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
         if (result.status === 'matched') {
           // Clear timeout của opponent (nếu có) — opponent đã được ghép, không cần AI fallback nữa
           if (result.opponentId) {
-            clearMatchmakingTimeout(result.opponentId, gameType);
+            await clearMatchmakingTimeout(result.opponentId, gameType);
           }
 
           // Đánh dấu cả 2 player đang trong session active
@@ -158,7 +139,7 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
           }
         } else if (result.status === 'searching') {
           // Clear timeout cũ nếu có (tránh duplicate)
-          clearMatchmakingTimeout(userId, gameType);
+          await clearMatchmakingTimeout(userId, gameType);
 
           // Quiz Arena: 
           // - displayTimeout: tổng thời gian tìm trận (hiển thị cho user)
@@ -182,32 +163,12 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
             timeout: displayTimeoutSeconds,
           });
 
-          const handle = setTimeout(async () => {
-            timeoutMap.delete(timeoutKey(userId, gameType));
-
-            const storedPartitionKey = partitionKeyMap.get(timeoutKey(userId, gameType));
-            const timeoutResult = await MatchmakingService.handleTimeout(
-              userId,
-              gameType,
-              'medium',
-              storedPartitionKey,
-            );
-            if (timeoutResult && timeoutResult.status === 'timeout') {
-              // Đánh dấu user đang trong session active (AI)
-              await MatchmakingService.setActiveSession(userId, timeoutResult.sessionId!, gameType);
-
-              socket.emit(MATCHMAKING_SOCKET_EVENTS.MATCHMAKING_TIMEOUT, {
-                sessionId: timeoutResult.sessionId,
-                gameType,
-                isAI: true,
-                aiDifficulty: timeoutResult.aiDifficulty,
-                opponentProfile: timeoutResult.opponentProfile,
-              });
-              socket.join(timeoutResult.sessionId!);
-            }
+          await TimerQueueService.scheduleMatchmakingTimeout({
+            userId,
+            gameType,
+            partitionKey,
+            socketId: socket.id,
           }, botTriggerTimeoutSeconds * 1000);
-
-          timeoutMap.set(timeoutKey(userId, gameType), handle);
         }
       } catch (error: any) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: error.message });
@@ -223,9 +184,8 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
     MATCHMAKING_SOCKET_EVENTS.LEAVE_MATCHMAKING,
     async (data: { userId: string; gameType: MatchmakingGameType }) => {
       try {
-        clearMatchmakingTimeout(data.userId, data.gameType);
-        const storedPartitionKey = partitionKeyMap.get(timeoutKey(data.userId, data.gameType));
-        partitionKeyMap.delete(timeoutKey(data.userId, data.gameType));
+        await clearMatchmakingTimeout(data.userId, data.gameType);
+        const storedPartitionKey = socket.data.quizPartitionKey;
         await MatchmakingService.leaveQueue(data.userId, data.gameType, storedPartitionKey);
         socket.emit(MATCHMAKING_SOCKET_EVENTS.LEAVE_MATCHMAKING, { success: true });
       } catch (error: any) {
@@ -243,9 +203,8 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
       const userId: string | undefined = socket.data.userId;
       const gameType: MatchmakingGameType | undefined = socket.data.gameType;
       if (userId && gameType) {
-        clearMatchmakingTimeout(userId, gameType);
-        const storedPartitionKey = partitionKeyMap.get(timeoutKey(userId, gameType));
-        partitionKeyMap.delete(timeoutKey(userId, gameType));
+        await clearMatchmakingTimeout(userId, gameType);
+        const storedPartitionKey = socket.data.quizPartitionKey;
         await MatchmakingService.leaveQueue(userId, gameType, storedPartitionKey);
       }
     } catch {
@@ -256,13 +215,7 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
 
 /** Tìm socketId của opponent từ userId */
 async function getOpponentSocketId(io: Server, userId: string): Promise<string | undefined> {
-  const sockets = await io.fetchSockets();
-  for (const s of sockets) {
-    if (s.data.userId === userId) {
-      return s.id;
-    }
-  }
-  return undefined;
+  return SocketRegistry.getSocketId(userId);
 }
 
 /** Lấy matchmaking timeout từ config của game, fallback về default */

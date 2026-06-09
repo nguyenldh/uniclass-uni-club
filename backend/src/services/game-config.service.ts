@@ -24,7 +24,7 @@ export class GameConfigService {
 
     const doc = await GameConfigModel.findOne({ gameType: 'gomoku' });
     const config = doc?.gomoku
-      ? { ...DEFAULT_GOMOKU_CONFIG, ...doc.gomoku.toObject() }
+      ? { ...DEFAULT_GOMOKU_CONFIG, ...(doc.gomoku as any).toObject() }
       : DEFAULT_GOMOKU_CONFIG;
 
     await redis.set(
@@ -43,7 +43,7 @@ export class GameConfigService {
 
     const doc = await GameConfigModel.findOne({ gameType: 'card_flip' });
     const config = doc?.cardFlip
-      ? { ...DEFAULT_CARD_FLIP_CONFIG, ...doc.cardFlip.toObject() }
+      ? { ...DEFAULT_CARD_FLIP_CONFIG, ...(doc.cardFlip as any).toObject() }
       : DEFAULT_CARD_FLIP_CONFIG;
 
     await redis.set(

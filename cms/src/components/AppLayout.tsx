@@ -11,6 +11,7 @@ import {
   UserOutlined,
   FireOutlined,
   CalendarOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth.store';
@@ -30,7 +31,7 @@ function getItem(
 }
 
 const menuItems: MenuItem[] = [
-  getItem('Dashboard', '/', <DashboardOutlined />),
+  getItem('Dashboard', '/', <BarChartOutlined />),
   getItem('Mind Game', 'mind-game', <SettingOutlined />, [
     getItem('Gomoku', '/mind-game/gomoku'),
     getItem('Card Flip', '/mind-game/card-flip'),

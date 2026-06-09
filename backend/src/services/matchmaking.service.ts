@@ -42,11 +42,9 @@ export class MatchmakingService {
     const { gameType, partitionKey } = entry;
     let { userId } = entry;
     userId = userId + ""; // Đảm bảo userId là string
-    
+
     const key = this.queueKey(gameType, partitionKey);
     const queueData = await redis.lrange(key, 0, -1);
-
-    console.log(entry);
 
     for (const data of queueData) {
       const waiting: MatchmakingEntry = JSON.parse(data);
@@ -65,7 +63,7 @@ export class MatchmakingService {
       const opponent = await UserService.getUser(waiting.userId);
 
       console.log('Opponent', opponent);
-      
+
 
       return {
         status: 'matched',
@@ -164,7 +162,7 @@ export class MatchmakingService {
    */
   static async getActiveSession(userId: string): Promise<{ sessionId: string; gameType: string } | null> {
     const raw = await redis.get(`${REDIS_KEYS.USER_ACTIVE_SESSION}:${userId}`);
-    
+
     if (!raw) return null;
     const [sessionId, gameType] = raw.split(':');
     return { sessionId, gameType };

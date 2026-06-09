@@ -492,22 +492,27 @@ export function WeeklyEventController() {
               : null
           }
           right={
-            !store.event ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                {store.personalResult && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {!store.event ? (
+                <>
+                  {store.personalResult && (
+                    <GameButton size="sm" color="ghost" onClick={() => store.setPhase('result')}>
+                      Chi tiết kết quả
+                    </GameButton>
+                  )}
+                  <GameButton size="sm" color="ghost" onClick={() => store.setPhase('closed')}>
+                    Quay lại
+                  </GameButton>
+                </>
+              ) : (
+                store.personalResult && (
                   <GameButton size="sm" color="ghost" onClick={() => store.setPhase('result')}>
                     Chi tiết kết quả
                   </GameButton>
-                )}
-                <GameButton size="sm" color="ghost" onClick={() => store.setPhase('closed')}>
-                  Quay lại
-                </GameButton>
-              </div>
-            ) : store.personalResult ? (
-              <GameButton size="sm" color="ghost" onClick={() => store.setPhase('result')}>
-                Chi tiết kết quả
-              </GameButton>
-            ) : undefined
+                )
+              )}
+              <ExitButton from="/weekly-event" className="we-exit-btn">Thoát</ExitButton>
+            </div>
           }
         />
       );

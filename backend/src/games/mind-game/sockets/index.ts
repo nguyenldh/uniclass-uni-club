@@ -6,6 +6,7 @@ import type { Socket, Server } from 'socket.io';
 import { GomokuService, setGomokuServerIO } from '../services/gomoku.service';
 import { CardFlipService, setCardFlipServerIO } from '../services/card-flip.service';
 import { MIND_GAME_SOCKET_EVENTS, SOCKET_EVENTS } from '@uniclub/shared';
+import { SocketRegistry } from '../../../services';
 
 /**
  * Đăng ký tất cả socket event handlers cho nhóm Mind Game.
@@ -25,6 +26,9 @@ export function registerMindGameHandlers(io: Server, socket: Socket): void {
       socket.join(data.sessionId);
       socket.data.mindGameSessionId = data.sessionId;
       socket.data.userId = data.userId;
+      if (data.userId) {
+        await SocketRegistry.register(data.userId, socket.id);
+      }
       if (data.gameType) {
         socket.data.mindGameType = data.gameType;
       }

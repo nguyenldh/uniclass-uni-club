@@ -11,6 +11,7 @@ const { mockRedis, mockUserScoreModel } = vi.hoisted(() => ({
     exists: vi.fn(),
     zrevrange: vi.fn(),
     multi: vi.fn(),
+    zadd: vi.fn(),
   },
   mockUserScoreModel: {
     findOne: vi.fn(),
@@ -183,10 +184,15 @@ describe('ScoreService', () => {
       mockRedis.exists.mockResolvedValue(0); // cache miss
       mockRedis.zrevrange.mockResolvedValue(['user-1', '500']);
 
-      const mockQuery = { lean: vi.fn().mockResolvedValue([makeDoc({ userId: 'user-1', totalPoints: 500 })]) };
+      const mockQuery = {
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([makeDoc({ userId: 'user-1', totalPoints: 500 })]),
+      };
       mockUserScoreModel.find.mockReturnValue(mockQuery);
 
       mockRedis.multi.mockReturnValue({
+        del: vi.fn().mockReturnThis(),
         zadd: vi.fn().mockReturnThis(),
         expire: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue([]),

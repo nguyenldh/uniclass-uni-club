@@ -37,12 +37,12 @@ export class WeeklyEventSchedulerService {
       console.error('[WeeklyEvent] Scheduler tick error:', err);
     });
 
-    // Sau đó mỗi 60 giây
+    // Sau đó mỗi 30 giây
     this.cronInterval = setInterval(() => {
       this.tick().catch((err) => {
         console.error('[WeeklyEvent] Scheduler tick error:', err);
       });
-    }, 5000);
+    }, 30000);
   }
 
   /**
@@ -95,28 +95,36 @@ export class WeeklyEventSchedulerService {
    * FLOW-002: Kiểm tra và thực hiện state transitions.
    */
   private static async checkStateTransitions(): Promise<void> {
-    const now = new Date();
+    const lockKey = `${WEEKLY_EVENT_REDIS_KEYS.LOCK_SCHEDULER}`;
+    const locked = await redis.set(lockKey, '1', 'EX', WEEKLY_EVENT_SCHEDULER_LOCK_TTL, 'NX');
+    if (!locked) return;
 
-    // Lấy tất cả event đang ở trạng thái cần theo dõi
-    const activeEvents = await WeeklyEventModel.find({
-      status: { $in: ['Scheduled', 'Waiting', 'InProgress', 'Grading', 'Showing'] },
-    }).lean();
+    try {
+      const now = new Date();
 
-    for (const event of activeEvents) {
-      const eventId = String(event._id);
-      const scheduledStart = new Date(event.scheduledStartAt);
-      const waitingEnd = new Date(scheduledStart.getTime() + event.waitingDuration * 60000);
-      const examEnd = new Date(waitingEnd.getTime() + event.examDuration * 60000);
-      const gradingEnd = new Date(examEnd.getTime() + 2 * 60000); // +2 phút grading
-      const showingEnd = new Date(gradingEnd.getTime() + event.leaderboardDuration * 60000);
+      // Lấy tất cả event đang ở trạng thái cần theo dõi
+      const activeEvents = await WeeklyEventModel.find({
+        status: { $in: ['Scheduled', 'Waiting', 'InProgress', 'Grading', 'Showing'] },
+      }).lean();
 
-      for (const grade of event.activeGrades) {
-        try {
-          await this.transitionGrade(eventId, grade, event, now, scheduledStart, waitingEnd, examEnd, gradingEnd, showingEnd);
-        } catch (err) {
-          console.error(`[WeeklyEvent] Transition error event=${eventId} grade=${grade}:`, err);
+      for (const event of activeEvents) {
+        const eventId = String(event._id);
+        const scheduledStart = new Date(event.scheduledStartAt);
+        const waitingEnd = new Date(scheduledStart.getTime() + event.waitingDuration * 60000);
+        const examEnd = new Date(waitingEnd.getTime() + event.examDuration * 60000);
+        const gradingEnd = new Date(examEnd.getTime() + 2 * 60000); // +2 phút grading
+        const showingEnd = new Date(gradingEnd.getTime() + event.leaderboardDuration * 60000);
+
+        for (const grade of event.activeGrades) {
+          try {
+            await this.transitionGrade(eventId, grade, event, now, scheduledStart, waitingEnd, examEnd, gradingEnd, showingEnd);
+          } catch (err) {
+            console.error(`[WeeklyEvent] Transition error event=${eventId} grade=${grade}:`, err);
+          }
         }
       }
+    } finally {
+      await redis.del(lockKey);
     }
   }
 

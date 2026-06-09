@@ -11,3 +11,4 @@ export * from './weekly-event';
 export * from './admin';
 export * from './kafka-events';
 export * from './webview';
+export * from './analytics';

@@ -315,7 +315,6 @@ export class WeeklyEventService {
 
     // Kiểm tra đã tồn tại chưa
     const existing = await WeeklyEventModel.findOne({ weekNumber, year }).lean();
-    console.log(existing);
 
     if (existing) return null;
 
@@ -363,7 +362,7 @@ export class WeeklyEventService {
       rooms.map(async (r) => {
         const joinedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.JOINED(eventId)}:${r.grade}`;
         const submittedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.SUBMITTED(eventId)}:${r.grade}`;
-        
+
         const [redisPartCount, redisSubCount] = await Promise.all([
           redis.scard(joinedSetKey),
           redis.scard(submittedSetKey),

@@ -253,7 +253,14 @@ export function QuestionCard({
     <div className={cn('st-qcard', className)} {...rest}>
       <div className="qhead">
         <span className="qtag">CÂU {index}/{total}</span>
-        <div />
+        <div className="qstatus">
+          {phase === 'waiting' && (
+            <span className="waiting">Đợi đối thủ trả lời...</span>
+          )}
+          {phase === 'answering' && opponentAnswered && (
+            <span className="answered">Đối thủ đã trả lời</span>
+          )}
+        </div>
         <span style={{ fontWeight: 800, fontSize: 12, opacity: .6, letterSpacing: '.08em', textTransform: 'uppercase' }}>
           {timeLimit}s
         </span>
@@ -273,19 +280,7 @@ export function QuestionCard({
         />
       </div>
 
-      {/* Unified status banner — trên phần chọn đáp án */}
-      {phase === 'waiting' && (
-        <div className="st-waiting-banner">
-          <span className="st-waiting-icon">⏳</span>
-          <span className="st-waiting-text">Đang chờ đối thủ trả lời...</span>
-        </div>
-      )}
-      {phase === 'answering' && opponentAnswered && (
-        <div className="st-waiting-banner is-answered">
-          <span className="st-waiting-icon">✓</span>
-          <span className="st-waiting-text">Đối thủ đã trả lời</span>
-        </div>
-      )}
+
 
       <div className="st-answers">
         {options.map((opt) => (

@@ -7,6 +7,7 @@ import { requireAdminAuth } from '../../middleware';
 import adminAuthRouter from './auth';
 import bossBattleAdminRouter from '../../games/boss-battle/routes/admin';
 import weeklyEventAdminRouter from '../../games/weekly-event/routes/admin';
+import analyticsAdminRouter from './analytics';
 import type { CreateBotProfileInput, UpdateBotProfileInput } from '@uniclub/shared';
 
 const router = Router();
@@ -80,6 +81,9 @@ router.use('/boss-battle', bossBattleAdminRouter);
 
 /** Weekly Event (Sự kiện tuần) */
 router.use('/weekly-event', weeklyEventAdminRouter);
+
+/** Analytics (KPI Dashboard) */
+router.use('/analytics', analyticsAdminRouter);
 
 // ============================================================
 // Game Config Management (CMS)

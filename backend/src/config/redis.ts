@@ -8,10 +8,24 @@ function createRedisClient(): Redis {
       return { host, port: parseInt(port, 10) };
     });
 
+    const isLocalhost = nodes.some(n => n.host === 'localhost' || n.host === '127.0.0.1');
+
     return new Redis.Cluster(nodes, {
       redisOptions: {
         password: env.REDIS_PASSWORD || undefined,
       },
+      // Nếu chạy từ host máy Windows kết nối tới cluster trong Docker,
+      // ioredis nhận được IP nội bộ Docker (172.x.x.x) sẽ không route được.
+      // natMap chuyển hướng các IP nội bộ này về localhost (127.0.0.1) trên cùng cổng.
+      natMap: isLocalhost 
+        ? (key: string) => {
+            const [host, portStr] = key.split(':');
+            const port = parseInt(portStr, 10);
+            const mapped = host !== '127.0.0.1' && host !== 'localhost' ? { host: '127.0.0.1', port } : null;
+            console.log(`[Redis NAT] Mapping node "${key}" ->`, mapped);
+            return mapped;
+          }
+        : undefined,
       lazyConnect: true,
     }) as unknown as Redis;
   }
