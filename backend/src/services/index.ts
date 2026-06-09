@@ -7,3 +7,5 @@ export { ScoreService } from './score.service';
 export { MatchmakingService } from './matchmaking.service';
 export { BotProfileService } from './bot-profile.service';
 export { UserService } from './user.service';
+export { SocketRegistry } from './socket-registry.service';
+export { TimerQueueService } from './timer-queue.service';

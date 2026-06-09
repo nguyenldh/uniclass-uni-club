@@ -4,14 +4,18 @@
 // ============================================================
 
 import { redis } from "../../../config/index";
-import { ScoreService } from "../../../services/score.service";
-import { MatchmakingService } from "../../../services/matchmaking.service";
-import { BotProfileService } from "../../../services/bot-profile.service";
 import { QuestionService } from "./question.service";
 import { UserAbilityService } from "./user-ability.service";
 import { QuizBotService } from "./quiz-bot.service";
 import { UniClassSyncService } from "./uniclass-sync.service";
 import { GameResultEventService } from "../../../services/game-result-event.service";
+import {
+  ScoreService,
+  MatchmakingService,
+  BotProfileService,
+  TimerQueueService,
+  UserService,
+} from "../../../services";
 import {
   QUIZ_ARENA_REDIS_KEYS,
   QUIZ_ARENA_SOCKET_EVENTS,
@@ -29,7 +33,6 @@ import type {
   QuizQuestion,
 } from "@uniclub/shared";
 import type { Server } from "socket.io";
-import { UserService } from "../../../services";
 
 // ---- Helpers ----
 
@@ -128,20 +131,6 @@ function toPublicQuestion(
     startedAt,
   };
 }
-
-// ---- Session map timeouts (in-memory, không serialize vào Redis) ----
-
-/** Map: sessionId → handle timeout auto-submit câu hỏi */
-const questionTimeouts = new Map<string, NodeJS.Timeout>();
-/** Map: sessionId → handle timeout next question */
-const nextQuestionTimers = new Map<string, NodeJS.Timeout>();
-/** Map: sessionId → handle timeout bot turn */
-const botTurnTimers = new Map<string, NodeJS.Timeout>();
-/**
- * Map: sessionId → handle timeout kết thúc trận khi user disconnect (Bot match).
- * Cho user 30s để reconnect trước khi end match.
- */
-const disconnectTimers = new Map<string, NodeJS.Timeout>();
 
 /** Thời gian chờ reconnect trước khi kết thúc trận Bot (giây) */
 const BOT_DISCONNECT_GRACE_SECONDS = 30;
@@ -336,17 +325,7 @@ export class QuizArenaService {
     // Set timeout tự động submit null khi hết giờ
     const timeLimitMs = question.timeLimitSeconds * 1000;
 
-    const prevTimeout = questionTimeouts.get(sessionId);
-    if (prevTimeout) clearTimeout(prevTimeout);
-
-    const handle = setTimeout(() => {
-      questionTimeouts.delete(sessionId);
-      this.handleQuestionTimeout(sessionId, currentQuestionIndex, io).catch(
-        () => { },
-      );
-    }, timeLimitMs + 200); // +200ms buffer để đảm bảo client nhận đủ
-
-    questionTimeouts.set(sessionId, handle);
+    await TimerQueueService.scheduleQuestionTimeout(sessionId, currentQuestionIndex, timeLimitMs + 200);
 
     // Bot turn nếu là session vs AI
     if (session.isBot && session.botProfile) {
@@ -354,14 +333,7 @@ export class QuizArenaService {
         question,
         session.botProfile,
       );
-      const botHandle = setTimeout(() => {
-        botTurnTimers.delete(sessionId);
-        // Bot submit đáp án
-        this.submitAnswer(sessionId, session.playerB, selectedIndex, io).catch(
-          () => { },
-        );
-      }, responseTimeMs);
-      botTurnTimers.set(sessionId, botHandle);
+      await TimerQueueService.scheduleBotTurn(sessionId, session.playerB, selectedIndex, responseTimeMs);
     }
   }
 
@@ -496,11 +468,7 @@ export class QuizArenaService {
     if (session.currentQuestionIndex !== questionIndex) return;
 
     // Clear bot timer nếu có
-    const botHandle = botTurnTimers.get(sessionId);
-    if (botHandle) {
-      clearTimeout(botHandle);
-      botTurnTimers.delete(sessionId);
-    }
+    await TimerQueueService.cancelBotTurn(sessionId);
 
     // Submit null cho ai chưa trả lời
     const { playerAState, playerBState } = session;
@@ -561,24 +529,13 @@ export class QuizArenaService {
 
     const isLastQuestion = currentQuestionIndex >= questions.length - 1;
 
-    if (isLastQuestion) {
-      // Kết thúc trận sau delay
-      const handle = setTimeout(() => {
-        nextQuestionTimers.delete(sessionId);
-        this.endMatch(sessionId, io).catch(() => { });
-      }, config.nextQuestionDelayMs);
-      nextQuestionTimers.set(sessionId, handle);
-    } else {
+    if (!isLastQuestion) {
       // Chuyển sang câu kế sau delay
       session.currentQuestionIndex++;
       await this.saveSession(session);
-
-      const handle = setTimeout(() => {
-        nextQuestionTimers.delete(sessionId);
-        this.startNextQuestion(sessionId, io).catch(() => { });
-      }, config.nextQuestionDelayMs);
-      nextQuestionTimers.set(sessionId, handle);
     }
+
+    await TimerQueueService.scheduleNextQuestion(sessionId, isLastQuestion, config.nextQuestionDelayMs);
   }
 
   /**
@@ -643,27 +600,14 @@ export class QuizArenaService {
     const session = await this.getSession(sessionId);
     if (!session || session.status === "finished") return;
 
-    // Clear all pending timers
-    const qTimeout = questionTimeouts.get(sessionId);
-    if (qTimeout) {
-      clearTimeout(qTimeout);
-      questionTimeouts.delete(sessionId);
-    }
-    const nqTimer = nextQuestionTimers.get(sessionId);
-    if (nqTimer) {
-      clearTimeout(nqTimer);
-      nextQuestionTimers.delete(sessionId);
-    }
-    const botTimer = botTurnTimers.get(sessionId);
-    if (botTimer) {
-      clearTimeout(botTimer);
-      botTurnTimers.delete(sessionId);
-    }
-    const dcTimer = disconnectTimers.get(sessionId);
-    if (dcTimer) {
-      clearTimeout(dcTimer);
-      disconnectTimers.delete(sessionId);
-    }
+    // Clear all pending timers in the distributed queue
+    await Promise.all([
+      TimerQueueService.cancelQuestionTimeout(sessionId),
+      TimerQueueService.cancelNextQuestion(sessionId),
+      TimerQueueService.cancelBotTurn(sessionId),
+      TimerQueueService.cancelDisconnectGrace(sessionId, session.playerA),
+      TimerQueueService.cancelDisconnectGrace(sessionId, session.playerB),
+    ]);
 
     session.status = "finished";
     session.endedAt = new Date();
@@ -763,7 +707,6 @@ export class QuizArenaService {
           session.questions.map((q) => q.id),
         ),
     ]);
-    console.log("Here 3");
 
     await this.saveSession(session);
 
@@ -815,26 +758,7 @@ export class QuizArenaService {
 
     if (session.isBot) {
       // Bot match: set timer grace period, cho user cơ hội reconnect
-      const existingTimer = disconnectTimers.get(sessionId);
-      if (existingTimer) clearTimeout(existingTimer);
-
-      const timer = setTimeout(async () => {
-        disconnectTimers.delete(sessionId);
-        // Kiểm tra lại session — nếu user đã reconnect thì không end
-        const currentSession = await QuizArenaService.getSession(sessionId);
-        if (!currentSession || currentSession.status !== "playing") return;
-
-        const userState =
-          currentSession.playerA === userId
-            ? currentSession.playerAState
-            : currentSession.playerBState;
-        // Nếu user đã reconnect (disconnected = false) thì bỏ qua
-        if (!userState.disconnected) return;
-
-        await QuizArenaService.endMatch(sessionId, io);
-      }, BOT_DISCONNECT_GRACE_SECONDS * 1000);
-
-      disconnectTimers.set(sessionId, timer);
+      await TimerQueueService.scheduleDisconnectGrace(sessionId, userId, BOT_DISCONNECT_GRACE_SECONDS * 1000);
     }
 
     // Thông báo cho đối thủ (nếu PvP)
@@ -852,11 +776,7 @@ export class QuizArenaService {
     userId: string,
   ): Promise<void> {
     // Clear disconnect timer nếu có
-    const timer = disconnectTimers.get(sessionId);
-    if (timer) {
-      clearTimeout(timer);
-      disconnectTimers.delete(sessionId);
-    }
+    await TimerQueueService.cancelDisconnectGrace(sessionId, userId);
 
     // Reset disconnected flag
     const session = await this.getSession(sessionId);

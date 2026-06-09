@@ -20,6 +20,7 @@
     "@socket.io/redis-adapter": "^8.3.0",
     "@uniclub/shared": "*",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.78.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",

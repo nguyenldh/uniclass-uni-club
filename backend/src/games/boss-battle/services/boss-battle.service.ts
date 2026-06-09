@@ -253,8 +253,7 @@ export class BossBattleService {
 
     const attempt = await DailyAttemptModel.findById(attemptId);
     if (!attempt) throw new Error('Attempt not found');
-    console.log(attempt.studentId, studentId);
-    
+
     if (attempt.studentId !== studentId) throw new Error('Not your attempt');
     if (attempt.status !== 'IN_PROGRESS') throw new Error('Attempt not in progress');
 
@@ -462,16 +461,16 @@ export class BossBattleService {
       myProgress: progress
         ? progressDto(progress)
         : {
-            id: '',
-            studentId,
-            bossInstanceId: String(instance._id),
-            weekKey: instance.weekKey,
-            gradeLevel: instance.gradeLevel,
-            correctCountWeek: 0,
-            totalCorrectTimeSec: 0,
-            lastAchievedAt: null,
-            pointsContributedWeek: 0,
-          },
+          id: '',
+          studentId,
+          bossInstanceId: String(instance._id),
+          weekKey: instance.weekKey,
+          gradeLevel: instance.gradeLevel,
+          correctCountWeek: 0,
+          totalCorrectTimeSec: 0,
+          lastAchievedAt: null,
+          pointsContributedWeek: 0,
+        },
     };
   }
 

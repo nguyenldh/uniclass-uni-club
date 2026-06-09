@@ -192,11 +192,23 @@ export class ScoreService {
    */
   static async syncLeaderboardFromDB(scope: LeaderboardScope = 'total'): Promise<void> {
     const key = leaderboardKey(scope);
-    const docs = await UserScoreModel.find().lean();
+    
+    let sortField = 'totalPoints';
+    if (scope === 'gomoku' || scope === 'card_flip') {
+      sortField = `${scope}.points`;
+    } else if (scope !== 'total') {
+      sortField = `${scope}.points`;
+    }
+
+    const docs = await UserScoreModel.find()
+      .sort({ [sortField]: -1 })
+      .limit(1000)
+      .lean();
 
     if (docs.length === 0) return;
 
     const multi = redis.multi();
+    multi.del(key);
 
     for (const doc of docs) {
       const scoreValue = this.getScopeValue(doc, scope);

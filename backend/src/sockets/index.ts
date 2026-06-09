@@ -4,6 +4,7 @@ import type { Server as HttpServer } from 'http';
 import { redis, env } from '../config';
 import { registerGameHandlers } from './handlers/index';
 import { registerWeeklyEventHandlers } from '../games/weekly-event/sockets/index';
+import { SocketRegistry } from '../services';
 
 let io: Server;
 
@@ -27,6 +28,10 @@ export function initSocket(httpServer: HttpServer): Server {
 
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
+      const userId = socket.data.userId;
+      if (userId) {
+        SocketRegistry.deregister(userId, socket.id).catch(console.error);
+      }
     });
   });
 

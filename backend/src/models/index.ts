@@ -156,6 +156,8 @@ const UserScoreSchema = new Schema<IUserScore>(
   { timestamps: true },
 );
 
+UserScoreSchema.index({ gamesPlayed: 1, lastPlayedAt: 1 });
+
 export const UserScoreModel = mongoose.model<IUserScore>('UserScore', UserScoreSchema);
 
 // ============================================================
@@ -274,6 +276,9 @@ const UserSchema = new Schema<IUser>(
   },
   { timestamps: true },
 );
+
+UserSchema.index({ lastSeenAt: 1 });
+UserSchema.index({ createdAt: 1 });
 
 export const UserModel = mongoose.model<IUser>('User', UserSchema);
 
@@ -468,6 +473,9 @@ DailyAttemptSchema.index(
   { studentId: 1, bossInstanceId: 1, dateKey: 1 },
   { unique: true },
 );
+
+DailyAttemptSchema.index({ createdAt: 1 });
+DailyAttemptSchema.index({ status: 1, createdAt: 1 });
 
 export const DailyAttemptModel = mongoose.model<IDailyAttempt>('DailyAttempt', DailyAttemptSchema, 'bb_daily_attempts');
 
@@ -858,6 +866,8 @@ const WeeklyEventParticipationSchema = new Schema<IWeeklyEventParticipation>(
 WeeklyEventParticipationSchema.index({ eventId: 1, studentId: 1 }, { unique: true });
 WeeklyEventParticipationSchema.index({ roomId: 1, submittedAt: 1 });
 
+WeeklyEventParticipationSchema.index({ createdAt: 1 });
+
 export const WeeklyEventParticipationModel = mongoose.model<IWeeklyEventParticipation>(
   'WeeklyEventParticipation',
   WeeklyEventParticipationSchema,
@@ -910,6 +920,8 @@ const WeeklyEventResultSchema = new Schema<IWeeklyEventResult>(
 WeeklyEventResultSchema.index({ eventId: 1, roomId: 1, rank: 1 });
 WeeklyEventResultSchema.index({ studentId: 1, eventId: 1 });
 
+WeeklyEventResultSchema.index({ createdAt: 1 });
+
 export const WeeklyEventResultModel = mongoose.model<IWeeklyEventResult>(
   'WeeklyEventResult',
   WeeklyEventResultSchema,
@@ -955,5 +967,53 @@ export const WeeklyEventLeaderboardSnapshotModel = mongoose.model<IWeeklyEventLe
   'WeeklyEventLeaderboardSnapshot',
   WeeklyEventLeaderboardSnapshotSchema,
   'we_leaderboard_snapshots',
+);
+
+// ============================================================
+// Analytics — GameMatchLog (persist kết quả từng trận cho analytics)
+// ============================================================
+
+export interface IGameMatchLog extends Document {
+  userId: string;
+  gameType: 'quiz_arena' | 'gomoku' | 'card_flip' | 'boss_battle' | 'weekly_event';
+  playTimeSec: number;
+  sessionCompleted: boolean;
+  isWin: boolean;
+  points: number;
+  correctCount?: number;
+  totalQuestions?: number;
+  playedAt: Date;
+}
+
+const GameMatchLogSchema = new Schema<IGameMatchLog>(
+  {
+    userId: { type: String, required: true, index: true },
+    gameType: {
+      type: String,
+      required: true,
+      enum: ['quiz_arena', 'gomoku', 'card_flip', 'boss_battle', 'weekly_event'],
+    },
+    playTimeSec: { type: Number, required: true, default: 0 },
+    sessionCompleted: { type: Boolean, required: true, default: false },
+    isWin: { type: Boolean, required: true, default: false },
+    points: { type: Number, required: true, default: 0 },
+    correctCount: { type: Number },
+    totalQuestions: { type: Number },
+    playedAt: { type: Date, required: true, default: Date.now },
+  },
+  { timestamps: false },
+);
+
+// Analytics queries: filter by gameType + playedAt range
+GameMatchLogSchema.index({ gameType: 1, playedAt: -1 });
+// Per-user queries
+GameMatchLogSchema.index({ userId: 1, gameType: 1, playedAt: -1 });
+
+GameMatchLogSchema.index({ gameType: 1, sessionCompleted: 1, playedAt: -1 });
+
+export const GameMatchLogModel = mongoose.model<IGameMatchLog>(
+  'GameMatchLog',
+  GameMatchLogSchema,
+  'analytics_match_logs',
 );
 

@@ -3,6 +3,7 @@
 // ============================================================
 
 import { KafkaProducerService } from './kafka-producer.service';
+import { GameMatchLogModel } from '../models/index';
 import type {
   ClubGameResultDto,
   KafkaGameType,
@@ -43,6 +44,18 @@ export class GameResultEventService {
       totalQuestions: totalQuestions,
     };
     await KafkaProducerService.sendGameResult(playerAResult);
+    // Persist cho analytics
+    GameMatchLogModel.create({
+      userId: session.playerA,
+      gameType: 'quiz_arena',
+      playTimeSec: playTime,
+      sessionCompleted: session.status === 'finished',
+      isWin: session.winner === session.playerA,
+      points: result.playerA.uniPointsEarned,
+      correctCount: session.playerAState.correctCount,
+      totalQuestions: totalQuestions,
+      playedAt: new Date(),
+    }).catch((err: Error) => console.error('[Analytics] Failed to log quiz_arena match:', err.message));
 
     // Emit cho playerB nếu không phải bot
     if (!session.isBot && session.playerB !== 'BOT') {
@@ -57,6 +70,17 @@ export class GameResultEventService {
         totalQuestions: totalQuestions,
       };
       await KafkaProducerService.sendGameResult(playerBResult);
+      GameMatchLogModel.create({
+        userId: session.playerB,
+        gameType: 'quiz_arena',
+        playTimeSec: playTime,
+        sessionCompleted: session.status === 'finished',
+        isWin: session.winner === session.playerB,
+        points: result.playerB.uniPointsEarned,
+        correctCount: session.playerBState.correctCount,
+        totalQuestions: totalQuestions,
+        playedAt: new Date(),
+      }).catch((err: Error) => console.error('[Analytics] Failed to log quiz_arena match:', err.message));
     }
   }
 
@@ -82,6 +106,15 @@ export class GameResultEventService {
       isWin: winnerId === session.playerX,
     };
     await KafkaProducerService.sendGameResult(playerXResult);
+    GameMatchLogModel.create({
+      userId: session.playerX,
+      gameType: 'gomoku',
+      playTimeSec: playTime,
+      sessionCompleted: session.status === 'finished',
+      isWin: winnerId === session.playerX,
+      points: winnerId === session.playerX ? winPoints : 0,
+      playedAt: new Date(),
+    }).catch((err: Error) => console.error('[Analytics] Failed to log gomoku match:', err.message));
 
     // Emit cho playerO nếu không phải AI
     if (!session.isAI && session.playerO !== 'AI') {
@@ -94,6 +127,15 @@ export class GameResultEventService {
         isWin: winnerId === session.playerO,
       };
       await KafkaProducerService.sendGameResult(playerOResult);
+      GameMatchLogModel.create({
+        userId: session.playerO,
+        gameType: 'gomoku',
+        playTimeSec: playTime,
+        sessionCompleted: session.status === 'finished',
+        isWin: winnerId === session.playerO,
+        points: winnerId === session.playerO ? winPoints : 0,
+        playedAt: new Date(),
+      }).catch((err: Error) => console.error('[Analytics] Failed to log gomoku match:', err.message));
     }
   }
 
@@ -122,6 +164,15 @@ export class GameResultEventService {
       consecutivePairs: session.maxConsecutivePairsA,
     };
     await KafkaProducerService.sendGameResult(playerAResult);
+    GameMatchLogModel.create({
+      userId: session.playerA,
+      gameType: 'card_flip',
+      playTimeSec: playTime,
+      sessionCompleted: session.status === 'finished',
+      isWin: winnerId === session.playerA,
+      points: winnerId === session.playerA ? winPoints : 0,
+      playedAt: new Date(),
+    }).catch((err: Error) => console.error('[Analytics] Failed to log card_flip match:', err.message));
 
     // Emit cho playerB nếu không phải AI
     if (!session.isAI && session.playerB !== 'AI') {
@@ -136,6 +187,15 @@ export class GameResultEventService {
         consecutivePairs: session.maxConsecutivePairsB,
       };
       await KafkaProducerService.sendGameResult(playerBResult);
+      GameMatchLogModel.create({
+        userId: session.playerB,
+        gameType: 'card_flip',
+        playTimeSec: playTime,
+        sessionCompleted: session.status === 'finished',
+        isWin: winnerId === session.playerB,
+        points: winnerId === session.playerB ? winPoints : 0,
+        playedAt: new Date(),
+      }).catch((err: Error) => console.error('[Analytics] Failed to log card_flip match:', err.message));
     }
   }
 
@@ -186,5 +246,16 @@ export class GameResultEventService {
       totalQuestions: instance.config.questionsPerDay,
     };
     await KafkaProducerService.sendGameResult(result);
+    GameMatchLogModel.create({
+      userId: attempt.studentId,
+      gameType: 'boss_battle',
+      playTimeSec: Math.round(attempt.totalResponseTime),
+      sessionCompleted: true,
+      isWin: attempt.correctCount > 0,
+      points: attempt.pointsEarned,
+      correctCount: attempt.correctCount,
+      totalQuestions: instance.config.questionsPerDay,
+      playedAt: new Date(),
+    }).catch((err: Error) => console.error('[Analytics] Failed to log boss_battle match:', err.message));
   }
 }
