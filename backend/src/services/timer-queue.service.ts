@@ -113,7 +113,7 @@ export class TimerQueueService {
     data: { userId: string; gameType: string; partitionKey?: string; socketId: string },
     delayMs: number
   ): Promise<void> {
-    const jobId = `matchmaking-timeout:${data.userId}:${data.gameType}`;
+    const jobId = `matchmaking-timeout-${data.userId}-${data.gameType}`;
     await queue.remove(jobId);
     await queue.add('matchmaking-timeout', data, {
       jobId,
@@ -122,7 +122,7 @@ export class TimerQueueService {
   }
 
   static async cancelMatchmakingTimeout(userId: string, gameType: string): Promise<void> {
-    await queue.remove(`matchmaking-timeout:${userId}:${gameType}`);
+    await queue.remove(`matchmaking-timeout-${userId}-${gameType}`);
   }
 
   // ============================================================
@@ -134,7 +134,7 @@ export class TimerQueueService {
     questionIndex: number,
     delayMs: number
   ): Promise<void> {
-    const jobId = `quiz-question-timeout:${sessionId}`;
+    const jobId = `quiz-question-timeout-${sessionId}`;
     await queue.remove(jobId);
     await queue.add('quiz-question-timeout', { sessionId, questionIndex }, {
       jobId,
@@ -143,7 +143,7 @@ export class TimerQueueService {
   }
 
   static async cancelQuestionTimeout(sessionId: string): Promise<void> {
-    await queue.remove(`quiz-question-timeout:${sessionId}`);
+    await queue.remove(`quiz-question-timeout-${sessionId}`);
   }
 
   static async scheduleBotTurn(
@@ -152,7 +152,7 @@ export class TimerQueueService {
     selectedIndex: number | null,
     delayMs: number
   ): Promise<void> {
-    const jobId = `quiz-bot-turn:${sessionId}`;
+    const jobId = `quiz-bot-turn-${sessionId}`;
     await queue.remove(jobId);
     await queue.add('quiz-bot-turn', { sessionId, botPlayerId, selectedIndex }, {
       jobId,
@@ -161,7 +161,7 @@ export class TimerQueueService {
   }
 
   static async cancelBotTurn(sessionId: string): Promise<void> {
-    await queue.remove(`quiz-bot-turn:${sessionId}`);
+    await queue.remove(`quiz-bot-turn-${sessionId}`);
   }
 
   static async scheduleNextQuestion(
@@ -169,7 +169,7 @@ export class TimerQueueService {
     isLastQuestion: boolean,
     delayMs: number
   ): Promise<void> {
-    const jobId = `quiz-next-question:${sessionId}`;
+    const jobId = `quiz-next-question-${sessionId}`;
     await queue.remove(jobId);
     await queue.add('quiz-next-question', { sessionId, isLastQuestion }, {
       jobId,
@@ -178,7 +178,7 @@ export class TimerQueueService {
   }
 
   static async cancelNextQuestion(sessionId: string): Promise<void> {
-    await queue.remove(`quiz-next-question:${sessionId}`);
+    await queue.remove(`quiz-next-question-${sessionId}`);
   }
 
   static async scheduleDisconnectGrace(
@@ -186,7 +186,7 @@ export class TimerQueueService {
     userId: string,
     delayMs: number
   ): Promise<void> {
-    const jobId = `quiz-disconnect-grace:${sessionId}:${userId}`;
+    const jobId = `quiz-disconnect-grace-${sessionId}-${userId}`;
     await queue.remove(jobId);
     await queue.add('quiz-disconnect-grace', { sessionId, userId }, {
       jobId,
@@ -195,6 +195,6 @@ export class TimerQueueService {
   }
 
   static async cancelDisconnectGrace(sessionId: string, userId: string): Promise<void> {
-    await queue.remove(`quiz-disconnect-grace:${sessionId}:${userId}`);
+    await queue.remove(`quiz-disconnect-grace-${sessionId}-${userId}`);
   }
 }
