@@ -5,7 +5,8 @@
 import type { Socket, Server } from 'socket.io';
 import { QuizArenaService } from '../services/quiz-arena.service';
 import { QUIZ_ARENA_SOCKET_EVENTS, SOCKET_EVENTS } from '@uniclub/shared';
-import { SocketRegistry } from '../../../services';
+import { SocketRegistry, TimerQueueService } from '../../../services';
+import { redis } from '../../../config/index';
 
 /**
  * Đăng ký tất cả socket event handlers cho Quiz Arena (So Tài).
@@ -44,21 +45,35 @@ export function registerQuizArenaHandlers(io: Server, socket: Socket): void {
 
       // Nếu session vẫn đang 'waiting': kiểm tra cả 2 đã join room chưa
       if (session.status === 'waiting') {
-        const room = io.sockets.adapter.rooms.get(sessionId);
-        const playersInRoom = room ? room.size : 0;
+        // fetchSockets() đếm socket trong room XUYÊN các instance (qua Redis adapter).
+        // io.sockets.adapter.rooms chỉ thấy socket local — với 2 player trên
+        // 2 instance khác nhau, mỗi bên chỉ đếm được 1 và trận không bao giờ start.
+        const socketsInRoom = await io.in(sessionId).fetchSockets();
+        const playersInRoom = socketsInRoom.length;
 
         // PvP: chờ cả 2 join; Bot: chỉ cần player join là đủ
         const requiredPlayers = session.isBot ? 1 : 2;
         if (playersInRoom >= requiredPlayers) {
-          // Gửi COUNTDOWN để client hiển thị countdown đồng bộ
-          const countdownMs = 3000; // 3 giây countdown
-          const startsAt = Date.now() + countdownMs;
-          io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.COUNTDOWN, { startsAt });
+          // NX guard: 2 join event có thể được xử lý song song (2 instance) và
+          // cùng thấy đủ người — chỉ 1 bên được phép khởi động countdown
+          const countdownGuard = await redis.set(
+            `quiz-arena:countdown-lock:${sessionId}`,
+            '1',
+            'EX',
+            30,
+            'NX',
+          );
 
-          // Đợi countdown xong mới start match
-          setTimeout(() => {
-            QuizArenaService.startMatch(sessionId, io);
-          }, countdownMs);
+          if (countdownGuard) {
+            // Gửi COUNTDOWN để client hiển thị countdown đồng bộ
+            const countdownMs = 3000; // 3 giây countdown
+            const startsAt = Date.now() + countdownMs;
+            io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.COUNTDOWN, { startsAt });
+
+            // Đợi countdown xong mới start match — qua BullMQ để không phụ thuộc
+            // instance hiện tại còn sống trong 3s tới
+            await TimerQueueService.scheduleQuizStartMatch(sessionId, countdownMs);
+          }
         }
       } else if (session.status === 'playing') {
         // Reconnect: clear disconnect timer & reset disconnected flag nếu là Bot match

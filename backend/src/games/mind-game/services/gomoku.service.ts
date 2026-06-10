@@ -2,13 +2,16 @@
 // Mind Game — Gomoku Service
 // ============================================================
 
+import type { Server } from 'socket.io';
 import { redis } from '../../../config/index';
 import { GameConfigService } from '../../../services/game-config.service';
 import { ScoreService } from '../../../services/score.service';
 import { MatchmakingService } from '../../../services/matchmaking.service';
 import { BotProfileService } from '../../../services/bot-profile.service';
 import { GameResultEventService } from '../../../services/game-result-event.service';
+import { TimerQueueService } from '../../../services/timer-queue.service';
 import { generateSessionId } from '../../../utils/index';
+import { withRedisLock } from '../../../utils/redis-lock';
 import { createEmptyBoard, checkGomokuWin, isBoardFull } from '../utils/index';
 import { MIND_GAME_REDIS_KEYS, MIND_GAME_SOCKET_EVENTS } from '@uniclub/shared';
 import type {
@@ -19,151 +22,123 @@ import type {
 } from '@uniclub/shared';
 import { UserService } from '../../../services';
 
-/**
- * Map: sessionId → handle timeout kết thúc trận khi user disconnect.
- * Cho user 30s để reconnect trước khi end match.
- */
-const disconnectTimers = new Map<string, NodeJS.Timeout>();
-
-/**
- * Map: sessionId → handle timeout cho lượt hiện tại.
- * Khi hết thời gian lượt mà người chơi chưa đánh → forfeit.
- */
-const turnTimers = new Map<string, NodeJS.Timeout>();
-
-/**
- * Map: sessionId → handle timeout cho toàn bộ trận đấu.
- * Khi hết maxGameDuration → kết thúc trận (hòa với Gomoku).
- */
-const gameTimers = new Map<string, NodeJS.Timeout>();
-
 /** Thời gian chờ reconnect trước khi kết thúc trận (giây) */
 const DISCONNECT_GRACE_SECONDS = 30;
 
-/** Server IO instance - được set từ socket handler để emit event sau timeout */
-let serverIO: import('socket.io').Server | null = null;
-
-/** Set server IO instance */
-export function setGomokuServerIO(io: import('socket.io').Server): void {
-  serverIO = io;
+/**
+ * Distributed lock key per-session — serialize mọi thao tác get→mutate→set
+ * (move, timeout, disconnect) xuyên instance, chống lost update làm
+ * mất nước đi / không chuyển lượt.
+ */
+function sessionLockKey(sessionId: string): string {
+  return `lock:${MIND_GAME_REDIS_KEYS.GOMOKU_SESSION}:${sessionId}`;
 }
 
 export class GomokuService {
   // ---- Timer helpers ----
+  // Timer chạy qua BullMQ (Redis) thay vì setTimeout in-memory:
+  // bất kỳ instance nào cũng schedule/cancel/reset được, và timer
+  // không bị mất khi instance restart.
 
-  /** Bắt đầu turn timer cho lượt hiện tại */
-  private static startTurnTimer(sessionId: string, turnTimeoutSec: number): void {
-    this.clearTurnTimer(sessionId);
-    const timer = setTimeout(() => {
-      turnTimers.delete(sessionId);
-      this.handleTurnTimeout(sessionId);
-    }, turnTimeoutSec * 1000);
-    turnTimers.set(sessionId, timer);
+  /** Bắt đầu turn timer cho lượt hiện tại (reset nếu đã có) */
+  private static async startTurnTimer(sessionId: string, turnTimeoutSec: number): Promise<void> {
+    await TimerQueueService.scheduleMindGameTurnTimeout('gomoku', sessionId, turnTimeoutSec * 1000);
   }
 
   /** Xóa turn timer */
-  private static clearTurnTimer(sessionId: string): void {
-    const timer = turnTimers.get(sessionId);
-    if (timer) {
-      clearTimeout(timer);
-      turnTimers.delete(sessionId);
-    }
+  private static async clearTurnTimer(sessionId: string): Promise<void> {
+    await TimerQueueService.cancelMindGameTurnTimeout('gomoku', sessionId);
   }
 
   /** Bắt đầu game timer cho toàn bộ trận */
-  private static startGameTimer(sessionId: string, maxDurationSec: number): void {
-    this.clearGameTimer(sessionId);
-    const timer = setTimeout(() => {
-      gameTimers.delete(sessionId);
-      this.handleGameTimeout(sessionId);
-    }, maxDurationSec * 1000);
-    gameTimers.set(sessionId, timer);
+  private static async startGameTimer(sessionId: string, maxDurationSec: number): Promise<void> {
+    await TimerQueueService.scheduleMindGameGameTimeout('gomoku', sessionId, maxDurationSec * 1000);
   }
 
   /** Xóa game timer */
-  private static clearGameTimer(sessionId: string): void {
-    const timer = gameTimers.get(sessionId);
-    if (timer) {
-      clearTimeout(timer);
-      gameTimers.delete(sessionId);
-    }
+  private static async clearGameTimer(sessionId: string): Promise<void> {
+    await TimerQueueService.cancelMindGameGameTimeout('gomoku', sessionId);
   }
 
   /** Xóa tất cả timer của session */
-  private static clearAllTimers(sessionId: string): void {
-    this.clearTurnTimer(sessionId);
-    this.clearGameTimer(sessionId);
-    const dcTimer = disconnectTimers.get(sessionId);
-    if (dcTimer) {
-      clearTimeout(dcTimer);
-      disconnectTimers.delete(sessionId);
-    }
+  private static async clearAllTimers(sessionId: string): Promise<void> {
+    await Promise.all([
+      this.clearTurnTimer(sessionId),
+      this.clearGameTimer(sessionId),
+      TimerQueueService.cancelMindGameDisconnectGrace('gomoku', sessionId),
+    ]);
   }
 
-  /** Xử lý khi hết thời gian lượt → forfeit, đối thủ thắng */
-  private static async handleTurnTimeout(sessionId: string): Promise<void> {
-    const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+  /**
+   * Xử lý khi hết thời gian lượt → forfeit, đối thủ thắng.
+   * Được gọi từ BullMQ worker (có thể trên instance bất kỳ).
+   */
+  static async handleTurnTimeout(sessionId: string, io: Server): Promise<void> {
+    await withRedisLock(sessionLockKey(sessionId), async () => {
+      const session = await this.getSession(sessionId);
+      if (!session || session.status !== 'playing') return;
 
-    const currentPlayer = session.currentTurn === 'X' ? session.playerX : session.playerO;
-    const winnerId = session.isAI
-      ? 'AI'
-      : (session.playerX === currentPlayer ? session.playerO : session.playerX);
+      const currentPlayer = session.currentTurn === 'X' ? session.playerX : session.playerO;
+      const winnerId = session.isAI
+        ? 'AI'
+        : (session.playerX === currentPlayer ? session.playerO : session.playerX);
 
-    session.status = 'finished';
-    session.endedAt = new Date();
-    session.winner = winnerId;
+      session.status = 'finished';
+      session.endedAt = new Date();
+      session.winner = winnerId;
 
-    if (!session.isAI) {
-      await ScoreService.addWinPoints(winnerId, session.config.winPoints, 'mind_game', 'gomoku');
-    }
-    await ScoreService.recordLoss(currentPlayer, 'mind_game', 'gomoku');
+      if (!session.isAI) {
+        await ScoreService.addWinPoints(winnerId, session.config.winPoints, 'mind_game', 'gomoku');
+      }
+      await ScoreService.recordLoss(currentPlayer, 'mind_game', 'gomoku');
 
-    await MatchmakingService.clearActiveSession(currentPlayer);
-    if (!session.isAI) {
-      await MatchmakingService.clearActiveSession(winnerId);
-    }
+      await MatchmakingService.clearActiveSession(currentPlayer);
+      if (!session.isAI) {
+        await MatchmakingService.clearActiveSession(winnerId);
+      }
 
-    this.clearAllTimers(sessionId);
-    await this.saveSession(session);
+      await this.clearAllTimers(sessionId);
+      await this.saveSession(session);
 
-    await GameResultEventService.emitGomokuResult(session, winnerId, false);
+      await GameResultEventService.emitGomokuResult(session, winnerId, false);
 
-    if (serverIO) {
-      serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
+      io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
         winner: winnerId,
         isDraw: false,
         reason: 'turn_timeout',
       });
-    }
+    });
   }
 
-  /** Xử lý khi hết thời gian toàn bộ trận → hòa */
-  private static async handleGameTimeout(sessionId: string): Promise<void> {
-    const session = await this.getSession(sessionId);
-    if (!session || session.status !== 'playing') return;
+  /**
+   * Xử lý khi hết thời gian toàn bộ trận → hòa.
+   * Được gọi từ BullMQ worker (có thể trên instance bất kỳ).
+   */
+  static async handleGameTimeout(sessionId: string, io: Server): Promise<void> {
+    await withRedisLock(sessionLockKey(sessionId), async () => {
+      const session = await this.getSession(sessionId);
+      if (!session || session.status !== 'playing') return;
 
-    session.status = 'finished';
-    session.endedAt = new Date();
+      session.status = 'finished';
+      session.endedAt = new Date();
 
-    this.clearAllTimers(sessionId);
+      await this.clearAllTimers(sessionId);
 
-    await MatchmakingService.clearActiveSession(session.playerX);
-    if (!session.isAI) {
-      await MatchmakingService.clearActiveSession(session.playerO);
-    }
+      await MatchmakingService.clearActiveSession(session.playerX);
+      if (!session.isAI) {
+        await MatchmakingService.clearActiveSession(session.playerO);
+      }
 
-    await this.saveSession(session);
+      await this.saveSession(session);
 
-    await GameResultEventService.emitGomokuResult(session, undefined, true);
+      await GameResultEventService.emitGomokuResult(session, undefined, true);
 
-    if (serverIO) {
-      serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
+      io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
         winner: null,
         isDraw: true,
         reason: 'game_timeout',
       });
-    }
+    });
   }
 
   // ---- Session lifecycle ----
@@ -197,8 +172,8 @@ export class GomokuService {
     );
 
     // Khởi tạo timers
-    this.startTurnTimer(sessionId, config.turnTimeout);
-    this.startGameTimer(sessionId, config.maxGameDuration);
+    await this.startTurnTimer(sessionId, config.turnTimeout);
+    await this.startGameTimer(sessionId, config.maxGameDuration);
 
     return session;
   }
@@ -240,8 +215,8 @@ export class GomokuService {
     );
 
     // Khởi tạo timers
-    this.startTurnTimer(sessionId, config.turnTimeout);
-    this.startGameTimer(sessionId, config.maxGameDuration);
+    await this.startTurnTimer(sessionId, config.turnTimeout);
+    await this.startGameTimer(sessionId, config.maxGameDuration);
 
     return { session, botProfile: { name: botName, avatar: botAvatar } };
   }
@@ -252,7 +227,7 @@ export class GomokuService {
     if (!data) return null;
     const sessionData = JSON.parse(data);
     // get Player Data
-    
+
     if (sessionData.playerX === 'AI') {
       sessionData.playerXData = {
         name: sessionData.aiName,
@@ -297,7 +272,7 @@ export class GomokuService {
     await redis.del(`${MIND_GAME_REDIS_KEYS.GOMOKU_SESSION}:${sessionId}`);
   }
 
-  /** Xử lý nước đi */
+  /** Xử lý nước đi (distributed lock per-session — chống 2 move ghi đè nhau) */
   static async makeMove(
     sessionId: string,
     userId: string,
@@ -308,93 +283,101 @@ export class GomokuService {
     gameOver: boolean;
     winner?: string;
   }> {
-    const session = await this.getSession(sessionId);
-    if (!session) throw new Error('Session not found');
-    if (session.status !== 'playing') throw new Error('Game is not active');
-
-    const playerSymbol = session.playerX === userId ? 'X' : 'O';
-    if (session.currentTurn !== playerSymbol) throw new Error('Not your turn');
-    if (session.board[row][col] !== null) throw new Error('Cell is not empty');
-
-    session.board[row][col] = playerSymbol;
-    const move: GomokuMove = {
-      player: userId,
-      symbol: playerSymbol,
-      row,
-      col,
-      timestamp: new Date(),
-    };
-    session.lastMove = move;
-    session.moveCount++;
-
-    if (checkGomokuWin(session.board, row, col, playerSymbol)) {
-      session.status = 'finished';
-      session.winner = userId;
-      session.endedAt = new Date();
-      session.winningMove = move;
-
-      // Clear all timers
-      this.clearAllTimers(sessionId);
-
-      // Chỉ lưu điểm cho người chơi thật, không lưu cho AI
-      if (!session.isAI || userId === session.playerX) {
-        await ScoreService.addWinPoints(userId, session.config.winPoints, 'mind_game', 'gomoku');
+    return withRedisLock(sessionLockKey(sessionId), async () => {
+      const session = await this.getSession(sessionId);
+      if (!session) throw new Error('Session not found');
+      if (session.status !== 'playing') throw new Error('Game is not active');
+      if (userId !== session.playerX && userId !== session.playerO) {
+        throw new Error('Not a player in this session');
       }
 
-      if (!session.isAI) {
-        const loserId = session.playerX === userId ? session.playerO : session.playerX;
-        await ScoreService.recordLoss(loserId, 'mind_game', 'gomoku');
-        await MatchmakingService.clearActiveSession(loserId);
-      } else if (userId === session.playerO) {
-        // AI thắng → ghi nhận thua cho người chơi (playerX)
-        await ScoreService.recordLoss(session.playerX, 'mind_game', 'gomoku');
+      const playerSymbol = session.playerX === userId ? 'X' : 'O';
+      if (session.currentTurn !== playerSymbol) throw new Error('Not your turn');
+      if (session.board[row][col] !== null) throw new Error('Cell is not empty');
+
+      session.board[row][col] = playerSymbol;
+      const move: GomokuMove = {
+        player: userId,
+        symbol: playerSymbol,
+        row,
+        col,
+        timestamp: new Date(),
+      };
+      session.lastMove = move;
+      session.moveCount++;
+
+      if (checkGomokuWin(session.board, row, col, playerSymbol)) {
+        session.status = 'finished';
+        session.winner = userId;
+        session.endedAt = new Date();
+        session.winningMove = move;
+
+        // Clear all timers
+        await this.clearAllTimers(sessionId);
+
+        // Chỉ lưu điểm cho người chơi thật, không lưu cho AI
+        if (!session.isAI || userId === session.playerX) {
+          await ScoreService.addWinPoints(userId, session.config.winPoints, 'mind_game', 'gomoku');
+        }
+
+        if (!session.isAI) {
+          const loserId = session.playerX === userId ? session.playerO : session.playerX;
+          await ScoreService.recordLoss(loserId, 'mind_game', 'gomoku');
+          await MatchmakingService.clearActiveSession(loserId);
+        } else if (userId === session.playerO) {
+          // AI thắng → ghi nhận thua cho người chơi (playerX)
+          await ScoreService.recordLoss(session.playerX, 'mind_game', 'gomoku');
+          await MatchmakingService.clearActiveSession(session.playerX);
+        }
+
+        // Clear active session tracking (chỉ clear nếu userId là người chơi thật)
+        if (!session.isAI || userId === session.playerX) {
+          await MatchmakingService.clearActiveSession(userId);
+        }
+
+        await this.saveSession(session);
+
+        // Emit Kafka event for UniClass integration
+        await GameResultEventService.emitGomokuResult(session, userId, false);
+
+        return { session, gameOver: true, winner: userId };
+      }
+
+      if (isBoardFull(session.board)) {
+        session.status = 'finished';
+        session.endedAt = new Date();
+
+        // Clear all timers
+        await this.clearAllTimers(sessionId);
+
+        // Clear active session tracking (hòa)
         await MatchmakingService.clearActiveSession(session.playerX);
+        if (!session.isAI) {
+          await MatchmakingService.clearActiveSession(session.playerO);
+        }
+
+        await this.saveSession(session);
+
+        // Emit Kafka event for draw
+        await GameResultEventService.emitGomokuResult(session, undefined, true);
+
+        return { session, gameOver: true };
       }
 
-      // Clear active session tracking (chỉ clear nếu userId là người chơi thật)
-      if (!session.isAI || userId === session.playerX) {
-        await MatchmakingService.clearActiveSession(userId);
-      }
-
+      session.currentTurn = session.currentTurn === 'X' ? 'O' : 'X';
       await this.saveSession(session);
 
-      // Emit Kafka event for UniClass integration
-      await GameResultEventService.emitGomokuResult(session, userId, false);
+      // Reset turn timer cho lượt mới
+      await this.startTurnTimer(sessionId, session.config.turnTimeout);
 
-      return { session, gameOver: true, winner: userId };
-    }
-
-    if (isBoardFull(session.board)) {
-      session.status = 'finished';
-      session.endedAt = new Date();
-
-      // Clear all timers
-      this.clearAllTimers(sessionId);
-
-      // Clear active session tracking (hòa)
-      await MatchmakingService.clearActiveSession(session.playerX);
-      if (!session.isAI) {
-        await MatchmakingService.clearActiveSession(session.playerO);
-      }
-
-      await this.saveSession(session);
-
-      // Emit Kafka event for draw
-      await GameResultEventService.emitGomokuResult(session, undefined, true);
-
-      return { session, gameOver: true };
-    }
-
-    session.currentTurn = session.currentTurn === 'X' ? 'O' : 'X';
-    await this.saveSession(session);
-
-    // Reset turn timer cho lượt mới
-    this.startTurnTimer(sessionId, session.config.turnTimeout);
-
-    return { session, gameOver: false };
+      return { session, gameOver: false };
+    });
   }
 
-  /** Xử lý người chơi disconnect */
+  /**
+   * Xử lý người chơi disconnect — schedule grace period 30s qua BullMQ
+   * (instance nào cũng cancel được khi user reconnect).
+   */
   static async handleDisconnect(
     sessionId: string,
     userId: string,
@@ -402,18 +385,30 @@ export class GomokuService {
     const session = await this.getSession(sessionId);
     if (!session || session.status !== 'playing') return null;
 
-    // Cả AI và PvP đều có grace period 30s
-    const existingTimer = disconnectTimers.get(sessionId);
-    if (existingTimer) clearTimeout(existingTimer);
+    // Schedule thay thế timer cũ nếu có (cùng jobId)
+    await TimerQueueService.scheduleMindGameDisconnectGrace(
+      'gomoku',
+      sessionId,
+      userId,
+      DISCONNECT_GRACE_SECONDS * 1000,
+    );
 
-    const winnerId = session.isAI ? 'AI' : (session.playerX === userId ? session.playerO : session.playerX);
-    const loserId = userId;
+    return null; // Chưa kết thúc, đang chờ reconnect
+  }
 
-    const timer = setTimeout(async () => {
-      disconnectTimers.delete(sessionId);
-      // Kiểm tra lại session
-      const currentSession = await GomokuService.getSession(sessionId);
+  /**
+   * Hết grace period mà user chưa reconnect → kết thúc trận, đối thủ thắng.
+   * Được gọi từ BullMQ worker.
+   */
+  static async handleDisconnectGrace(sessionId: string, userId: string, io: Server): Promise<void> {
+    await withRedisLock(sessionLockKey(sessionId), async () => {
+      const currentSession = await this.getSession(sessionId);
       if (!currentSession || currentSession.status !== 'playing') return;
+
+      const winnerId = currentSession.isAI
+        ? 'AI'
+        : (currentSession.playerX === userId ? currentSession.playerO : currentSession.playerX);
+      const loserId = userId;
 
       // Kết thúc trận — đối thủ thắng
       currentSession.status = 'finished';
@@ -421,7 +416,7 @@ export class GomokuService {
       currentSession.winner = winnerId;
 
       // Clear all timers
-      GomokuService.clearAllTimers(sessionId);
+      await this.clearAllTimers(sessionId);
 
       if (!currentSession.isAI) {
         await ScoreService.addWinPoints(winnerId, currentSession.config.winPoints, 'mind_game', 'gomoku');
@@ -434,34 +429,25 @@ export class GomokuService {
         await MatchmakingService.clearActiveSession(winnerId);
       }
 
-      await GomokuService.saveSession(currentSession);
+      await this.saveSession(currentSession);
 
       // Emit Kafka event for forfeit
       await GameResultEventService.emitGomokuResult(currentSession, winnerId, false);
 
       // Emit END event qua socket để người còn lại biết
-      if (serverIO) {
-        serverIO.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
-          winner: winnerId,
-          isDraw: false,
-          reason: 'opponent_disconnected',
-        });
-      }
-    }, DISCONNECT_GRACE_SECONDS * 1000);
-
-    disconnectTimers.set(sessionId, timer);
-    return null; // Chưa kết thúc, đang chờ reconnect
+      io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.GOMOKU_END, {
+        winner: winnerId,
+        isDraw: false,
+        reason: 'opponent_disconnected',
+      });
+    });
   }
 
   /**
    * Xử lý khi user reconnect sau khi bị disconnect.
-   * Clear disconnect timer.
+   * Cancel disconnect grace job (cross-instance qua BullMQ).
    */
-  static handleReconnect(sessionId: string): void {
-    const timer = disconnectTimers.get(sessionId);
-    if (timer) {
-      clearTimeout(timer);
-      disconnectTimers.delete(sessionId);
-    }
+  static async handleReconnect(sessionId: string): Promise<void> {
+    await TimerQueueService.cancelMindGameDisconnectGrace('gomoku', sessionId);
   }
 }

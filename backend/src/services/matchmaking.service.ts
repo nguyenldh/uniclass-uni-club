@@ -3,6 +3,7 @@
 // ============================================================
 
 import { redis } from '../config/index';
+import { withRedisLock } from '../utils/redis-lock';
 import { MATCHMAKING_REDIS_KEYS, DEFAULT_MATCHMAKING_CONFIG, REDIS_KEYS } from '@uniclub/shared';
 import type {
   MatchmakingEntry,
@@ -37,38 +38,68 @@ export class MatchmakingService {
     return partitionKey ? `${base}:${partitionKey}` : base;
   }
 
-  /** Tham gia queue matchmaking */
+  /** Key của distributed lock bảo vệ một queue */
+  private static queueLockKey(queueKey: string): string {
+    return `lock:${queueKey}`;
+  }
+
+  /**
+   * Tham gia queue matchmaking.
+   *
+   * Toàn bộ thao tác scan/remove/push queue chạy dưới distributed lock
+   * theo queue key — chống race khi nhiều instance cùng đọc queue:
+   * - 2 user cùng match 1 opponent
+   * - 2 user cùng thấy queue rỗng rồi cùng push (đáng lẽ phải match nhau)
+   * Entry cũ của chính user (tab cũ / reload) được dọn ngay tại đây.
+   */
   static async joinQueue(entry: MatchmakingEntry): Promise<MatchmakingResult> {
     const { gameType, partitionKey } = entry;
-    let { userId } = entry;
-    userId = userId + ""; // Đảm bảo userId là string
+    const userId = String(entry.userId); // Đảm bảo userId là string (REST body có thể gửi number)
 
     const key = this.queueKey(gameType, partitionKey);
-    const queueData = await redis.lrange(key, 0, -1);
 
-    for (const data of queueData) {
-      const waiting: MatchmakingEntry = JSON.parse(data);
+    // Phần critical: quyết định "match ai / vào queue" phải atomic xuyên instance
+    const matchedOpponent = await withRedisLock(this.queueLockKey(key), async () => {
+      const queueData = await redis.lrange(key, 0, -1);
 
-      // Không ghép với chính mình
-      if (waiting.userId == userId) continue;
+      for (const data of queueData) {
+        const waiting: MatchmakingEntry = JSON.parse(data);
 
-      console.log('Matching entry:', entry, 'with waiting entry:', waiting);
+        // Entry cũ của chính user (reload / tab trước) — dọn để không bao giờ
+        // bị người khác match vào entry stale, và không ghép với chính mình
+        if (String(waiting.userId) === userId) {
+          await redis.lrem(key, 0, data);
+          continue;
+        }
 
-      // Xóa opponent khỏi queue
-      await redis.lrem(key, 0, data);
+        // Xóa opponent khỏi queue; kiểm tra kết quả để chắc chắn mình "thắng" entry này
+        const removed = await redis.lrem(key, 0, data);
+        if (removed === 0) continue; // instance khác đã lấy mất — thử entry kế tiếp
+
+        return waiting;
+      }
+
+      // Không có opponent — vào queue (entry đã normalize userId)
+      await redis.rpush(key, JSON.stringify({ ...entry, userId }));
+      await redis.expire(key, DEFAULT_MATCHMAKING_CONFIG.timeout + 10);
+      return null;
+    });
+
+    if (matchedOpponent) {
+      const opponentId = String(matchedOpponent.userId);
+      console.log('Matching entry:', { ...entry, userId }, 'with waiting entry:', matchedOpponent);
 
       // Dùng factory của game để tạo session PvP
       const factory = this.getFactory(gameType);
-      const session = await factory.createPVPSession(waiting.userId, userId);
-      const opponent = await UserService.getUser(waiting.userId);
+      const session = await factory.createPVPSession(opponentId, userId);
+      const opponent = await UserService.getUser(opponentId);
 
       console.log('Opponent', opponent);
-
 
       return {
         status: 'matched',
         gameType,
-        opponentId: waiting.userId,
+        opponentId,
         sessionId: session.sessionId,
         isAI: false,
         opponentProfile: {
@@ -78,25 +109,38 @@ export class MatchmakingService {
       };
     }
 
-    // Không có opponent — vào queue
-    await redis.rpush(key, JSON.stringify(entry));
-    await redis.expire(key, DEFAULT_MATCHMAKING_CONFIG.timeout + 10);
-
     return { status: 'searching', gameType };
   }
 
-  /** Rời queue */
-  static async leaveQueue(userId: string, gameType: MatchmakingGameType, partitionKey?: string): Promise<void> {
+  /**
+   * Rời queue. Trả về `true` nếu thực sự xóa được entry.
+   *
+   * `socketId` (tùy chọn): chỉ xóa entry thuộc đúng socket đó — dùng cho
+   * disconnect cleanup, tránh socket cũ (reload) xóa nhầm entry của phiên
+   * search mới cùng userId.
+   */
+  static async leaveQueue(
+    userId: string,
+    gameType: MatchmakingGameType,
+    partitionKey?: string,
+    socketId?: string,
+  ): Promise<boolean> {
     const key = this.queueKey(gameType, partitionKey);
-    const queueData = await redis.lrange(key, 0, -1);
+    const normalizedUserId = String(userId);
 
-    for (const data of queueData) {
-      const entry: MatchmakingEntry = JSON.parse(data);
-      if (entry.userId === userId) {
+    return withRedisLock(this.queueLockKey(key), async () => {
+      const queueData = await redis.lrange(key, 0, -1);
+
+      for (const data of queueData) {
+        const entry: MatchmakingEntry = JSON.parse(data);
+        if (String(entry.userId) !== normalizedUserId) continue;
+        if (socketId && entry.socketId !== socketId) continue;
+
         await redis.lrem(key, 0, data);
-        break;
+        return true;
       }
-    }
+      return false;
+    });
   }
 
   /** Xử lý timeout — chuyển sang đấu AI */
@@ -106,23 +150,14 @@ export class MatchmakingService {
     aiDifficulty: AIDifficulty = 'medium',
     partitionKey?: string,
   ): Promise<MatchmakingResult | null> {
-    // Kiểm tra xem user còn trong queue không — nếu đã được ghép thì bỏ qua
-    const key = this.queueKey(gameType, partitionKey);
-    const queueData = await redis.lrange(key, 0, -1);
-    const stillInQueue = queueData.some((data) => {
-      const entry: MatchmakingEntry = JSON.parse(data);
-      return entry.userId === userId;
-    });
-
-    if (!stillInQueue) {
-      // User đã được ghép hoặc đã rời queue — không tạo AI session
-      return null;
-    }
-
-    await this.leaveQueue(userId, gameType, partitionKey);
+    // Check-và-remove atomic (dưới lock trong leaveQueue): nếu không còn entry
+    // tức user đã được ghép hoặc đã rời queue — không tạo AI session.
+    // Đóng race window cũ giữa "stillInQueue check" và "leaveQueue".
+    const removed = await this.leaveQueue(userId, gameType, partitionKey);
+    if (!removed) return null;
 
     const factory = this.getFactory(gameType);
-    const { sessionId, botProfile } = await factory.createAISession(userId, aiDifficulty);
+    const { sessionId, botProfile } = await factory.createAISession(String(userId), aiDifficulty);
 
     return {
       status: 'timeout',

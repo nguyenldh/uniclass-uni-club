@@ -116,9 +116,11 @@ backend/
 ### Source Of Truth Files
 
 - `src/games/mind-game/routes/index.ts`: REST surface cho Mind Game
-- `src/games/mind-game/services/matchmaking.service.ts`: queue + timeout + tạo session
+- `src/services/matchmaking.service.ts`: queue + timeout + tạo session (game-agnostic, atomic qua Redis lock)
+- `src/games/mind-game/services/gomoku-matchmaking.factory.ts` + `card-flip-matchmaking.factory.ts`: đăng ký factory vào MatchmakingService
 - `src/games/mind-game/services/gomoku.service.ts`: luật game và vòng đời Gomoku
 - `src/games/mind-game/services/card-flip.service.ts`: luật game và vòng đời Card Flip
+- `src/services/timer-queue.service.ts`: turn/game/disconnect-grace timer của Gomoku & Card Flip chạy qua BullMQ (không dùng setTimeout in-memory — an toàn khi chạy nhiều instance)
 - `src/games/mind-game/sockets/index.ts`: gameplay events qua Socket.IO
 - `src/services/game-config.service.ts`: đọc/ghi config và cache
 - `src/routes/admin/index.ts`: admin contract cho config và leaderboard
