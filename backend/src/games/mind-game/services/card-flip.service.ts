@@ -335,14 +335,14 @@ export class CardFlipService {
       secondCard.matched = true;
 
       if (userId === session.playerA) {
-        session.scores.playerA++;
+        session.scores.playerA += 100; // Cộng 100 điểm cho mỗi cặp đúng
         // Track consecutive pairs
         session.consecutivePairsA++;
         if (session.consecutivePairsA > session.maxConsecutivePairsA) {
           session.maxConsecutivePairsA = session.consecutivePairsA;
         }
       } else {
-        session.scores.playerB++;
+        session.scores.playerB += 100; // Cộng 100 điểm cho mỗi cặp đúng
         // Track consecutive pairs
         session.consecutivePairsB++;
         if (session.consecutivePairsB > session.maxConsecutivePairsB) {

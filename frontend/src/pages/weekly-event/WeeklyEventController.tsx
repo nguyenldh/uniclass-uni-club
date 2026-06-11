@@ -556,9 +556,9 @@ export function WeeklyEventController() {
           skewMs={store.skewMs}
           cancelled={!!store.cancelReason}
           cancelReason={store.cancelReason || undefined}
-          onBackHome={() => exitWebView('/weekly-event')}
           lastEvent={store.lastEvent}
           onViewLeaderboard={handleViewLeaderboard}
+          footerButton={<ExitButton from="/weekly-event" className="gbtn gbtn-ghost">Thoát</ExitButton>}
         />
       );
   }

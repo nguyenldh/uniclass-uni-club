@@ -429,7 +429,7 @@
 .player-card .pc-stats{
   display: flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 700; color: var(--g-wood-4);
-  line-height: 1.15;
+  /* line-height: 1.15; */
 }
 .player-card .pc-mark{
   font-weight: 900; font-size: 14px;
@@ -439,6 +439,20 @@
 }
 .player-card .pc-mark.x{ color: var(--o-500); }
 .player-card .pc-mark.o{ color: var(--info); }
+
+/* Animated number — bump effect when score changes */
+.animated-number{
+  display: inline-block;
+  transition: transform .15s ease;
+}
+.animated-number.bumping{
+  animation: score-bump .35s cubic-bezier(.22,1.4,.36,1);
+}
+@keyframes score-bump{
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
 
 /* Timer with circular progress */
 .timer{

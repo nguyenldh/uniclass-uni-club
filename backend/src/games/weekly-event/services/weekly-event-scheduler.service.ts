@@ -28,6 +28,16 @@ export class WeeklyEventSchedulerService {
   private static cronInterval: ReturnType<typeof setInterval> | null = null;
 
   /**
+   * Timer chính xác cho từng room — bắn transition đúng deadline thay vì đợi cron tick.
+   * Key: `${eventId}:${grade}:${deadlineISO}` (kèm deadline để event đổi giờ thì timer cũ tự no-op).
+   * MỌI instance đều arm — nhiều timer cùng bắn vẫn an toàn nhờ transition lock + idempotency.
+   */
+  private static transitionTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  /** Không arm timer cho deadline xa hơn cửa sổ này — tick sau sẽ arm (tránh giữ timer dài vô ích) */
+  private static readonly ARM_MAX_DELAY_MS = 2 * 60 * 60 * 1000;
+
+  /**
    * Khởi động scheduler — chạy mỗi phút để kiểm tra state transitions.
    */
   static startScheduler(): void {
@@ -55,6 +65,10 @@ export class WeeklyEventSchedulerService {
       this.cronInterval = null;
       console.log('[WeeklyEvent] Scheduler stopped');
     }
+    for (const timer of this.transitionTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.transitionTimers.clear();
   }
 
   /**
@@ -64,8 +78,121 @@ export class WeeklyEventSchedulerService {
     // 1. Auto-generate event (Chủ nhật 00:00)
     await this.tryAutoGenerate();
 
-    // 2. Kiểm tra state transitions cho các event Scheduled/Waiting/InProgress/Grading/Showing
+    // 2. Arm timer chính xác cho các deadline sắp tới — chạy trên MỌI instance (không lock)
+    //    để instance nào cũng bắn được transition đúng giờ, instance chết có instance khác đỡ
+    await this.armUpcomingTransitions();
+
+    // 3. Kiểm tra state transitions cho các event Scheduled/Waiting/InProgress/Grading/Showing
+    //    (lưới an toàn — bắt các deadline đã quá hạn mà timer không bắn được)
     await this.checkStateTransitions();
+  }
+
+  /**
+   * Tính các mốc thời gian tĩnh của event.
+   */
+  private static computeTimeline(event: any): {
+    scheduledStart: Date;
+    waitingEnd: Date;
+    examEnd: Date;
+    maxGradingEnd: Date;
+    fallbackShowingEnd: Date;
+  } {
+    const scheduledStart = new Date(event.scheduledStartAt);
+    const waitingEnd = new Date(scheduledStart.getTime() + event.waitingDuration * 60000);
+    const examEnd = new Date(waitingEnd.getTime() + event.examDuration * 60000);
+    // Grading → Showing chuyển ngay khi chấm xong; deadline này chỉ là fallback
+    // nếu instance chấm bài bị crash giữa chừng
+    const maxGradingEnd = new Date(examEnd.getTime() + WEEKLY_EVENT_MAX_GRADING_MINUTES * 60000);
+    const fallbackShowingEnd = new Date(maxGradingEnd.getTime() + event.leaderboardDuration * 60000);
+    return { scheduledStart, waitingEnd, examEnd, maxGradingEnd, fallbackShowingEnd };
+  }
+
+  /**
+   * Arm timer bắn transition đúng deadline cho 1 room.
+   * Idempotent theo (eventId, grade, deadline) — gọi nhiều lần không stack timer.
+   * An toàn multi-instance: callback là mini-tick tự vệ, transition lock sẽ arbitrate.
+   */
+  static armTransitionTimer(eventId: string, grade: number, at: Date): void {
+    const delay = at.getTime() - Date.now();
+    // Quá hạn → cron tick xử lý ngay trong lượt quét; quá xa → tick sau sẽ arm
+    if (delay <= 0 || delay > this.ARM_MAX_DELAY_MS) return;
+
+    const key = `${eventId}:${grade}:${at.toISOString()}`;
+    if (this.transitionTimers.has(key)) return;
+
+    const timer = setTimeout(() => {
+      this.transitionTimers.delete(key);
+      this.miniTick(eventId, grade).catch((err) => {
+        console.error(`[WeeklyEvent] Timer transition error event=${eventId} grade=${grade}:`, err);
+      });
+    }, delay);
+    this.transitionTimers.set(key, timer);
+  }
+
+  /**
+   * Mini-tick cho đúng 1 room khi timer chính xác bắn.
+   * Tự vệ: re-fetch event + state mới nhất, KHÔNG tin dữ liệu lúc arm —
+   * event có thể đã bị đổi giờ/hủy, hoặc instance khác đã chuyển trạng thái rồi.
+   */
+  private static async miniTick(eventId: string, grade: number): Promise<void> {
+    const event = await WeeklyEventModel.findById(eventId).lean();
+    if (!event) return;
+    if (!['Scheduled', 'Waiting', 'InProgress', 'Grading', 'Showing'].includes(event.status)) return;
+
+    const now = new Date();
+    const { scheduledStart, waitingEnd, examEnd, maxGradingEnd, fallbackShowingEnd } = this.computeTimeline(event);
+    await this.transitionGrade(eventId, grade, event, now, scheduledStart, waitingEnd, examEnd, maxGradingEnd, fallbackShowingEnd);
+  }
+
+  /**
+   * Quét các room đang hoạt động và arm timer cho deadline kế tiếp nếu nó rơi
+   * trong cửa sổ ARM_MAX_DELAY_MS. Chạy trên mọi instance, chỉ đọc — không cần lock.
+   */
+  private static async armUpcomingTransitions(): Promise<void> {
+    try {
+      const activeEvents = await WeeklyEventModel.find({
+        status: { $in: ['Scheduled', 'Waiting', 'InProgress', 'Grading', 'Showing'] },
+      }).lean();
+
+      for (const event of activeEvents) {
+        const eventId = String(event._id);
+        const { scheduledStart, waitingEnd, examEnd, maxGradingEnd, fallbackShowingEnd } = this.computeTimeline(event);
+
+        for (const grade of event.activeGrades) {
+          const stateData = await WeeklyEventStateMachine.getStateData(eventId, grade);
+          if (!stateData) continue;
+
+          let deadline: Date | null = null;
+          switch (stateData.status) {
+            case 'Scheduled':
+              deadline = scheduledStart;
+              break;
+            case 'Waiting':
+              deadline = waitingEnd;
+              break;
+            case 'InProgress':
+              deadline = examEnd;
+              break;
+            case 'Grading':
+              // Bình thường Grading → Showing chuyển ngay khi chấm xong;
+              // timer này chỉ là fallback nếu instance chấm bài crash
+              deadline = maxGradingEnd;
+              break;
+            case 'Showing':
+              deadline = stateData.nextTransitionAt ? new Date(stateData.nextTransitionAt) : fallbackShowingEnd;
+              break;
+            default:
+              break; // Closed/Cancelled — không còn deadline
+          }
+
+          if (deadline) {
+            this.armTransitionTimer(eventId, grade, deadline);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[WeeklyEvent] armUpcomingTransitions error:', err);
+    }
   }
 
   /**
@@ -98,6 +225,7 @@ export class WeeklyEventSchedulerService {
   private static async checkStateTransitions(): Promise<void> {
     const lockKey = `${WEEKLY_EVENT_REDIS_KEYS.LOCK_SCHEDULER}`;
     const locked = await redis.set(lockKey, '1', 'EX', WEEKLY_EVENT_SCHEDULER_LOCK_TTL, 'NX');
+    
     if (!locked) return;
 
     try {
@@ -110,13 +238,7 @@ export class WeeklyEventSchedulerService {
 
       for (const event of activeEvents) {
         const eventId = String(event._id);
-        const scheduledStart = new Date(event.scheduledStartAt);
-        const waitingEnd = new Date(scheduledStart.getTime() + event.waitingDuration * 60000);
-        const examEnd = new Date(waitingEnd.getTime() + event.examDuration * 60000);
-        // Grading → Showing chuyển ngay khi chấm xong; deadline này chỉ là fallback
-        // nếu instance chấm bài bị crash giữa chừng
-        const maxGradingEnd = new Date(examEnd.getTime() + WEEKLY_EVENT_MAX_GRADING_MINUTES * 60000);
-        const fallbackShowingEnd = new Date(maxGradingEnd.getTime() + event.leaderboardDuration * 60000);
+        const { scheduledStart, waitingEnd, examEnd, maxGradingEnd, fallbackShowingEnd } = this.computeTimeline(event);
 
         for (const grade of event.activeGrades) {
           try {
@@ -142,15 +264,28 @@ export class WeeklyEventSchedulerService {
     maxGradingEnd: Date,
     fallbackShowingEnd: Date,
   ): Promise<void> {
-    const stateData = await WeeklyEventStateMachine.getStateData(eventId, grade);
-    if (!stateData) return;
+    let stateData = await WeeklyEventStateMachine.getStateData(eventId, grade);
+    
+    if (!stateData) {
+      // Self-heal: key roomstate có thể đã mất (event bị dời lịch khiến TTL cũ hết hạn,
+      // Redis flush...). Event vẫn active trong Mongo → dựng lại state Scheduled để
+      // scheduler tiếp tục vận hành thay vì bỏ qua room này vĩnh viễn.
+      if (event.status !== 'Scheduled') return; // các trạng thái sau cần dữ liệu room thật — không tự dựng lại
+      console.warn(`[WeeklyEvent] Room state missing event=${eventId} grade=${grade} — re-init từ Mongo (Scheduled)`);
+      await WeeklyEventStateMachine.initRoomState(eventId, grade, scheduledStart.toISOString(), event);
+      stateData = { status: 'Scheduled' as any };
+    }
+
     const currentState = stateData.status;
 
     // Scheduled → Waiting (đến giờ bắt đầu)
     if (currentState === 'Scheduled' as any && now >= scheduledStart) {
       const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Waiting', waitingEnd.toISOString());
       if (!res.success || res.alreadyInState) return;
-      
+
+      // Arm timer cho transition kế tiếp ngay khi vào state mới
+      this.armTransitionTimer(eventId, grade, waitingEnd);
+
       // Xóa sạch tập hợp online trong Redis đề phòng dữ liệu rác trước đó
       const onlineKey = `${WEEKLY_EVENT_REDIS_KEYS.ONLINE(eventId)}:${grade}`;
       await redis.del(onlineKey);
@@ -165,6 +300,9 @@ export class WeeklyEventSchedulerService {
     if (currentState === 'Waiting' && now >= waitingEnd) {
       const res = await WeeklyEventStateMachine.transition(eventId, grade, 'InProgress', examEnd.toISOString());
       if (!res.success || res.alreadyInState) return;
+
+      // Arm timer cho transition kế tiếp ngay khi vào state mới
+      this.armTransitionTimer(eventId, grade, examEnd);
 
       // Đồng bộ sĩ số thực tế từ Redis Set sang MongoDB Room một lần duy nhất khi bắt đầu thi
       const joinedSetKey = `${WEEKLY_EVENT_REDIS_KEYS.JOINED(eventId)}:${grade}`;
@@ -268,6 +406,9 @@ export class WeeklyEventSchedulerService {
     const showingEnd = new Date(Date.now() + event.leaderboardDuration * 60000);
     const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Showing', showingEnd.toISOString());
     if (!res.success || res.alreadyInState) return;
+
+    // Arm timer đóng room đúng giờ (Showing → Closed)
+    this.armTransitionTimer(eventId, grade, showingEnd);
 
     await this.syncEventStatus(eventId, 'Showing');
     this.broadcastRoomState(eventId, grade, 'Showing');

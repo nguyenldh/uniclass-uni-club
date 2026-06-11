@@ -22,11 +22,12 @@ export interface EventClosedScreenProps extends HTMLAttributes<HTMLDivElement> {
   onBackHome?: () => void;
   lastEvent?: { _id: string; title: string } | null;
   onViewLeaderboard?: () => void;
+  footerButton?: ReactNode;
 }
 
 export function EventClosedScreen({
   grade, nextEventAt, skewMs = 0, cancelled = false, cancelReason,
-  onBackHome, lastEvent, onViewLeaderboard, className, ...rest
+  onBackHome, lastEvent, onViewLeaderboard, footerButton, className, ...rest
 }: EventClosedScreenProps) {
   const formatOpenTime = (dateInput?: number | Date | null) => {
     if (!dateInput) return '';
@@ -89,7 +90,7 @@ export function EventClosedScreen({
           {lastEvent && onViewLeaderboard && (
             <GameButton onClick={onViewLeaderboard}>Xem bảng xếp hạng</GameButton>
           )}
-          <GameButton color="ghost" onClick={onBackHome}>Thoát</GameButton>
+          {footerButton}
         </div>
       </div>
     </div>

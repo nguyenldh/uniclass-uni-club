@@ -939,6 +939,89 @@ h3 {
   transform: scale(0.95);
 }
 
+/* Exit confirm — popup xác nhận trước khi thoát WebView (dùng bởi ExitButton) */
+.exit-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: exit-confirm-fade 0.15s ease-out;
+}
+@keyframes exit-confirm-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.exit-confirm-dialog {
+  width: 100%;
+  max-width: 320px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 22px 20px 18px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  animation: exit-confirm-pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes exit-confirm-pop {
+  from { transform: scale(0.86); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.exit-confirm-dialog h3 {
+  margin: 0 0 6px;
+  font-family: var(--f-game);
+  font-size: 18px;
+  font-weight: 800;
+  filter: none;
+  color: var(--o-900);
+  text-shadow: none;
+  -webkit-text-stroke: 0;
+}
+.exit-confirm-dialog p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #6b6b6b;
+  line-height: 1.45;
+}
+.exit-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+.exit-confirm-btn {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 999px;
+  font-family: var(--f-game);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+.exit-confirm-btn:active {
+  transform: scale(0.97);
+}
+.exit-confirm-btn.stay {
+  border: none;
+  background: var(--o-500, #e8530e);
+  color: #fff;
+}
+.exit-confirm-btn.stay:hover {
+  filter: brightness(1.08);
+}
+.exit-confirm-btn.leave {
+  border: 2px solid #d9d9d9;
+  background: #fff;
+  color: #8a8a8a;
+}
+.exit-confirm-btn.leave:hover {
+  border-color: #b9b9b9;
+  color: #5f5f5f;
+}
+
 /* Component preview card (Storybook-style) */
 .comp-card {
   background: #fff;

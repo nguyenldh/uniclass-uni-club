@@ -164,12 +164,14 @@ export function useWeeklyEventSocket({
     socket.on('room:state', (payload: RoomStatePayload) => {
       console.log('[WeeklyEventSocket] Received room:state', payload);
       const { status } = payload;
-      const { setPhase } = useWeeklyEventStore.getState();
-      
+      const { setPhase, questions } = useWeeklyEventStore.getState();
+
       if (status === 'Waiting') {
         setPhase('waiting');
       } else if (status === 'InProgress') {
-        setPhase('exam');
+        // Đề có thể chưa về (exam:start được emit ngay sau room:state) —
+        // giữ màn loading, exam:start / session:resume sẽ chuyển sang 'exam' khi có câu hỏi
+        setPhase(questions.length > 0 ? 'exam' : 'loading');
       } else if (status === 'Grading') {
         setPhase('loading');
       } else if (status === 'Showing') {

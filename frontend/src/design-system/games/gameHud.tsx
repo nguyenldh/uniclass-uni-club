@@ -15,6 +15,58 @@ const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
 
 /* ============================================================
+   AnimatedNumber — số chạy khi giá trị thay đổi
+   ============================================================ */
+function AnimatedNumber({ value, locale = 'vi-VN' }: { value: number; locale?: string }) {
+  const [display, setDisplay] = React.useState(value);
+  const [bumping, setBumping] = React.useState(false);
+  const prevValue = React.useRef(value);
+  const rafRef = React.useRef<number>(0);
+  const startTimeRef = React.useRef<number>(0);
+  const fromRef = React.useRef(value);
+
+  React.useEffect(() => {
+    if (value === prevValue.current) return;
+
+    const from = prevValue.current;
+    const to = value;
+    fromRef.current = from;
+    startTimeRef.current = 0;
+    prevValue.current = value;
+    setBumping(true);
+
+    const duration = 400;
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) startTimeRef.current = timestamp;
+      const elapsed = timestamp - startTimeRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(from + (to - from) * eased);
+      setDisplay(current);
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplay(to);
+        setBumping(false);
+      }
+    };
+
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value]);
+
+  return (
+    <span className={cn('animated-number', bumping && 'bumping')}>
+      {display.toLocaleString(locale)}
+    </span>
+  );
+}
+
+/* ============================================================
    PlayerCard — avatar + tên + điểm/streak/turn
    ============================================================ */
 
@@ -61,7 +113,7 @@ export function PlayerCard({
           {mark && <CaroMarkPill mark={mark} />}
           {score != null && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <StarIcon size={14} /> {score.toLocaleString('vi-VN')}
+              <StarIcon size={14} /> <AnimatedNumber value={score} />
             </span>
           )}
           {streak != null && streak > 0 && (

@@ -191,6 +191,46 @@ export class WeeklyEventService {
       }
     }
 
+    // Event đã publish (Scheduled) → đồng bộ lại room state trong Redis theo lịch mới.
+    // nextTransitionAt + TTL của key roomstate được tính từ timeline CŨ lúc publish;
+    // nếu không refresh, dời event ra sau có thể làm key hết hạn trước giờ bắt đầu mới
+    // → scheduler mất state → event kẹt vĩnh viễn, frontend treo.
+    if (event.status === 'Scheduled') {
+      const timing = {
+        scheduledStartAt: doc.scheduledStartAt,
+        waitingDuration: doc.waitingDuration,
+        examDuration: doc.examDuration,
+        leaderboardDuration: doc.leaderboardDuration,
+      };
+
+      for (const grade of doc.activeGrades) {
+        // Chỉ ghi đè khi room chưa chạy (missing hoặc còn Scheduled) —
+        // tránh race hiếm khi room vừa chuyển Waiting đúng lúc admin bấm lưu
+        const currentState = await WeeklyEventStateMachine.getState(id, grade);
+        if (currentState && currentState !== ('Scheduled' as any)) continue;
+
+        await WeeklyEventStateMachine.initRoomState(
+          id,
+          grade,
+          new Date(doc.scheduledStartAt).toISOString(),
+          timing,
+        );
+      }
+
+      // Dọn Redis state của các khối bị loại bỏ
+      const removedGrades = event.activeGrades.filter((g) => !doc.activeGrades.includes(g));
+      if (removedGrades.length > 0) {
+        await WeeklyEventStateMachine.cleanupEventState(id, removedGrades);
+      }
+
+      // Arm timer theo lịch mới — timer cũ tự no-op vì key timer chứa deadline cũ
+      // (dynamic import để tránh circular dependency với scheduler)
+      const { WeeklyEventSchedulerService } = await import('./weekly-event-scheduler.service');
+      for (const grade of doc.activeGrades) {
+        WeeklyEventSchedulerService.armTransitionTimer(id, grade, new Date(doc.scheduledStartAt));
+      }
+    }
+
     await redis.del(`${WEEKLY_EVENT_REDIS_KEYS.EVENT}:${id}`);
     return this.toEvent(doc);
   }
@@ -260,6 +300,14 @@ export class WeeklyEventService {
         examDuration: event.examDuration,
         leaderboardDuration: event.leaderboardDuration,
       });
+    }
+
+    // Arm timer mở event đúng giờ trên instance này — phòng trường hợp publish sát giờ bắt đầu,
+    // không kịp đợi tick kế tiếp của scheduler quét và arm.
+    // (Dynamic import để tránh circular dependency với scheduler.)
+    const { WeeklyEventSchedulerService } = await import('./weekly-event-scheduler.service');
+    for (const grade of event.activeGrades) {
+      WeeklyEventSchedulerService.armTransitionTimer(id, grade, new Date(event.scheduledStartAt));
     }
 
     await redis.del(`${WEEKLY_EVENT_REDIS_KEYS.EVENT}:${id}`);
