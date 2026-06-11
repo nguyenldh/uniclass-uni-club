@@ -15,11 +15,11 @@ export const mindGameApi = {
   // ---- Gomoku ----
   // Gameplay (start vs AI / move) đi qua Socket.IO — xem useGomokuSocket.
   getGomokuSession: (sessionId: string) =>
-    apiRequest<{ success: boolean; session: GomokuSession }>(API_BASE, `/gomoku/${sessionId}`),
+    apiRequest<{ success: boolean; session: GomokuSession; serverNow: number }>(API_BASE, `/gomoku/${sessionId}`),
 
   // ---- Card Flip ----
   getCardFlipSession: (sessionId: string) =>
-    apiRequest<{ success: boolean; session: CardFlipSession }>(API_BASE, `/card-flip/${sessionId}`),
+    apiRequest<{ success: boolean; session: CardFlipSession; serverNow: number }>(API_BASE, `/card-flip/${sessionId}`),
 
   /**
    * Kiểm tra user có session mind-game đang diễn ra không.

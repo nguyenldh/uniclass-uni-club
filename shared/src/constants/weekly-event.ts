@@ -128,7 +128,6 @@ export const DEFAULT_WEEKLY_EVENT_GENERAL_CONFIG: WeeklyEventGeneralConfig = {
   defaultLeaderboardDuration: 5,
   leaderboardLimit: 10,
   defaultActiveGrades: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-  weeklyCronExpression: '0 10 * * 6', // 10:00 thứ Bảy
   timezone: 'Asia/Ho_Chi_Minh',
 };
 

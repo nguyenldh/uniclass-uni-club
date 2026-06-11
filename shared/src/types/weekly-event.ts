@@ -44,8 +44,6 @@ export interface WeeklyEventGeneralConfig {
   leaderboardLimit: number;
   /** Các khối lớp mặc định được tham gia */
   defaultActiveGrades: number[];
-  /** Cron expression cho lịch chạy hàng tuần */
-  weeklyCronExpression: string;
   /** Múi giờ */
   timezone: string;
   updatedAt?: string;
@@ -407,6 +405,5 @@ export interface UpdateGeneralConfigInput {
   defaultLeaderboardDuration?: number;
   leaderboardLimit?: number;
   defaultActiveGrades?: number[];
-  weeklyCronExpression?: string;
   timezone?: string;
 }

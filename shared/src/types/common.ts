@@ -11,6 +11,13 @@ export type AIDifficulty = 'easy' | 'medium' | 'hard';
 /** Trạng thái matchmaking */
 export type MatchmakingStatus = 'searching' | 'matched' | 'timeout';
 
+/**
+ * Chế độ ghép đối thủ cho một game PvP:
+ * - `mixed`: tìm người thật trước (0 → botActivationSeconds), sau đó cho phép ghép bot.
+ * - `bot_only`: luôn ghép bot, không bao giờ tìm người thật (vẫn hiển thị màn "đang tìm").
+ */
+export type OpponentMode = 'mixed' | 'bot_only';
+
 /** Nhóm game (danh mục lớn) */
 export type GameType = 'mind_game' | 'quiz_arena' | 'boss_battle' | 'weekly_event';
 

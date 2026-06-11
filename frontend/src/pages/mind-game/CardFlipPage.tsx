@@ -99,10 +99,8 @@ export function CardFlipPage() {
           matchmakingResult.sessionId,
         );
         if (res.session) {
-          console.log(res.session);
-
           CardFlipAI.reset();
-          setSession(res.session);
+          setSession(res.session, res.serverNow);
           // Đánh dấu session hiện tại để tránh bắn game:ended cho session cũ
           activeSessionIdRef.current = res.session.sessionId;
           gameEndedSentRef.current = false;
@@ -204,6 +202,25 @@ export function CardFlipPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [session?.sessionId, session?.status, tick]);
+
+  // Re-sync đồng hồ ngay khi quay lại app (WebView resume / tab hiện lại):
+  // setInterval bị throttle khi nền → khi visible lại, tick ngay để nhảy về đúng thời gian.
+  useEffect(() => {
+    const onVisible = () => {
+      if (
+        document.visibilityState === "visible" &&
+        useCardFlipStore.getState().session?.status === "playing"
+      ) {
+        tick();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [tick]);
 
   // Cleanup AI timeout on unmount + gửi forfeit nếu user rời trang giữa trận
   useEffect(() => {
@@ -447,10 +464,10 @@ export function CardFlipPage() {
           actions={
             <>
               <GameButton
-                color="ghost"
+                color="orange"
                 onClick={() => navigate("/matchmaking/card_flip")}
               >
-                Về lobby
+                Chơi tiếp
               </GameButton>
             </>
           }

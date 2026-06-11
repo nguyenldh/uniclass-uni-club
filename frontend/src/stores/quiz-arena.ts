@@ -48,6 +48,11 @@ interface QuizArenaState {
   gameResult: QuizArenaResult | null;
   /** Giây đã trôi trong câu hỏi hiện tại (cho DecayingBar) */
   timeElapsed: number;
+  /**
+   * Độ lệch đồng hồ client↔server (ms) = serverNow - clientNow, đo 1 lần khi nhận câu hỏi.
+   * Dùng để tính thời gian đã trôi mà không phụ thuộc đồng hồ tuyệt đối của thiết bị.
+   */
+  clockSkewMs: number;
   /** Đối thủ đã gửi đáp án */
   opponentAnswered: boolean;
   /** Countdown timestamp: khi nào game bắt đầu (ms) */
@@ -80,6 +85,7 @@ export const useQuizArenaStore = create<QuizArenaState>((set) => ({
   lastResult: null,
   gameResult: null,
   timeElapsed: 0,
+  clockSkewMs: 0,
   opponentAnswered: false,
   countdownStartsAt: null,
   playerAData: null,
@@ -143,15 +149,18 @@ export const useQuizArenaStore = create<QuizArenaState>((set) => ({
   },
 
   setQuestion: (q) => {
-    // Tính thời gian đã trôi từ startedAt (để hỗ trợ reconnect)
-    const elapsedMs = Date.now() - q.startedAt;
+    // Đo độ lệch đồng hồ 1 lần: serverNow là giờ server lúc gửi, so với giờ client lúc nhận.
+    // Sau đó "giờ server ước lượng" tại client = Date.now() + clockSkewMs.
+    const clockSkewMs = q.serverNow - Date.now();
+    const elapsedMs = Date.now() + clockSkewMs - q.startedAt;
     const elapsedSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
-    
+
     set({
       currentQuestion: q,
       phase: 'answering',
       myAnswer: null,
       lastResult: null,
+      clockSkewMs,
       timeElapsed: elapsedSeconds,
       opponentAnswered: false,
     });
@@ -185,7 +194,18 @@ export const useQuizArenaStore = create<QuizArenaState>((set) => ({
       countdownStartsAt: startsAt,
     }),
 
-  tick: () => set((s) => ({ timeElapsed: s.timeElapsed + 1 })),
+  // Tính lại timeElapsed từ mốc startedAt của server, hiệu chỉnh qua clockSkewMs (KHÔNG cộng dồn).
+  // Nhờ vậy: (1) nếu setInterval bị throttle khi app xuống nền (WebView/tab ẩn), khi quay lại
+  // tick sẽ tự nhảy về đúng thời gian đã trôi; (2) không phụ thuộc đồng hồ tuyệt đối của thiết bị.
+  tick: () =>
+    set((s) => {
+      if (!s.currentQuestion) return {};
+      const elapsed = Math.max(
+        0,
+        Math.floor((Date.now() + s.clockSkewMs - s.currentQuestion.startedAt) / 1000),
+      );
+      return { timeElapsed: elapsed };
+    }),
 
   reset: () =>
     set({
@@ -199,6 +219,7 @@ export const useQuizArenaStore = create<QuizArenaState>((set) => ({
       lastResult: null,
       gameResult: null,
       timeElapsed: 0,
+      clockSkewMs: 0,
       opponentAnswered: false,
       countdownStartsAt: null,
     }),

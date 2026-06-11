@@ -115,13 +115,11 @@ export function BossLobbyPage() {
       grade={`Khối ${grade}`}
       hits={hits}
       shaking={shaking}
-      topRight={
-        <>
-          <GameButton size="sm" color="ghost" onClick={() => navigate('/boss-battle/leaderboard')}>
-            🏆 Bảng xếp hạng
-          </GameButton>
-          <ExitButton from="/boss-battle" className="bb-exit-btn">Thoát</ExitButton>
-        </>
+      topRight={<ExitButton from="/boss-battle" className="bb-exit-btn">Thoát</ExitButton>}
+      nameAction={
+        <GameButton size="sm" color="ghost" onClick={() => navigate('/boss-battle/leaderboard')}>
+          🏆 Bảng xếp hạng
+        </GameButton>
       }
     />
   );

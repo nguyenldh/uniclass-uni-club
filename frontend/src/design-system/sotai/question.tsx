@@ -261,9 +261,9 @@ export function QuestionCard({
             <span className="answered">Đối thủ đã trả lời</span>
           )}
         </div>
-        <span style={{ fontWeight: 800, fontSize: 12, opacity: .6, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+        {/* <span style={{ fontWeight: 800, fontSize: 12, opacity: .6, letterSpacing: '.08em', textTransform: 'uppercase' }}>
           {timeLimit}s
-        </span>
+        </span> */}
       </div>
 
       <p className="qtext">{question}</p>
@@ -316,6 +316,51 @@ export function FloatingPoints({ points, variant, style }: FloatingPointsProps) 
   return (
     <div className={cn('st-floating', v)} style={style}>
       {points > 0 ? `+${points.toLocaleString('vi-VN')}` : 'Tiếc quá!'}
+    </div>
+  );
+}
+
+/* ============================================================
+   QuizCallout — câu hô tạo cảm giác ganh đua khi lộ đáp án
+   - win:  trả lời đúng → khen ngợi hừng hực
+   - miss: trả lời sai/hết giờ → khích lệ "máu chiến"
+   ============================================================ */
+
+/** Câu hô khi trả lời ĐÚNG. */
+export const QUIZ_CALLOUTS_WIN = [
+  'Tuyệt vời!',
+  'Giỏi đỉnh!',
+  'Cao thủ!',
+  'Xuất sắc!',
+  'Quá đỉnh!',
+  'Bậc thầy!',
+  'Thần tốc!',
+  'Bất bại!',
+] as const;
+
+/** Câu hô khi trả lời SAI / hết giờ. */
+export const QUIZ_CALLOUTS_MISS = [
+  'Cố lên!',
+  'Suýt rồi!',
+  'Đừng nản!',
+  'Gỡ ngay thôi!',
+  'Tập trung nào!',
+  'Chưa xong đâu!',
+] as const;
+
+export interface QuizCalloutProps {
+  variant: 'win' | 'miss';
+  /** Seed để chọn câu hô (vd: questionIndex) — giữ ổn định, không nhấp nháy khi re-render. */
+  seed?: number;
+  style?: React.CSSProperties;
+}
+
+export function QuizCallout({ variant, seed = 0, style }: QuizCalloutProps) {
+  const pool = variant === 'win' ? QUIZ_CALLOUTS_WIN : QUIZ_CALLOUTS_MISS;
+  const text = pool[Math.abs(Math.trunc(seed)) % pool.length];
+  return (
+    <div className={cn('st-callout', variant)} style={style} aria-live="polite">
+      {text}
     </div>
   );
 }

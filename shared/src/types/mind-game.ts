@@ -2,7 +2,7 @@
 // Mind Game Types — Đấu trí (Gomoku & Card Flip)
 // ============================================================
 
-import type { GameSessionStatus, AIDifficulty } from './common';
+import type { GameSessionStatus, AIDifficulty, OpponentMode } from './common';
 
 /** Các game trong nhóm Mind Game */
 export type MindGameType = 'gomoku' | 'card_flip';
@@ -19,6 +19,17 @@ export interface CardFlipItem {
 export interface CardFlipConfig {
   /** Thời gian tối đa ghép trận PvP (giây) */
   matchmakingTimeout: number;
+  /**
+   * Chế độ ghép đối thủ: `mixed` (tìm người thật rồi mới bot) hoặc `bot_only` (chỉ bot).
+   */
+  opponentMode: OpponentMode;
+  /**
+   * Mốc (giây, tính từ lúc bắt đầu tìm) phân chia giai đoạn tìm người thật và giai đoạn ghép bot.
+   * Chỉ áp dụng khi `opponentMode = 'mixed'`. Mặc định ≈ 50% của `matchmakingTimeout`.
+   * 0 → botActivationSeconds: chỉ tìm người thật. Sau đó bot được ghép tại một thời điểm
+   * ngẫu nhiên trong khoảng [botActivationSeconds, matchmakingTimeout].
+   */
+  botActivationSeconds: number;
   /** Điểm thưởng khi thắng */
   winPoints: number;
   /** Số cặp thẻ */
@@ -91,6 +102,17 @@ export interface CardFlipResult {
 export interface GomokuConfig {
   /** Thời gian tối đa ghép trận PvP (giây) */
   matchmakingTimeout: number;
+  /**
+   * Chế độ ghép đối thủ: `mixed` (tìm người thật rồi mới bot) hoặc `bot_only` (chỉ bot).
+   */
+  opponentMode: OpponentMode;
+  /**
+   * Mốc (giây, tính từ lúc bắt đầu tìm) phân chia giai đoạn tìm người thật và giai đoạn ghép bot.
+   * Chỉ áp dụng khi `opponentMode = 'mixed'`. Mặc định ≈ 50% của `matchmakingTimeout`.
+   * 0 → botActivationSeconds: chỉ tìm người thật. Sau đó bot được ghép tại một thời điểm
+   * ngẫu nhiên trong khoảng [botActivationSeconds, matchmakingTimeout].
+   */
+  botActivationSeconds: number;
   /** Điểm thưởng khi thắng */
   winPoints: number;
   /** Kích thước bàn cờ */

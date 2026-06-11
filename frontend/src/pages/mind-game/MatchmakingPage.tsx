@@ -201,7 +201,7 @@ export function MatchmakingPage() {
 
   return (
     <GameCanvas
-      className={"mind-game-page no-top" + " " + matchmakingPhase}
+      className={"mind-game-page no-top mm-page" + " " + matchmakingPhase}
       style={{
         display: "flex",
         flexDirection: "column",

@@ -30,7 +30,6 @@ const gameGuides: Record<MatchmakingGameType, GameGuide> = {
     icon: '⭕',
     rules: [
       'Hai người chơi lần lượt đặt quân cờ lên bàn cờ.',
-      'Người chơi đầu tiên dùng quân X, người thứ hai dùng quân O.',
       'Ai xếp được 5 quân liên tiếp theo hàng ngang, dọc hoặc chéo sẽ thắng.',
       'Mỗi lượt có thời gian giới hạn, hết giờ sẽ mất lượt.',
     ],
@@ -58,7 +57,6 @@ const gameGuides: Record<MatchmakingGameType, GameGuide> = {
     icon: '🃏',
     rules: [
       'Tìm các cặp bài giống nhau bằng cách lật từng thẻ.',
-      'Mỗi lượt được lật 2 thẻ để tìm cặp.',
       'Nếu 2 thẻ khớp nhau, bạn ghi điểm và tiếp tục lượt.',
       'Ai tìm được nhiều cặp hơn sẽ thắng.',
     ],
@@ -200,6 +198,7 @@ export function MatchmakingOverlay({
 
   return (
     <div
+      className="mm-overlay-root"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -211,6 +210,7 @@ export function MatchmakingOverlay({
 
       {phase === 'idle' && (
         <div
+          className="mm-overlay-idle"
           style={{
             display: 'flex',
             flexDirection: 'column',

@@ -882,7 +882,7 @@ h3 {
   background-image: url("/images/bg/gomoku_bg.jpg");
   background-size: cover;
   background-position: center;
-  padding: 48px 40px;
+  padding: 16px 40px;
   position: relative;
   overflow: hidden;
   box-shadow:
@@ -906,8 +906,9 @@ h3 {
 /* Exit button — dấu X thoát WebView */
 .exit-button {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  /* Tôn trọng safe-area của thiết bị (notch / góc bo) để nút không bị lẹm ở mép phải/trên */
+  top: max(4px, env(safe-area-inset-top, 0px));
+  right: max(4px, env(safe-area-inset-right, 0px));
   z-index: 10;
   width: 36px;
   height: 36px;
@@ -1946,6 +1947,66 @@ h3 {
   .game-canvas {
     padding: 28px 20px;
   }
+
+  /* Màn dọc điện thoại: nén spacing màn Tìm trận để nút "Tìm trận"
+     luôn nằm gọn trong màn hình, không phải scroll.
+     Scope vào .mm-page để KHÔNG ảnh hưởng màn đang chơi (Gomoku/Card Flip). */
+  .game-canvas.mm-page {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 12px !important; /* override inline gap:24 */
+    justify-content: flex-start;
+  }
+  .mm-page .mm-overlay-root {
+    gap: 12px !important; /* override inline gap:24 */
+  }
+  .mm-page .mm-overlay-idle {
+    margin-top: 6px !important; /* override inline marginTop:24 */
+    gap: 10px !important; /* override inline gap:16 */
+  }
+
+  /* Bảng hướng dẫn gọn lại nhưng vẫn dễ đọc */
+  .mm-page .game-guide-card {
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .mm-page .game-guide-header {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+  .mm-page .game-guide-icon {
+    font-size: 1.8rem;
+  }
+  .mm-page .game-guide-title {
+    font-size: 1.2rem;
+  }
+  .mm-page .game-guide-section {
+    margin-bottom: 10px;
+  }
+  .mm-page .game-guide-section h4 {
+    margin-bottom: 8px;
+    font-size: 0.92rem;
+    padding: 4px 11px;
+  }
+  .mm-page .game-guide-rules {
+    gap: 6px;
+  }
+  .mm-page .game-guide-rules li {
+    padding: 7px 12px 7px 38px;
+    font-size: 0.9rem;
+  }
+  .mm-page .game-guide-rules li::before {
+    width: 20px;
+    height: 20px;
+    font-size: 0.78rem;
+  }
+  .mm-page .game-guide-tips {
+    gap: 6px;
+  }
+  .mm-page .game-guide-tips li {
+    padding: 7px 12px;
+    font-size: 0.85rem;
+  }
 }
 /* =====================================================================
    Matchmaking Panel — Đang tìm đối thủ / Tìm trận thành công
@@ -2001,7 +2062,7 @@ h3 {
 }
 .mm-panel .mm-sub {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
   color: #8a5b1f;
   margin-bottom: 22px;
   min-height: 18px;
@@ -2173,7 +2234,7 @@ h3 {
    ============================================================ */
 .game-guide-card {
   width: 100%;
-  padding: var(--s-4);
+  padding: var(--s-5, 24px);
   border-radius: var(--r-md);
   text-align: left;
 }
@@ -2181,69 +2242,113 @@ h3 {
 .game-guide-header {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
-  margin-bottom: var(--s-3);
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
   padding-bottom: var(--s-3);
-  border-bottom: 2px dashed rgba(110, 63, 23, 0.25);
+  border-bottom: 3px solid rgba(110, 63, 23, 0.35);
 }
 
 .game-guide-icon {
-  font-size: 1.75rem;
+  font-size: 2.25rem;
+  line-height: 1;
 }
 
 .game-guide-title {
   margin: 0;
   font-family: var(--f-game);
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.01em;
 }
 
 .game-guide-section {
-  margin-bottom: var(--s-3);
+  margin-bottom: var(--s-4);
 }
 
 .game-guide-section:last-child {
   margin-bottom: 0;
 }
 
+/* Tiêu đề section dạng "pill" nổi bật để dễ phân biệt Luật / Mẹo */
 .game-guide-section h4 {
-  margin: 0 0 var(--s-2) 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--s-3) 0;
+  padding: 5px 14px;
+  border-radius: 999px;
   font-family: var(--f-game);
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--g-wood-3);
+  font-size: 1rem;
+  font-weight: 900;
+  color: #fff;
+  background: var(--g-wood-4);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
 }
 
-.game-guide-rules,
-.game-guide-tips {
+/* Luật chơi — mỗi mục là 1 thẻ có số thứ tự */
+.game-guide-rules {
+  counter-reset: guide-rule;
+  list-style: none;
   margin: 0;
-  padding-left: var(--s-4);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   font-family: var(--f-game);
-  font-size: 0.8125rem;
-  line-height: 1.5;
+}
+
+.game-guide-rules li {
+  counter-increment: guide-rule;
+  position: relative;
+  padding: 10px 14px 10px 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1.5px solid rgba(110, 63, 23, 0.2);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
   color: var(--g-wood-4);
 }
 
-.game-guide-rules li,
-.game-guide-tips li {
-  margin-bottom: var(--s-1);
+.game-guide-rules li::before {
+  content: counter(guide-rule);
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--o-500);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 900;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
 
-.game-guide-rules li:last-child,
-.game-guide-tips li:last-child {
-  margin-bottom: 0;
-}
-
+/* Mẹo chơi — thẻ nền cam, viền trái nổi bật */
 .game-guide-tips {
   list-style: none;
-  padding-left: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--f-game);
 }
 
 .game-guide-tips li {
-  padding: var(--s-1) var(--s-2);
-  background: rgba(248, 164, 86, 0.15);
-  border-radius: var(--r-xs);
-  border-left: 3px solid var(--o-400);
+  padding: 10px 14px;
+  background:  var(--o-100);
+  border-radius: 12px;
+  border-left: 5px solid var(--o-500);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--o-600);
 }
 @keyframes mm-ring-pulse {
   0%,

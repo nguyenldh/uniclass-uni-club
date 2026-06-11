@@ -120,7 +120,7 @@ export function GomokuPage() {
           matchmakingResult.sessionId,
         );
         if (res.session) {
-          setSession(res.session);
+          setSession(res.session, res.serverNow);
           // Đánh dấu session hiện tại để tránh bắn game:ended cho session cũ
           activeSessionIdRef.current = res.session.sessionId;
           gameEndedSentRef.current = false;          gameEndedLocallyRef.current = false;          if (matchmakingResult.isAI) {
@@ -228,6 +228,25 @@ export function GomokuPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [session?.sessionId, session?.status, tick]);
+
+  // Re-sync đồng hồ ngay khi quay lại app (WebView resume / tab hiện lại):
+  // setInterval bị throttle khi nền → khi visible lại, tick ngay để nhảy về đúng thời gian.
+  useEffect(() => {
+    const onVisible = () => {
+      if (
+        document.visibilityState === "visible" &&
+        useGomokuStore.getState().session?.status === "playing"
+      ) {
+        tick();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [tick]);
 
   // Cleanup overlay timer on unmount + gửi forfeit nếu user rời trang giữa trận
   // PHẢI dùng empty deps [] để chỉ chạy khi component thực sự unmount,
@@ -506,8 +525,8 @@ export function GomokuPage() {
           stats={overlayStats as GameOverlayStat[]}
           actions={
             <>
-              <GameButton color="ghost" onClick={() => navigate("/matchmaking/gomoku")}>
-                Về lobby
+              <GameButton color="orange" onClick={() => navigate("/matchmaking/gomoku")}>
+                Chơi tiếp
               </GameButton>
             </>
           }

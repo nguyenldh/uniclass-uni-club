@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Form, InputNumber, Button, Card, message, Space, Spin, Typography, Popconfirm } from 'antd';
 import { SaveOutlined, ClearOutlined } from '@ant-design/icons';
 import { useConfigStore } from '../../stores/config.store';
+import { MatchmakingModeSection } from '../../components';
 import type { GomokuConfig } from '@uniclub/shared';
 
 const { Title } = Typography;
@@ -74,6 +75,8 @@ export function GomokuConfigPage() {
           >
             <InputNumber min={10} max={120} style={{ width: '100%' }} />
           </Form.Item>
+
+          <MatchmakingModeSection />
 
           <Form.Item
             name="winPoints"

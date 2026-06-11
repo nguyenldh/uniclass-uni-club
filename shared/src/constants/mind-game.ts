@@ -35,7 +35,9 @@ export const MIND_GAME_SOCKET_EVENTS = {
 
 /** Default Gomoku config */
 export const DEFAULT_GOMOKU_CONFIG: GomokuConfig = {
-  matchmakingTimeout: 5,
+  matchmakingTimeout: 30,
+  opponentMode: 'mixed',
+  botActivationSeconds: 15,
   winPoints: 100,
   boardSize: 15,
   turnTimeout: 60 * 2,
@@ -45,6 +47,8 @@ export const DEFAULT_GOMOKU_CONFIG: GomokuConfig = {
 /** Default Card Flip config */
 export const DEFAULT_CARD_FLIP_CONFIG: CardFlipConfig = {
   matchmakingTimeout: 30,
+  opponentMode: 'mixed',
+  botActivationSeconds: 15,
   winPoints: 50,
   pairCount: 15,
   turnTimeout: 60 * 2,

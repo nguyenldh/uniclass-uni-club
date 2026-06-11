@@ -12,12 +12,11 @@ import {
   Slider,
   Divider,
   Modal,
-  Row,
-  Col,
 } from 'antd';
-import { SaveOutlined, ClearOutlined, SyncOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
+import { SaveOutlined, ClearOutlined, SyncOutlined } from '@ant-design/icons';
 import { useConfigStore } from '../../stores/config.store';
 import { configService } from '../../services/config.service';
+import { MatchmakingModeSection } from '../../components';
 import type { QuizArenaConfig } from '@uniclub/shared';
 
 const { Title, Text } = Typography;
@@ -157,126 +156,10 @@ export function QuizArenaConfigPage() {
             <InputNumber min={10} max={120} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.matchmakingTimeout !== currentValues.matchmakingTimeout ||
-              prevValues.botActivationSeconds !== currentValues.botActivationSeconds
-            }
-          >
-            {({ getFieldValue, setFieldsValue }) => {
-              const totalTime = getFieldValue('matchmakingTimeout') || 30;
-              const botActivation = getFieldValue('botActivationSeconds') || 15;
-              const realPlayerPercent = Math.round((botActivation / totalTime) * 100);
+          <MatchmakingModeSection />
 
-              return (
-                <div style={{ marginBottom: 24 }}>
-                  <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                    Phân bổ thời gian tìm trận
-                  </Text>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                    Kéo thanh để điều chỉnh thời điểm hệ thống bắt đầu ghép bot
-                  </Text>
-                  
-                  <Slider
-                    value={realPlayerPercent}
-                    min={20}
-                    max={90}
-                    tooltip={{
-                      formatter: (value) => `${value}% (${Math.round((totalTime * (value || 0)) / 100)}s)`,
-                    }}
-                    onChange={(percent: number) => {
-                      const newBotActivation = Math.round((totalTime * percent) / 100);
-                      // realPlayerSearchSeconds luôn = botActivationSeconds - 1 (hoặc bằng nếu = min)
-                      const newRealPlayer = Math.max(newBotActivation - 1, Math.round(totalTime * 0.2));
-                      setFieldsValue({
-                        botActivationSeconds: newBotActivation,
-                        realPlayerSearchSeconds: newRealPlayer,
-                      });
-                    }}
-                    marks={{
-                      20: '20%',
-                      50: '50%',
-                      80: '80%',
-                    }}
-                  />
-
-                  {/* Visual Timeline */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'stretch',
-                      borderRadius: 8,
-                      overflow: 'hidden',
-                      height: 48,
-                      marginTop: 16,
-                      border: '1px solid #d9d9d9',
-                    }}
-                  >
-                    <div
-                      style={{
-                        flex: realPlayerPercent,
-                        background: 'linear-gradient(90deg, #52c41a 0%, #95de64 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontWeight: 500,
-                        fontSize: 13,
-                        padding: '0 8px',
-                        minWidth: 0,
-                      }}
-                    >
-                      <UserOutlined style={{ marginRight: 6 }} />
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Tìm người ({botActivation}s)
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        flex: 100 - realPlayerPercent,
-                        background: 'linear-gradient(90deg, #1890ff 0%, #69c0ff 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontWeight: 500,
-                        fontSize: 13,
-                        padding: '0 8px',
-                        minWidth: 0,
-                      }}
-                    >
-                      <RobotOutlined style={{ marginRight: 6 }} />
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Ghép bot ({totalTime - botActivation}s)
-                      </span>
-                    </div>
-                  </div>
-
-                  <Row gutter={16} style={{ marginTop: 12 }}>
-                    <Col span={12}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        <UserOutlined style={{ color: '#52c41a', marginRight: 4 }} />
-                        0s → {botActivation}s: Chỉ ghép người thật
-                      </Text>
-                    </Col>
-                    <Col span={12}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        <RobotOutlined style={{ color: '#1890ff', marginRight: 4 }} />
-                        {botActivation}s → {totalTime}s: Cho phép ghép bot
-                      </Text>
-                    </Col>
-                  </Row>
-                </div>
-              );
-            }}
-          </Form.Item>
-
-          {/* Hidden fields để giữ giá trị */}
+          {/* @deprecated — giữ hidden để không mất giá trị cũ khi submit (backend không dùng) */}
           <Form.Item name="realPlayerSearchSeconds" hidden>
-            <InputNumber />
-          </Form.Item>
-          <Form.Item name="botActivationSeconds" hidden>
             <InputNumber />
           </Form.Item>
 

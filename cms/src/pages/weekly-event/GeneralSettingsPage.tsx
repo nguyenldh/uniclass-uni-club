@@ -125,15 +125,6 @@ export function WeeklyEventGeneralSettingsPage() {
           <Divider orientation="left">Lịch trình</Divider>
 
           <Form.Item
-            name="weeklyCronExpression"
-            label="Cron Expression"
-            rules={[{ required: true }]}
-            tooltip="Định dạng: phút giờ ngày-tháng tháng ngày-trong-tuần. VD: '0 10 * * 6' = 10:00 thứ Bảy"
-          >
-            <Input placeholder="0 10 * * 6" />
-          </Form.Item>
-
-          <Form.Item
             name="timezone"
             label="Múi giờ"
             rules={[{ required: true }]}
