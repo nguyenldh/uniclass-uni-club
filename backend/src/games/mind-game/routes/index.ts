@@ -24,7 +24,8 @@ router.get('/gomoku/:sessionId', async (req: Request, res: Response) => {
       res.status(404).json({ error: 'Session not found' });
       return;
     }
-    res.json({ success: true, session });
+    // serverNow: client dùng để hiệu chỉnh lệch đồng hồ khi tính thời gian ván
+    res.json({ success: true, session, serverNow: Date.now() });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -118,7 +119,8 @@ router.get('/card-flip/:sessionId', async (req: Request, res: Response) => {
       res.status(404).json({ error: 'Session not found' });
       return;
     }
-    res.json({ success: true, session });
+    // serverNow: client dùng để hiệu chỉnh lệch đồng hồ khi tính thời gian ván
+    res.json({ success: true, session, serverNow: Date.now() });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -94,6 +94,8 @@ export function registerQuizArenaHandlers(io: Server, socket: Socket): void {
             questionIndex: currentIdx,
             totalQuestions: session.questions.length,
             startedAt: session.currentQuestionStartedAt ?? Date.now(),
+            // Giờ server tại lúc gửi lại — client hiệu chỉnh skew để đếm ngược đúng
+            serverNow: Date.now(),
           };
           socket.emit(QUIZ_ARENA_SOCKET_EVENTS.QUESTION, publicQ);
         }

@@ -94,12 +94,25 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
           });
         }
 
+        // ---- Thông số ghép trận (timeout / mốc bot / mode) lấy từ config ----
+        const timing = await GameConfigService.getMatchmakingTiming(gameType);
+
+        // Chế độ 'bot_only': cô lập user vào partition riêng để KHÔNG bao giờ
+        // ghép được người thật, nhưng vẫn tái dùng toàn bộ cơ chế queue / timeout /
+        // disconnect-cleanup hiện có. Partition này chỉ chứa chính user đó.
+        let effectivePartitionKey = partitionKey;
+        if (timing.opponentMode === 'bot_only') {
+          effectivePartitionKey = `bot-only:${userId}`;
+          // Lưu lại để LEAVE & disconnect dùng đúng partition khi dọn entry
+          socket.data.quizPartitionKey = effectivePartitionKey;
+        }
+
         const result = await MatchmakingService.joinQueue({
           userId,
           gameType,
           joinedAt: Date.now(),
           socketId: socket.id,
-          partitionKey,
+          partitionKey: effectivePartitionKey,
         });
 
         if (result.status === 'matched') {
@@ -144,34 +157,30 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
           // Clear timeout cũ nếu có (tránh duplicate)
           await clearMatchmakingTimeout(userId, gameType);
 
-          // Quiz Arena: 
-          // - displayTimeout: tổng thời gian tìm trận (hiển thị cho user)
-          // - botTriggerTimeout: thời điểm kích hoạt bot (internal)
-          // Các game khác: dùng matchmakingTimeout cho cả hai
-          let displayTimeoutSeconds: number;
-          let botTriggerTimeoutSeconds: number;
-          
-          if (gameType === 'quiz') {
-            const quizConfig = await GameConfigService.getQuizArenaConfig().catch(() => null);
-            displayTimeoutSeconds = quizConfig?.matchmakingTimeout ?? 30;
-            botTriggerTimeoutSeconds = quizConfig?.botActivationSeconds ?? 15;
-          } else {
-            displayTimeoutSeconds = await getMatchmakingTimeout(gameType);
-            botTriggerTimeoutSeconds = displayTimeoutSeconds;
-          }
-
+          // displayTimeout = tổng thời gian tìm trận, hiển thị cho user (progress ring).
+          // Client chỉ phản ứng theo event matched/timeout do server phát, nên việc
+          // bot được ghép SỚM hơn displayTimeout là bình thường và đúng yêu cầu.
           socket.emit(MATCHMAKING_SOCKET_EVENTS.MATCHMAKING_MATCHED, {
             status: 'searching',
             gameType,
-            timeout: displayTimeoutSeconds,
+            timeout: timing.matchmakingTimeout,
           });
+
+          // Thời điểm ghép bot là NGẪU NHIÊN (không cố định ở mốc cuối):
+          // - mixed:    random trong nửa sau [botActivationSeconds, matchmakingTimeout]
+          //             → 0 → botActivationSeconds chỉ tìm người thật.
+          // - bot_only: random trong toàn bộ [0, matchmakingTimeout].
+          const botDelaySeconds =
+            timing.opponentMode === 'bot_only'
+              ? randomBotDelaySeconds(0, timing.matchmakingTimeout)
+              : randomBotDelaySeconds(timing.botActivationSeconds, timing.matchmakingTimeout);
 
           await TimerQueueService.scheduleMatchmakingTimeout({
             userId,
             gameType,
-            partitionKey,
+            partitionKey: effectivePartitionKey,
             socketId: socket.id,
-          }, botTriggerTimeoutSeconds * 1000);
+          }, botDelaySeconds * 1000);
         }
       } catch (error: any) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: error.message });
@@ -232,7 +241,14 @@ async function getOpponentSocketId(io: Server, userId: string): Promise<string |
   return SocketRegistry.getSocketId(userId);
 }
 
-/** Lấy matchmaking timeout từ config của game, fallback về default */
-async function getMatchmakingTimeout(gameType: MatchmakingGameType): Promise<number> {
-  return GameConfigService.getMatchmakingTimeout(gameType);
+/**
+ * Chọn ngẫu nhiên thời điểm (giây) ghép bot trong khoảng [minSec, maxSec].
+ * Clamp tối thiểu 1s để màn "đang tìm" luôn hiển thị một nhịp trước khi vào trận bot
+ * (tránh trường hợp delay = 0 khiến cảm giác như vào thẳng trận).
+ */
+function randomBotDelaySeconds(minSec: number, maxSec: number): number {
+  const lo = Math.max(0, Math.min(minSec, maxSec));
+  const hi = Math.max(lo, maxSec);
+  const delay = lo + Math.random() * (hi - lo);
+  return Math.max(1, Math.round(delay));
 }

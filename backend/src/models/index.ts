@@ -24,6 +24,8 @@ export interface IGameConfig extends Document {
 const GomokuConfigSchema = new Schema<GomokuConfig>(
   {
     matchmakingTimeout: { type: Number, required: true, default: 30 },
+    opponentMode: { type: String, required: true, enum: ['mixed', 'bot_only'], default: 'mixed' },
+    botActivationSeconds: { type: Number, required: true, default: 15 },
     winPoints: { type: Number, required: true, default: 100 },
     boardSize: { type: Number, required: true, default: 15 },
     turnTimeout: { type: Number, required: true, default: 120 },
@@ -43,6 +45,8 @@ const CardFlipItemSchema = new Schema(
 const CardFlipConfigSchema = new Schema<CardFlipConfig>(
   {
     matchmakingTimeout: { type: Number, required: true, default: 30 },
+    opponentMode: { type: String, required: true, enum: ['mixed', 'bot_only'], default: 'mixed' },
+    botActivationSeconds: { type: Number, required: true, default: 15 },
     winPoints: { type: Number, required: true, default: 50 },
     pairCount: { type: Number, required: true, default: 8 },
     cardItems: { type: [CardFlipItemSchema], default: undefined },
@@ -59,6 +63,7 @@ const QuizArenaConfigSchema = new Schema<QuizArenaConfig>(
     minScoreRetention: { type: Number, required: true, default: 0.5 },
     uniPointsPerCorrect: { type: Number, required: true, default: 10 },
     matchmakingTimeout: { type: Number, required: true, default: 30 },
+    opponentMode: { type: String, required: true, enum: ['mixed', 'bot_only'], default: 'mixed' },
     realPlayerSearchSeconds: { type: Number, required: true, default: 15 }, // @deprecated - dùng botActivationSeconds
     botActivationSeconds: { type: Number, required: true, default: 15 },
     easyQuestionThreshold: { type: Number, required: true, default: 0.75 },
@@ -640,7 +645,6 @@ export interface IWeeklyEventGeneralConfig extends Document {
   defaultLeaderboardDuration: number;
   leaderboardLimit: number;
   defaultActiveGrades: number[];
-  weeklyCronExpression: string;
   timezone: string;
   updatedAt: Date;
   updatedBy?: string;
@@ -658,7 +662,6 @@ const WeeklyEventGeneralConfigSchema = new Schema<IWeeklyEventGeneralConfig>(
       required: true,
       default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     },
-    weeklyCronExpression: { type: String, required: true, default: '0 10 * * 6' },
     timezone: { type: String, required: true, default: 'Asia/Ho_Chi_Minh' },
     updatedBy: { type: String },
   },
