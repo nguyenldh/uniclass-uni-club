@@ -38,7 +38,10 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
       displayName?: string;
     }) => {
       try {
-        const { userId, gameType } = data;
+        const { gameType } = data;
+        // Normalize về string — client/REST có thể gửi number, nếu để lẫn kiểu
+        // trong queue thì guard chống self-match sẽ so sánh sai
+        const userId = data.userId != null ? String(data.userId) : '';
         if (!userId || !gameType) {
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'userId and gameType are required' });
           return;
@@ -131,11 +134,11 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
             });
           }
 
-          // Join room
+          // Join room — opponent có thể nằm trên instance khác nên phải dùng
+          // remote join qua Redis adapter (io.sockets.sockets.get chỉ thấy socket local)
           socket.join(result.sessionId!);
           if (opponentSocketId) {
-            const opponentSocket = io.sockets.sockets.get(opponentSocketId);
-            opponentSocket?.join(result.sessionId!);
+            io.in(opponentSocketId).socketsJoin(result.sessionId!);
           }
         } else if (result.status === 'searching') {
           // Clear timeout cũ nếu có (tránh duplicate)
@@ -184,9 +187,10 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
     MATCHMAKING_SOCKET_EVENTS.LEAVE_MATCHMAKING,
     async (data: { userId: string; gameType: MatchmakingGameType }) => {
       try {
-        await clearMatchmakingTimeout(data.userId, data.gameType);
+        const userId = data.userId != null ? String(data.userId) : '';
+        await clearMatchmakingTimeout(userId, data.gameType);
         const storedPartitionKey = socket.data.quizPartitionKey;
-        await MatchmakingService.leaveQueue(data.userId, data.gameType, storedPartitionKey);
+        await MatchmakingService.leaveQueue(userId, data.gameType, storedPartitionKey);
         socket.emit(MATCHMAKING_SOCKET_EVENTS.LEAVE_MATCHMAKING, { success: true });
       } catch (error: any) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: error.message });
@@ -203,9 +207,19 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
       const userId: string | undefined = socket.data.userId;
       const gameType: MatchmakingGameType | undefined = socket.data.gameType;
       if (userId && gameType) {
-        await clearMatchmakingTimeout(userId, gameType);
         const storedPartitionKey = socket.data.quizPartitionKey;
-        await MatchmakingService.leaveQueue(userId, gameType, storedPartitionKey);
+        // Chỉ dọn entry thuộc đúng socket này. Khi user reload, socket cũ
+        // disconnect MUỘN (sau pingTimeout) — nếu xóa theo userId sẽ xóa nhầm
+        // entry + timeout job của phiên search mới, làm user kẹt "searching" mãi.
+        const removed = await MatchmakingService.leaveQueue(
+          userId,
+          gameType,
+          storedPartitionKey,
+          socket.id,
+        );
+        if (removed) {
+          await clearMatchmakingTimeout(userId, gameType);
+        }
       }
     } catch {
       // Ignore cleanup errors

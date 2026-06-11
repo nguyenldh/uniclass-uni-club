@@ -80,7 +80,7 @@ export class TimerQueueService {
           case 'quiz-disconnect-grace': {
             const { QuizArenaService } = await import('../games/quiz-arena/services/quiz-arena.service');
             const { sessionId, userId } = data;
-            
+
             const currentSession = await QuizArenaService.getSession(sessionId);
             if (!currentSession || currentSession.status !== 'playing') return;
 
@@ -91,6 +91,44 @@ export class TimerQueueService {
             if (!userState.disconnected) return;
 
             await QuizArenaService.endMatch(sessionId, io);
+            break;
+          }
+          case 'quiz-start-match': {
+            const { QuizArenaService } = await import('../games/quiz-arena/services/quiz-arena.service');
+            await QuizArenaService.startMatch(data.sessionId, io);
+            break;
+          }
+          case 'mind-game-turn-timeout': {
+            const { sessionId, gameType } = data;
+            if (gameType === 'gomoku') {
+              const { GomokuService } = await import('../games/mind-game/services/gomoku.service');
+              await GomokuService.handleTurnTimeout(sessionId, io);
+            } else {
+              const { CardFlipService } = await import('../games/mind-game/services/card-flip.service');
+              await CardFlipService.handleTurnTimeout(sessionId, io);
+            }
+            break;
+          }
+          case 'mind-game-game-timeout': {
+            const { sessionId, gameType } = data;
+            if (gameType === 'gomoku') {
+              const { GomokuService } = await import('../games/mind-game/services/gomoku.service');
+              await GomokuService.handleGameTimeout(sessionId, io);
+            } else {
+              const { CardFlipService } = await import('../games/mind-game/services/card-flip.service');
+              await CardFlipService.handleGameTimeout(sessionId, io);
+            }
+            break;
+          }
+          case 'mind-game-disconnect-grace': {
+            const { sessionId, gameType, userId } = data;
+            if (gameType === 'gomoku') {
+              const { GomokuService } = await import('../games/mind-game/services/gomoku.service');
+              await GomokuService.handleDisconnectGrace(sessionId, userId, io);
+            } else {
+              const { CardFlipService } = await import('../games/mind-game/services/card-flip.service');
+              await CardFlipService.handleDisconnectGrace(sessionId, userId, io);
+            }
             break;
           }
         }
@@ -196,5 +234,84 @@ export class TimerQueueService {
 
   static async cancelDisconnectGrace(sessionId: string, userId: string): Promise<void> {
     await queue.remove(`quiz-disconnect-grace-${sessionId}-${userId}`);
+  }
+
+  static async scheduleQuizStartMatch(sessionId: string, delayMs: number): Promise<void> {
+    const jobId = `quiz-start-match-${sessionId}`;
+    await queue.remove(jobId);
+    await queue.add('quiz-start-match', { sessionId }, {
+      jobId,
+      delay: delayMs,
+    });
+  }
+
+  // ============================================================
+  // Mind Game (Gomoku / Card Flip) Timeout Helpers
+  // Timer phải nằm trên BullMQ (Redis) thay vì setTimeout in-memory:
+  // với nhiều instance, move có thể được xử lý ở instance khác với nơi
+  // tạo session — timer in-memory không clear/reset xuyên instance được.
+  // ============================================================
+
+  static async scheduleMindGameTurnTimeout(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+    delayMs: number,
+  ): Promise<void> {
+    const jobId = `mind-game-turn-timeout-${gameType}-${sessionId}`;
+    await queue.remove(jobId);
+    await queue.add('mind-game-turn-timeout', { gameType, sessionId }, {
+      jobId,
+      delay: delayMs,
+    });
+  }
+
+  static async cancelMindGameTurnTimeout(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+  ): Promise<void> {
+    await queue.remove(`mind-game-turn-timeout-${gameType}-${sessionId}`);
+  }
+
+  static async scheduleMindGameGameTimeout(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+    delayMs: number,
+  ): Promise<void> {
+    const jobId = `mind-game-game-timeout-${gameType}-${sessionId}`;
+    await queue.remove(jobId);
+    await queue.add('mind-game-game-timeout', { gameType, sessionId }, {
+      jobId,
+      delay: delayMs,
+    });
+  }
+
+  static async cancelMindGameGameTimeout(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+  ): Promise<void> {
+    await queue.remove(`mind-game-game-timeout-${gameType}-${sessionId}`);
+  }
+
+  static async scheduleMindGameDisconnectGrace(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+    userId: string,
+    delayMs: number,
+  ): Promise<void> {
+    // jobId theo sessionId (không kèm userId) — giữ đúng hành vi cũ:
+    // mỗi session chỉ có 1 disconnect timer, lần disconnect sau thay lần trước
+    const jobId = `mind-game-disconnect-grace-${gameType}-${sessionId}`;
+    await queue.remove(jobId);
+    await queue.add('mind-game-disconnect-grace', { gameType, sessionId, userId }, {
+      jobId,
+      delay: delayMs,
+    });
+  }
+
+  static async cancelMindGameDisconnectGrace(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+  ): Promise<void> {
+    await queue.remove(`mind-game-disconnect-grace-${gameType}-${sessionId}`);
   }
 }

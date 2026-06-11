@@ -3,20 +3,18 @@
 // ============================================================
 
 import type { Socket, Server } from 'socket.io';
-import { GomokuService, setGomokuServerIO } from '../services/gomoku.service';
-import { CardFlipService, setCardFlipServerIO } from '../services/card-flip.service';
+import { GomokuService } from '../services/gomoku.service';
+import { CardFlipService } from '../services/card-flip.service';
 import { MIND_GAME_SOCKET_EVENTS, SOCKET_EVENTS } from '@uniclub/shared';
 import { SocketRegistry } from '../../../services';
 
 /**
  * Đăng ký tất cả socket event handlers cho nhóm Mind Game.
  * Matchmaking đã được tách ra handler riêng (game-agnostic).
+ * Timeout events (turn/game/disconnect-grace) được emit từ BullMQ worker
+ * trong TimerQueueService — không cần giữ serverIO ở service nữa.
  */
 export function registerMindGameHandlers(io: Server, socket: Socket): void {
-  // Set server IO cho các service để emit event sau timeout
-  setGomokuServerIO(io);
-  setCardFlipServerIO(io);
-
   // ============================================================
   // Join session room — client gọi khi vào game để nhận broadcast
   // ============================================================
@@ -38,12 +36,12 @@ export function registerMindGameHandlers(io: Server, socket: Socket): void {
       if (data.gameType === 'gomoku') {
         const session = await GomokuService.getSession(data.sessionId);
         if (session?.status === 'playing') {
-          GomokuService.handleReconnect(data.sessionId);
+          await GomokuService.handleReconnect(data.sessionId);
         }
       } else if (data.gameType === 'card_flip') {
         const session = await CardFlipService.getSession(data.sessionId);
         if (session?.status === 'playing') {
-          CardFlipService.handleReconnect(data.sessionId);
+          await CardFlipService.handleReconnect(data.sessionId);
         }
       }
     }
