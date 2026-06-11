@@ -331,6 +331,8 @@ export function WeeklyEventController() {
         personalResult = resultRes.value.result;
       }
 
+      console.log(personalResult);      
+
       useWeeklyEventStore.setState({
         leaderboard: topN,
         personalResult: personalResult,
@@ -390,6 +392,7 @@ export function WeeklyEventController() {
 
   // Render active screens based on current state machine phase
   switch (store.phase) {
+  // switch ('loading') {
     case 'entry':
       return (
         <EventEntry
@@ -460,14 +463,15 @@ export function WeeklyEventController() {
               socketActions.submitAnswer(currentQ.questionId, key);
             }
           }}
+          footer={<ExitButton from="/weekly-event" className="we-exit-btn">Thoát</ExitButton>}
         />
       );
     }
 
     case 'loading':
-      return <SubmissionLoading grade={userGrade} announceAt={getAnnounceTimeStr()} />;
+      return <SubmissionLoading grade={userGrade} announceAt={getAnnounceTimeStr()} headerRight={<ExitButton from="/weekly-event" className="we-exit-btn">Thoát</ExitButton>} />;
 
-    case 'leaderboard':
+    case 'leaderboard':      
       return (
         <LeaderboardScreen
           grade={userGrade}
@@ -535,6 +539,7 @@ export function WeeklyEventController() {
           rank={store.personalResult?.rank ?? 0}
           totalTimeMs={store.personalResult?.totalTimeMs ?? 0}
           onLeaderboard={() => store.setPhase('leaderboard')}
+          headerRight={<ExitButton from={`/weekly-event`} className="we-exit-btn">Thoát</ExitButton>}
         />
       );
 

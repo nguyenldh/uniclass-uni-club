@@ -38,8 +38,10 @@ export function LeaderboardScreen({
 }: LeaderboardScreenProps) {
   const top3 = entries.slice(0, 3);
   const rest_ = entries.slice(3);
-  // podium order: 2 - 1 - 3
-  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean) as LeaderboardEntry[];
+  // podium slots: [hạng 2 · trái, hạng 1 · giữa, hạng 3 · phải]
+  // Giữ nguyên 3 ô (kể cả khi thiếu người) để hạng 1 luôn nằm ở cột giữa.
+  const podiumSlots: Array<LeaderboardEntry | undefined> = [top3[1], top3[0], top3[2]];
+  const hasPodium = top3.length > 0;
 
   return (
     <div data-scr="UI-S-005" className={cn('we-stage', className)} {...rest}>
@@ -53,22 +55,26 @@ export function LeaderboardScreen({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minHeight: 0 }}>
-          {podiumOrder.length > 0 && (
+          {hasPodium && (
             <div className="we-podium">
-              {podiumOrder.map((e) => (
-                <div key={e.rank} className={cn('we-pod', `r${e.rank}`)}>
-                  {e.rank === 1 && <TrophyIcon size={34} className="crown" />}
-                  <span className="rk">{e.rank}</span>
-                  <AvatarImage
-                    src={e.avatarUrl}
-                    name={e.displayName}
-                    avatarBg={e.avatarBg ?? gradeColor(grade)}
-                    className="av"
-                  />
-                  <span className="nm">{e.displayName}{e.isMe && ' (Bạn)'}</span>
-                  <span className="sc">{e.correctCount}/{total} · {fmtDuration(e.totalTimeMs / 1000)}</span>
-                </div>
-              ))}
+              {podiumSlots.map((e, i) =>
+                e ? (
+                  <div key={e.rank} className={cn('we-pod', `r${e.rank}`)}>
+                    {e.rank === 1 && <TrophyIcon size={34} className="crown" />}
+                    <span className="rk">{e.rank}</span>
+                    <AvatarImage
+                      src={e.avatarUrl}
+                      name={e.displayName}
+                      avatarBg={e.avatarBg ?? gradeColor(grade)}
+                      className="av"
+                    />
+                    <span className="nm">{e.displayName}{e.isMe && ' (Bạn)'}</span>
+                    <span className="sc">{e.correctCount}/{total} · {fmtDuration(e.totalTimeMs / 1000)}</span>
+                  </div>
+                ) : (
+                  <div key={`pod-empty-${i}`} className="we-pod-empty" aria-hidden />
+                )
+              )}
             </div>
           )}
 

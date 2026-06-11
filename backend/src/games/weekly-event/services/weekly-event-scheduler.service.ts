@@ -12,6 +12,7 @@ import {
   WEEKLY_EVENT_SOCKET_EVENTS,
   WEEKLY_EVENT_ROOM_PREFIX,
   WEEKLY_EVENT_STUDENT_ROOM_PREFIX,
+  WEEKLY_EVENT_MAX_GRADING_MINUTES,
 } from '@uniclub/shared';
 import { WeeklyEventService } from './weekly-event.service';
 import { WeeklyEventStateMachine } from './weekly-event-state-machine.service';
@@ -112,12 +113,14 @@ export class WeeklyEventSchedulerService {
         const scheduledStart = new Date(event.scheduledStartAt);
         const waitingEnd = new Date(scheduledStart.getTime() + event.waitingDuration * 60000);
         const examEnd = new Date(waitingEnd.getTime() + event.examDuration * 60000);
-        const gradingEnd = new Date(examEnd.getTime() + 2 * 60000); // +2 phút grading
-        const showingEnd = new Date(gradingEnd.getTime() + event.leaderboardDuration * 60000);
+        // Grading → Showing chuyển ngay khi chấm xong; deadline này chỉ là fallback
+        // nếu instance chấm bài bị crash giữa chừng
+        const maxGradingEnd = new Date(examEnd.getTime() + WEEKLY_EVENT_MAX_GRADING_MINUTES * 60000);
+        const fallbackShowingEnd = new Date(maxGradingEnd.getTime() + event.leaderboardDuration * 60000);
 
         for (const grade of event.activeGrades) {
           try {
-            await this.transitionGrade(eventId, grade, event, now, scheduledStart, waitingEnd, examEnd, gradingEnd, showingEnd);
+            await this.transitionGrade(eventId, grade, event, now, scheduledStart, waitingEnd, examEnd, maxGradingEnd, fallbackShowingEnd);
           } catch (err) {
             console.error(`[WeeklyEvent] Transition error event=${eventId} grade=${grade}:`, err);
           }
@@ -136,11 +139,12 @@ export class WeeklyEventSchedulerService {
     scheduledStart: Date,
     waitingEnd: Date,
     examEnd: Date,
-    gradingEnd: Date,
-    showingEnd: Date,
+    maxGradingEnd: Date,
+    fallbackShowingEnd: Date,
   ): Promise<void> {
-    const currentState = await WeeklyEventStateMachine.getState(eventId, grade);
-    if (!currentState) return;
+    const stateData = await WeeklyEventStateMachine.getStateData(eventId, grade);
+    if (!stateData) return;
+    const currentState = stateData.status;
 
     // Scheduled → Waiting (đến giờ bắt đầu)
     if (currentState === 'Scheduled' as any && now >= scheduledStart) {
@@ -180,7 +184,7 @@ export class WeeklyEventSchedulerService {
 
     // InProgress → Grading (T+25 hoặc all submitted)
     if (currentState === 'InProgress' && now >= examEnd) {
-      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Grading', gradingEnd.toISOString());
+      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Grading', maxGradingEnd.toISOString());
       if (!res.success || res.alreadyInState) return;
 
       await this.syncEventStatus(eventId, 'Grading');
@@ -217,48 +221,29 @@ export class WeeklyEventSchedulerService {
           );
         }
       }
+
+      // Chấm xong → chuyển Showing ngay, không đợi cron tick kế tiếp.
+      // (Nếu gradeAllStudents throw thì không tới đây — fallback bên dưới sẽ xử lý.)
+      await this.enterShowing(eventId, grade, event);
       return;
     }
 
-    // Grading → Showing (T+27) — trigger FLOW-009 + FLOW-010
-    if (currentState === 'Grading' && now >= gradingEnd) {
-      const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Showing', showingEnd.toISOString());
-      if (!res.success || res.alreadyInState) return;
-
-      await this.syncEventStatus(eventId, 'Showing');
-      this.broadcastRoomState(eventId, grade, 'Showing');
-
-      // FLOW-009: Tính leaderboard + FLOW-010: Broadcast
-      const room = await WeeklyEventRoomModel.findOne({ eventId, grade }).lean();
-      if (room) {
-        const config = await import('@uniclub/shared').then((m) => m.DEFAULT_WEEKLY_EVENT_GENERAL_CONFIG);
-        const topN = await WeeklyEventGradingService.calculateLeaderboard(
-          eventId,
-          String(room._id),
-          grade,
-          config.leaderboardLimit,
-        );
-
-        const weNs = getIO().of(WEEKLY_EVENT_NAMESPACES.STUDENT);
-        const room_ = `${WEEKLY_EVENT_ROOM_PREFIX}:${eventId}:${grade}`;
-
-        // Broadcast leaderboard tới cả room (S06)
-        weNs.to(room_).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_LEADERBOARD, {
-          topN,
-          computedAt: new Date().toISOString(),
-        });
-
-        // FLOW-010: Phát tín hiệu Pub/Sub để tất cả các server node cục bộ tự đẩy kết quả
-        await redis.publish(
-          'we:events:transitions',
-          JSON.stringify({ eventId, grade, status: 'Showing' })
-        );
-      }
+    // Grading → Showing: FALLBACK — bình thường đã chuyển ngay sau khi chấm xong ở trên.
+    // Chỉ kích hoạt nếu instance chấm bài crash/lỗi giữa chừng khiến room kẹt ở Grading.
+    if (currentState === 'Grading' && now >= maxGradingEnd) {
+      console.warn(`[WeeklyEvent] Room event=${eventId} grade=${grade} kẹt ở Grading quá ${WEEKLY_EVENT_MAX_GRADING_MINUTES} phút — force chuyển Showing`);
+      await this.enterShowing(eventId, grade, event);
       return;
     }
 
-    // Showing → Closed (T+30)
-    if (currentState === 'Showing' && now >= showingEnd) {
+    // Showing → Closed — deadline thực tế lưu trong nextTransitionAt khi vào Showing
+    // (Showing có thể bắt đầu sớm hơn timeline tĩnh vì chấm bài xong trước hạn)
+    if (currentState === 'Showing') {
+      const showingEnd = stateData.nextTransitionAt
+        ? new Date(stateData.nextTransitionAt)
+        : fallbackShowingEnd;
+      if (now < showingEnd) return;
+
       const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Closed');
       if (!res.success || res.alreadyInState) return;
 
@@ -271,6 +256,47 @@ export class WeeklyEventSchedulerService {
       // Cleanup Redis state
       await WeeklyEventStateMachine.cleanupEventState(eventId, [grade]);
       return;
+    }
+  }
+
+  /**
+   * Grading → Showing: chuyển ngay khi chấm bài xong (FLOW-009 + FLOW-010).
+   * Showing kéo dài leaderboardDuration phút TÍNH TỪ LÚC VÀO Showing —
+   * deadline được lưu vào nextTransitionAt để cron đóng room đúng giờ.
+   */
+  private static async enterShowing(eventId: string, grade: number, event: any): Promise<void> {
+    const showingEnd = new Date(Date.now() + event.leaderboardDuration * 60000);
+    const res = await WeeklyEventStateMachine.transition(eventId, grade, 'Showing', showingEnd.toISOString());
+    if (!res.success || res.alreadyInState) return;
+
+    await this.syncEventStatus(eventId, 'Showing');
+    this.broadcastRoomState(eventId, grade, 'Showing');
+
+    // FLOW-009: Tính leaderboard + FLOW-010: Broadcast
+    const room = await WeeklyEventRoomModel.findOne({ eventId, grade }).lean();
+    if (room) {
+      const config = await import('@uniclub/shared').then((m) => m.DEFAULT_WEEKLY_EVENT_GENERAL_CONFIG);
+      const topN = await WeeklyEventGradingService.calculateLeaderboard(
+        eventId,
+        String(room._id),
+        grade,
+        config.leaderboardLimit,
+      );
+
+      const weNs = getIO().of(WEEKLY_EVENT_NAMESPACES.STUDENT);
+      const room_ = `${WEEKLY_EVENT_ROOM_PREFIX}:${eventId}:${grade}`;
+
+      // Broadcast leaderboard tới cả room (S06)
+      weNs.to(room_).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_LEADERBOARD, {
+        topN,
+        computedAt: new Date().toISOString(),
+      });
+
+      // FLOW-010: Phát tín hiệu Pub/Sub để tất cả các server node cục bộ tự đẩy kết quả
+      await redis.publish(
+        'we:events:transitions',
+        JSON.stringify({ eventId, grade, status: 'Showing' })
+      );
     }
   }
 

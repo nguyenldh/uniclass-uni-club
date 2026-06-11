@@ -50,14 +50,7 @@ export function WaitingRoom({
           <div className="we-eyebrow">Chủ đề tuần này</div>
           <h1 className="we-theme-title">{weeklyTitle}</h1>
 
-          <CountdownTimer to={startAt} skewMs={skewMs} label="Phát đề sau" showDays={false} urgentBelowSec={60} />
-
-          <div className="we-crowd" aria-hidden>
-            {shown.map((f, i) => (
-              <span key={i} className="face" style={{ background: f.avatarBg ?? gradeColor(((i % 9) + 1)) }}>{initialOf(f.name)}</span>
-            ))}
-            {extra > 0 && <span className="more">+{extra.toLocaleString('vi-VN')}</span>}
-          </div>
+          <CountdownTimer to={startAt} skewMs={skewMs} label="Phát đề sau" showDays={false} urgentBelowSec={60} />
 
           <div className="we-tips">
             {tips.map((t, i) => <span key={i} className="we-tip">{t}</span>)}

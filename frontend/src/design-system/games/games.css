@@ -320,6 +320,39 @@
   overflow-x: auto;
 }
 
+/* Nút "Thoát" ở màn matchmaking — pill chữ, giống các game khác */
+.mm-exit-btn{
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, .35);
+  background: rgba(0, 0, 0, .35);
+  color: rgba(255, 255, 255, .85);
+  font-family: var(--f-game);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.mm-exit-btn:hover{
+  background: rgba(0, 0, 0, .55);
+  border-color: rgba(255, 255, 255, .6);
+  color: #fff;
+}
+.mm-exit-btn:active{
+  transform: scale(.96);
+}
+
 /* Nút thoát trong HUD: ẩn mặc định (chỉ hiện ở landscape) */
 .exit-in-hud{
   display: none;
@@ -349,6 +382,10 @@
     0 8px 0 rgba(110,63,23,.4);
   font-family: var(--f-game);
   position: relative;
+}
+
+.game-hud > div {
+  flex: 1 1 0;
 }
 
 .player-card{

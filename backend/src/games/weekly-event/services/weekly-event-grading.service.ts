@@ -477,10 +477,15 @@ export class WeeklyEventGradingService {
       }
 
       if (finalGrade) {
-        // Tính toán rank real-time từ Redis sorted set
+        // Tính toán rank real-time từ Redis sorted set.
+        // Nếu sorted set đã hết hạn (xem lại sự kiện cũ) hoặc không có entry,
+        // GIỮ rank đã lưu trong MongoDB (set ở calculateLeaderboard) làm fallback —
+        // tránh ghi đè thành undefined khiến UI không hiển thị xếp hạng.
         const lbKey = `${WEEKLY_EVENT_REDIS_KEYS.LEADERBOARD(eventId)}:${finalGrade}`;
         const redisRank = await redis.zrevrank(lbKey, studentId);
-        result.rank = redisRank !== null ? redisRank + 1 : undefined;
+        if (redisRank !== null) {
+          result.rank = redisRank + 1;
+        }
       }
     }
 

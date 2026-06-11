@@ -28,18 +28,19 @@ export interface PersonalResultScreenProps extends Omit<HTMLAttributes<HTMLDivEl
   allowReview?: boolean;
   onReview?: () => void;
   onLeaderboard?: () => void;
+  headerRight: ReactNode;
 }
 
 export function PersonalResultScreen({
   grade, name, className: cls, avatarBg, avatarUrl, correct, wrong, skipped, score, rank,
   totalParticipants, totalTimeMs, allowReview = false, onReview, onLeaderboard,
-  className, ...rest
+  className, headerRight, ...rest
 }: PersonalResultScreenProps) {
   return (
     <div data-scr="UI-S-006" className={cn('we-stage is-soft', className)} {...rest}>
       <div className="we-motes" aria-hidden><i /><i /><i /><i /></div>
       <div className="we-result">
-        <WeHeader grade={grade} />
+        <WeHeader grade={grade} right={headerRight} />
 
         <div className="we-body">
           <div className="we-result-hero">

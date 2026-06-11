@@ -210,7 +210,9 @@ export function MatchmakingPage() {
       }}
     >
       {(validGameType === "gomoku" || validGameType === "card_flip") && (
-        <ExitButton from={`/matchmaking/${validGameType}`} />
+        <ExitButton from={`/matchmaking/${validGameType}`} className="mm-exit-btn">
+          Thoát
+        </ExitButton>
       )}
       <Banner variant="brown">
         <h1>

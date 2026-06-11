@@ -139,6 +139,13 @@ export const WEEKLY_EVENT_DEFAULT_QUESTION_COUNT = 25;
 /** Số khối lớp tối đa */
 export const WEEKLY_EVENT_MAX_GRADES = 12;
 
+/**
+ * Thời gian chấm bài TỐI ĐA (phút) — chỉ là fallback an toàn.
+ * Bình thường room chuyển Grading → Showing ngay khi chấm xong;
+ * deadline này chỉ kích hoạt nếu instance chấm bài bị crash giữa chừng.
+ */
+export const WEEKLY_EVENT_MAX_GRADING_MINUTES = 10;
+
 /** TTL mặc định cho Redis keys (event end + 1h buffer, tính bằng giây) */
 export const WEEKLY_EVENT_REDIS_TTL_BUFFER = 3600;
 

@@ -99,7 +99,7 @@ export function MemoryCard({
               display: 'inline-flex',
             }}
           >
-            {backOrnament ?? <StarIcon size={36} />}
+            {backOrnament ?? <img src="/images/card/card-back.png" alt="Card back" width={36} />}
           </span>
         </div>
 

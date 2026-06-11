@@ -14,16 +14,17 @@ export interface SubmissionLoadingProps extends Omit<HTMLAttributes<HTMLDivEleme
   /** Giờ công bố (vd "10h27"). */
   announceAt?: ReactNode;
   title?: ReactNode;
+  headerRight?: ReactNode;
 }
 
 export function SubmissionLoading({
-  grade, announceAt = '10h27', title = 'Đang chấm bài…', className, ...rest
+  grade, announceAt = '10h27', title = 'Đang chấm bài…', headerRight, className, ...rest
 }: SubmissionLoadingProps) {
   return (
     <div data-scr="UI-S-004" className={cn('we-stage', className)} {...rest}>
       <div className="we-motes" aria-hidden><i /><i /><i /><i /></div>
       <div className="we-screen" style={{ gridTemplateRows: 'auto 1fr' }}>
-        <WeHeader grade={grade} />
+        <WeHeader grade={grade} right={headerRight} />
         <div className="we-load">
           <div className="we-spinner">
             <svg viewBox="0 0 96 96" fill="none" aria-hidden>

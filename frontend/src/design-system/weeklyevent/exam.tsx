@@ -59,12 +59,14 @@ export interface ExamScreenProps extends Omit<HTMLAttributes<HTMLDivElement>, 'o
   /** Hiện toast khôi phục bài (UI-C-009). */
   resume?: { remainingMin?: number; restoredCount?: number } | null;
   onSelect?: (key: AnswerOption['key']) => void;
+  /** Nội dung footer hiển thị bên dưới phần trả lời câu hỏi. */
+  footer?: ReactNode;
 }
 
 export function ExamScreen({
   grade, index, total, question, image, options, answeredCount,
   selected = null, saved = false, locked = false, remaining, perQuestionSec,
-  conn = 'connected', showDisconnect = false, resume = null, onSelect, className, ...rest
+  conn = 'connected', showDisconnect = false, resume = null, onSelect, footer, className, ...rest
 }: ExamScreenProps) {
   return (
     <div data-scr="UI-S-003" className={cn('we-stage', className)} {...rest}>
@@ -88,6 +90,12 @@ export function ExamScreen({
           options={options} selected={selected} saved={saved} locked={locked}
           onSelect={onSelect}
         />
+
+        {footer && (
+          <div className="we-ctarow" style={{ paddingTop: 4, paddingBottom: 8 }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

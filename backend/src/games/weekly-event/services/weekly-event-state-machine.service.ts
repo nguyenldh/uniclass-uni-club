@@ -10,6 +10,7 @@ import {
   WEEKLY_EVENT_TRANSITION_LOCK_TTL,
   WEEKLY_EVENT_REDIS_TTL_BUFFER,
   WEEKLY_EVENT_DEFAULT_KEY_TTL,
+  WEEKLY_EVENT_MAX_GRADING_MINUTES,
 } from '@uniclub/shared';
 import type { WeeklyEventRoomStatus } from '@uniclub/shared';
 
@@ -85,6 +86,24 @@ export class WeeklyEventStateMachine {
   }
 
   /**
+   * Lấy trạng thái + deadline transition kế tiếp của phòng từ Redis.
+   * Dùng cho scheduler khi deadline không tính trước được từ timeline tĩnh
+   * (vd: Showing bắt đầu sớm vì chấm bài xong trước hạn).
+   */
+  static async getStateData(
+    eventId: string,
+    grade: number,
+  ): Promise<{ status: WeeklyEventRoomStatus; nextTransitionAt?: string } | null> {
+    const roomStateKey = `${WEEKLY_EVENT_REDIS_KEYS.ROOM_STATE(eventId)}:${grade}`;
+    const state = await redis.hgetall(roomStateKey);
+    if (!state || !state.status) return null;
+    return {
+      status: state.status as WeeklyEventRoomStatus,
+      nextTransitionAt: state.nextTransitionAt || undefined,
+    };
+  }
+
+  /**
    * Khởi tạo room state trong Redis (khi event được publish).
    * Ban đầu room ở trạng thái Scheduled — scheduler sẽ chuyển sang Waiting khi đến giờ.
    */
@@ -113,7 +132,7 @@ export class WeeklyEventStateMachine {
 
   /**
    * Tính TTL cho Redis key dựa trên thời gian kết thúc event + buffer.
-   * Công thức: (scheduledStart + waiting + exam + 2min grading + leaderboard) - now + buffer
+   * Công thức: (scheduledStart + waiting + exam + max grading + leaderboard) - now + buffer
    */
   static getEventKeyTTL(event: {
     scheduledStartAt: Date | string;
@@ -122,7 +141,7 @@ export class WeeklyEventStateMachine {
     leaderboardDuration: number;
   }): number {
     const startMs = new Date(event.scheduledStartAt).getTime();
-    const totalMin = event.waitingDuration + event.examDuration + 2 + event.leaderboardDuration;
+    const totalMin = event.waitingDuration + event.examDuration + WEEKLY_EVENT_MAX_GRADING_MINUTES + event.leaderboardDuration;
     const endMs = startMs + totalMin * 60000;
     const remainingSec = Math.ceil((endMs - Date.now()) / 1000);
     return Math.max(remainingSec, 0) + WEEKLY_EVENT_REDIS_TTL_BUFFER;

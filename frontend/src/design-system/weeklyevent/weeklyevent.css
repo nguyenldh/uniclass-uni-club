@@ -668,10 +668,10 @@
   position: relative;
   height: 12px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, .4);
+  background: rgba(163, 163, 163, 0.664);
   border: 2px solid rgba(0, 0, 0, .5);
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .4);
+  /* box-shadow: inset 0 2px 4px rgba(0, 0, 0, .4); */
 }
 
 .we-progress .pg-fill {
@@ -1462,7 +1462,6 @@
   line-height: 1;
   color: var(--we-gold-2);
   text-shadow: 0 5px 0 var(--g-wood-4), 0 0 40px rgba(246, 195, 68, .4);
-  -webkit-text-stroke: 2px var(--g-wood-4);
   font-variant-numeric: tabular-nums;
 }
 
