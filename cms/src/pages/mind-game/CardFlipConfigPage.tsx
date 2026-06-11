@@ -15,6 +15,7 @@ import {
 } from 'antd';
 import { SaveOutlined, ClearOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { useConfigStore } from '../../stores/config.store';
+import { MatchmakingModeSection } from '../../components';
 import type { CardFlipConfig, CardFlipItem } from '@uniclub/shared';
 
 const { Title, Text } = Typography;
@@ -92,6 +93,8 @@ export function CardFlipConfigPage() {
           >
             <InputNumber min={10} max={120} style={{ width: '100%' }} />
           </Form.Item>
+
+          <MatchmakingModeSection />
 
           <Form.Item
             name="winPoints"

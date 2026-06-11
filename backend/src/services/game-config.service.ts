@@ -7,6 +7,7 @@ import type {
   MatchmakingGameType,
   QuizArenaConfig,
   BossBattleConfig,
+  OpponentMode,
 } from '@uniclub/shared';
 import {
   DEFAULT_GOMOKU_CONFIG,
@@ -61,7 +62,11 @@ export class GameConfigService {
     if (cached) return JSON.parse(cached);
 
     const doc = await GameConfigModel.findOne({ gameType: 'quiz_arena' });
-    const config = doc?.quizArena ?? DEFAULT_QUIZ_ARENA_CONFIG;
+    // Merge với default để các field mới (vd: opponentMode) luôn có giá trị
+    // kể cả khi doc cũ trong DB chưa có field đó.
+    const config = doc?.quizArena
+      ? { ...DEFAULT_QUIZ_ARENA_CONFIG, ...(doc.quizArena as any).toObject() }
+      : DEFAULT_QUIZ_ARENA_CONFIG;
 
     await redis.set(
       `${REDIS_KEYS.GAME_CONFIG}:quiz_arena`,
@@ -88,6 +93,48 @@ export class GameConfigService {
     );
 
     return config;
+  }
+
+  /**
+   * Lấy thông số ghép trận của một game type (game-agnostic):
+   * - `matchmakingTimeout`: tổng thời gian tìm trận (giây), dùng hiển thị cho client.
+   * - `botActivationSeconds`: mốc bắt đầu cho phép ghép bot (chỉ dùng khi mode = 'mixed').
+   * - `opponentMode`: 'mixed' (tìm người thật rồi mới bot) hoặc 'bot_only' (chỉ bot).
+   * Fallback an toàn nếu thiếu config hoặc lỗi đọc DB.
+   */
+  static async getMatchmakingTiming(gameType: MatchmakingGameType): Promise<{
+    matchmakingTimeout: number;
+    botActivationSeconds: number;
+    opponentMode: OpponentMode;
+  }> {
+    try {
+      let config: { matchmakingTimeout: number; botActivationSeconds?: number; opponentMode?: OpponentMode } | null = null;
+      if (gameType === 'gomoku') {
+        config = await this.getGomokuConfig();
+      } else if (gameType === 'card_flip') {
+        config = await this.getCardFlipConfig();
+      } else if (gameType === 'quiz' || gameType === 'quiz_arena') {
+        config = await this.getQuizArenaConfig();
+      }
+
+      if (config) {
+        const matchmakingTimeout = config.matchmakingTimeout;
+        return {
+          matchmakingTimeout,
+          // Fallback: nếu thiếu botActivationSeconds, dùng 50% timeout
+          botActivationSeconds: config.botActivationSeconds ?? Math.round(matchmakingTimeout / 2),
+          opponentMode: config.opponentMode ?? 'mixed',
+        };
+      }
+    } catch {
+      // fallback bên dưới
+    }
+    const timeout = DEFAULT_MATCHMAKING_CONFIG.timeout;
+    return {
+      matchmakingTimeout: timeout,
+      botActivationSeconds: Math.round(timeout / 2),
+      opponentMode: 'mixed',
+    };
   }
 
   /** Lấy matchmaking timeout cho một game type (game-agnostic) */

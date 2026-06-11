@@ -48,8 +48,8 @@ const DEFAULT_TITLES: Record<ResultOutcome, string> = {
 };
 
 const DEFAULT_SUBS: Record<ResultOutcome, string> = {
-  win:  'Phản xạ siêu tốc — quá xuất sắc!',
-  lose: 'Đừng nản, lượt sau nhé!',
+  win:  'Bất bại! Đối thủ phải nể bạn 🔥',
+  lose: 'Chưa phục! Phục thù ngay trận sau 💪',
 };
 
 /** Format giây thành "12.3s" hoặc "1:23". */
@@ -101,7 +101,7 @@ function ResultSide({
     <div className={cn('st-compare-side', side, isWinner && 'is-winner')} style={{ position: 'relative' }}>
       {isWinner && (
         <span className="crown" aria-hidden>
-          <TrophyIcon size={44} />
+          <TrophyIcon size={60} />
         </span>
       )}
       <AvatarImage

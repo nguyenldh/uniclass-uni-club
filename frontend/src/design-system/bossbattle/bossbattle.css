@@ -125,6 +125,7 @@
 .bb-topbar-right{
   display:flex; gap:10px; align-items:center;
   flex-shrink:1; min-width:0;
+  flex-wrap: wrap;
 }
 
 /* Exit button inline variant — nút "Thoát" cùng hàng với badge khối */
@@ -166,6 +167,11 @@
 .bb-lobby-main{
   display:grid; grid-template-columns: 1fr; gap:18px;
   align-items:center; justify-items:center;
+}
+/* Nút hành động đặt ngay dưới tên boss (vd: Bảng xếp hạng) */
+.bb-name-action{
+  display:flex; justify-content:center;
+  margin-top:-6px;
 }
 
 /* ---- UI-101 Boss Display ---- */

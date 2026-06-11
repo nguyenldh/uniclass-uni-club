@@ -2,7 +2,7 @@
 // Quiz Arena Types — So Tài
 // ============================================================
 
-import type { GameSessionStatus, AIDifficulty, AuthUser } from './common';
+import type { GameSessionStatus, AIDifficulty, AuthUser, OpponentMode } from './common';
 
 /** Nhóm năng lực / độ khó được tính tự động */
 export type QuizDifficulty = 'easy' | 'medium' | 'hard';
@@ -23,6 +23,10 @@ export interface QuizArenaConfig {
   uniPointsPerCorrect: number;
   /** Tổng thời gian tìm trận tối đa (giây, default: 30) */
   matchmakingTimeout: number;
+  /**
+   * Chế độ ghép đối thủ: `mixed` (tìm người thật rồi mới bot) hoặc `bot_only` (chỉ bot).
+   */
+  opponentMode: OpponentMode;
   /**
    * @deprecated Sử dụng botActivationSeconds thay thế.
    * Giữ lại để backward compatible. Backend không còn dùng field này.
@@ -106,6 +110,12 @@ export interface QuizQuestionPublic {
   totalQuestions: number;
   /** Timestamp (ms) khi server bắt đầu phát câu hỏi — dùng để tính thời gian còn lại khi reconnect */
   startedAt: number;
+  /**
+   * Giờ hiện tại của server (ms) tại thời điểm phát/gửi lại payload này.
+   * Client dùng để tính độ lệch đồng hồ (skew = serverNow - clientNow) một lần,
+   * rồi tính thời gian đã trôi mà không phụ thuộc đồng hồ tuyệt đối của thiết bị.
+   */
+  serverNow: number;
 }
 
 // ---- Per-player in-match state ----

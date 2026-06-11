@@ -21,10 +21,12 @@ interface GomokuState {
   status: string;
   moveCount: number;
   timeElapsed: number;
+  /** Lệch đồng hồ client↔server (ms) = serverNow - clientNow, đo 1 lần khi hydrate session */
+  clockSkewMs: number;
   overlayState: 'win' | 'lose' | 'draw' | 'idle';
   overlayStats: Array<{ label: string; value: string }>;
 
-  setSession: (session: GomokuSession) => void;
+  setSession: (session: GomokuSession, serverNow?: number) => void;
   makeMove: (row: number, col: number, symbol: 'X' | 'O') => void;
   setWin: (win: CaroWinInfo) => void;
   tick: () => void;
@@ -46,15 +48,18 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
   status: 'idle',
   moveCount: 0,
   timeElapsed: 0,
+  clockSkewMs: 0,
   overlayState: 'idle',
   overlayStats: [],
 
-  setSession: (session) => {
+  setSession: (session, serverNow) => {
     const board = session.board.map(row => [...row]) as CellValue[][];
-    // Tính timeElapsed từ startedAt để không bị reset về 0 sau F5
-    const elapsed = session.startedAt
-      ? Math.max(0, Math.round((Date.now() - new Date(session.startedAt).getTime()) / 1000))
-      : 0;
+    // Đo lệch đồng hồ 1 lần từ serverNow (giờ server lúc trả response). Sau đó mọi
+    // tính toán dùng "giờ server ước lượng" = Date.now() + clockSkewMs, không phụ
+    // thuộc đồng hồ tuyệt đối của thiết bị (tránh đếm lại từ đầu khi máy lệch giờ).
+    const clockSkewMs = serverNow != null ? serverNow - Date.now() : 0;
+    const startedAtMs = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
+    const elapsed = Math.max(0, Math.floor((Date.now() + clockSkewMs - startedAtMs) / 1000));
     set({
       session,
       board,
@@ -65,6 +70,7 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
       status: session.status,
       moveCount: session.moveCount,
       timeElapsed: elapsed,
+      clockSkewMs,
       overlayState: 'idle',
       overlayStats: [],
     });
@@ -91,7 +97,14 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
     });
   },
 
-  tick: () => set(s => ({ timeElapsed: s.timeElapsed + 1 })),
+  // Tính lại từ startedAt (hiệu chỉnh skew), KHÔNG cộng dồn → miễn nhiễm throttle khi nền
+  // và lệch đồng hồ thiết bị.
+  tick: () => set(s => {
+    if (!s.session?.startedAt) return {};
+    const startedAtMs = new Date(s.session.startedAt).getTime();
+    const elapsed = Math.max(0, Math.floor((Date.now() + s.clockSkewMs - startedAtMs) / 1000));
+    return { timeElapsed: elapsed };
+  }),
 
   endGame: (result, timeElapsed, moves, score) => {
     const { session } = get();
@@ -117,6 +130,7 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
     status: 'idle',
     moveCount: 0,
     timeElapsed: 0,
+    clockSkewMs: 0,
     overlayState: 'idle',
     overlayStats: [],
   }),
@@ -133,10 +147,12 @@ interface CardFlipState {
   scores: { playerA: number; playerB: number };
   lastFlipped: number[];
   timeElapsed: number;
+  /** Lệch đồng hồ client↔server (ms) = serverNow - clientNow, đo 1 lần khi hydrate session */
+  clockSkewMs: number;
   overlayState: 'win' | 'lose' | 'draw' | 'idle';
   overlayStats: Array<{ label: string; value: string }>;
 
-  setSession: (session: CardFlipSession) => void;
+  setSession: (session: CardFlipSession, serverNow?: number) => void;
   syncFromServer: (data: { cards: Array<{ id: number; pairId: number; value: string; flipped: boolean; matched: boolean }>; currentTurn: string; scores: { playerA: number; playerB: number }; lastFlipped: number[] }) => void;
   flipCard: (cardId: number) => void;
   markMatched: (cardId1: number, cardId2: number) => void;
@@ -154,10 +170,11 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
   scores: { playerA: 0, playerB: 0 },
   lastFlipped: [],
   timeElapsed: 0,
+  clockSkewMs: 0,
   overlayState: 'idle',
   overlayStats: [],
 
-  setSession: (session) => {
+  setSession: (session, serverNow) => {
     const cards: Array<MemoryCardData & { state: MemoryCardState }> = session.cards.map((c) => ({
       id: String(c.id),
       pairId: String(c.pairId),
@@ -166,9 +183,10 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
       state: c.matched ? 'matched' : c.flipped ? 'revealed' : 'hidden',
     }));
 
-    const elapsed = session.startedAt
-      ? Math.max(0, Math.round((Date.now() - new Date(session.startedAt).getTime()) / 1000))
-      : 0;
+    // Đo lệch đồng hồ 1 lần từ serverNow; dùng "giờ server ước lượng" = Date.now() + skew.
+    const clockSkewMs = serverNow != null ? serverNow - Date.now() : 0;
+    const startedAtMs = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
+    const elapsed = Math.max(0, Math.floor((Date.now() + clockSkewMs - startedAtMs) / 1000));
 
     set({
       session,
@@ -177,6 +195,7 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
       scores: session.scores,
       lastFlipped: session.lastFlipped,
       timeElapsed: elapsed,
+      clockSkewMs,
       overlayState: 'idle',
       overlayStats: [],
     });
@@ -222,7 +241,14 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
 
   switchTurn: (newTurn) => set({ currentTurn: newTurn }),
 
-  tick: () => set((s) => ({ timeElapsed: s.timeElapsed + 1 })),
+  // Tính lại từ startedAt (hiệu chỉnh skew), KHÔNG cộng dồn → miễn nhiễm throttle khi nền
+  // và lệch đồng hồ thiết bị.
+  tick: () => set((s) => {
+    if (!s.session?.startedAt) return {};
+    const startedAtMs = new Date(s.session.startedAt).getTime();
+    const elapsed = Math.max(0, Math.floor((Date.now() + s.clockSkewMs - startedAtMs) / 1000));
+    return { timeElapsed: elapsed };
+  }),
 
   endGame: (result, timeElapsed, myScore, opponentScore) => {
     const { session } = get();
@@ -231,7 +257,7 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
       overlayState: result,
       overlayStats: [
         { label: 'Thời gian', value: `${timeElapsed}s` },
-        { label: 'Điểm bạn', value: String(myScore) },
+        { label: 'Điểm của bạn', value: String(myScore) },
         { label: 'Điểm đối thủ', value: String(opponentScore) },
       ],
     });
@@ -244,6 +270,7 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
     scores: { playerA: 0, playerB: 0 },
     lastFlipped: [],
     timeElapsed: 0,
+    clockSkewMs: 0,
     overlayState: 'idle',
     overlayStats: [],
   }),

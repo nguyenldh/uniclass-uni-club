@@ -41,7 +41,6 @@ export class WeeklyEventConfigService {
       defaultLeaderboardDuration: doc.defaultLeaderboardDuration,
       leaderboardLimit: doc.leaderboardLimit,
       defaultActiveGrades: doc.defaultActiveGrades,
-      weeklyCronExpression: doc.weeklyCronExpression,
       timezone: doc.timezone,
       updatedAt: (doc as any).updatedAt?.toISOString(),
       updatedBy: (doc as any).updatedBy,
@@ -64,7 +63,6 @@ export class WeeklyEventConfigService {
     if (input.defaultLeaderboardDuration !== undefined) update.defaultLeaderboardDuration = input.defaultLeaderboardDuration;
     if (input.leaderboardLimit !== undefined) update.leaderboardLimit = input.leaderboardLimit;
     if (input.defaultActiveGrades !== undefined) update.defaultActiveGrades = input.defaultActiveGrades;
-    if (input.weeklyCronExpression !== undefined) update.weeklyCronExpression = input.weeklyCronExpression;
     if (input.timezone !== undefined) update.timezone = input.timezone;
 
     await WeeklyEventGeneralConfigModel.findByIdAndUpdate(

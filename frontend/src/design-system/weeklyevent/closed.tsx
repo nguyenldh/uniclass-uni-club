@@ -47,6 +47,8 @@ export function EventClosedScreen({
   };
 
   const countdownTarget = nextEventAt ? new Date(nextEventAt) : getFallbackNextSaturday();
+  // Có sự kiện kế tiếp → nhấn mạnh "sắp diễn ra" thay vì "đã kết thúc" cho đỡ gây hiểu nhầm
+  const hasNext = !cancelled && !!nextEventAt;
 
   return (
     <div data-scr="UI-S-007" className={cn('we-stage is-soft', className)} {...rest}>
@@ -54,8 +56,14 @@ export function EventClosedScreen({
       <div className="we-screen">
         <WeHeader grade={grade} />
         <div className="we-body">
-          <div style={{ fontSize: 56 }} aria-hidden>{cancelled ? '🛑' : '🌙'}</div>
-          <h1 className="we-theme-title">{cancelled ? 'Sự kiện đã bị huỷ' : 'Sự kiện tuần đã kết thúc!'}</h1>
+          <div style={{ fontSize: 56 }} aria-hidden>{cancelled ? '🛑' : hasNext ? '🗓️' : '🌙'}</div>
+          <h1 className="we-theme-title">
+            {cancelled
+              ? 'Sự kiện đã bị huỷ'
+              : hasNext
+                ? 'Sự kiện tuần tới sắp diễn ra!'
+                : 'Sự kiện tuần đã kết thúc!'}
+          </h1>
           {cancelled ? (
             <div className="we-note-plate warn" style={{ textAlign: 'center' }}>
               <span className="em">⚠️</span>
@@ -65,23 +73,23 @@ export function EventClosedScreen({
             <div className="we-subtle" style={{ maxWidth: 420 }}>
               {nextEventAt ? (
                 <>
-                  Sự kiện tuần này đã khép lại. Hẹn gặp bạn vào sự kiện kế tiếp diễn ra lúc:
+                  Sự kiện tuần này đã kết thúc. Sự kiện tiếp theo sẽ diễn ra lúc:
                   <div style={{ marginTop: 6 }}>
                     <strong style={{ color: 'var(--we-accent)' }}>{formatOpenTime(nextEventAt)}</strong>
                   </div>
                 </>
               ) : (
-                'Sự kiện tuần này đã khép lại. Cùng quay lại vào 10h00 thứ Bảy tới nhé!'
+                'Sự kiện tuần này đã kết thúc. Cùng quay lại vào 10h00 thứ Bảy tới nhé!'
               )}
             </div>
           )}
-          <CountdownTimer to={countdownTarget} skewMs={skewMs} label="Sự kiện tiếp theo" />
+          <CountdownTimer to={countdownTarget} skewMs={skewMs} label="Sự kiện tiếp theo bắt đầu sau" />
         </div>
         <div className="we-foot" style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           {lastEvent && onViewLeaderboard && (
             <GameButton onClick={onViewLeaderboard}>Xem bảng xếp hạng</GameButton>
           )}
-          <GameButton color="ghost" onClick={onBackHome}>Thoát</GameButton>
+          <GameButton color="ghost" onClick={onBackHome}>Thoát</GameButton>
         </div>
       </div>
     </div>

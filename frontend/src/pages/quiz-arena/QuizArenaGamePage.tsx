@@ -13,6 +13,7 @@ import {
   MatchProgress,
   ResultCompare,
   FloatingPoints,
+  QuizCallout,
   type AnswerKey,
   type ProgressPip,
 } from "../../design-system/sotai";
@@ -201,6 +202,26 @@ export function QuizArenaGamePage() {
     };
   }, [phase]); // eslint-disable-line
 
+  // ---- Re-sync đồng hồ ngay khi quay lại app (WebView resume / tab hiện lại) ----
+  // setInterval bị throttle khi nền → khi visible lại, tick ngay để timeElapsed
+  // nhảy về đúng thời gian đã trôi thay vì chờ tới nhịp interval kế tiếp.
+  useEffect(() => {
+    const onVisible = () => {
+      if (
+        document.visibilityState === "visible" &&
+        useQuizArenaStore.getState().phase === "answering"
+      ) {
+        tick();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [tick]);
+
   // ---- Auto-submit khi hết giờ ----
   useEffect(() => {
     if (
@@ -346,18 +367,18 @@ export function QuizArenaGamePage() {
             }}
           >
             <GameButton
+              color="ghost"
+              size="md"
+              onClick={() => exitWebView("/quiz-arena/game")}
+            >
+              Thoát
+            </GameButton>
+            <GameButton
               color="orange"
               size="md"
               onClick={() => navigate("/quiz-arena")}
             >
-              Chơi lại
-            </GameButton>
-            <GameButton
-              color="ghost"
-              size="md"
-              onClick={() => navigate("/quiz-arena")}
-            >
-              Về sảnh
+              Chơi tiếp
             </GameButton>
           </div>
         }
@@ -414,12 +435,8 @@ export function QuizArenaGamePage() {
         onClick={handleForfeit}
         aria-label="Thoát"
         title="Thoát"
-        style={{
-          position: "absolute",
-          top: 12,
-          right: 12,
-          zIndex: 100,
-        }}
+        // top/right do class .exit-button quản lý (đã tôn trọng safe-area); chỉ giữ zIndex để nổi trên HUD
+        style={{ zIndex: 100 }}
       >
         ✕
       </button>
@@ -465,9 +482,26 @@ export function QuizArenaGamePage() {
 
           {/* Floating points overlay */}
           {phase === "revealing" && (
+            // Điểm của học sinh (me) nằm bên TRÁI thanh VersusBar → điểm cộng cũng float bên trái
+            // để học sinh dễ theo dõi (trước đây đặt bên phải, lệch sang phía đối thủ).
             <FloatingPoints
               points={myEarned}
-              style={{ position: "absolute", top: 8, right: 24 }}
+              style={{ position: "absolute", top: 8, left: 24 }}
+            />
+          )}
+
+          {/* Câu hô ganh đua khi lộ đáp án — đúng thì khen, sai thì khích lệ */}
+          {phase === "revealing" && (
+            <QuizCallout
+              variant={myEarned > 0 ? "win" : "miss"}
+              seed={qIndex}
+              style={{
+                position: "absolute",
+                top: -8,
+                left: 0,
+                right: 0,
+                zIndex: 6,
+              }}
             />
           )}
         </div>

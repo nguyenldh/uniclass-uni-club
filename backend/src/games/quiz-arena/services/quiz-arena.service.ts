@@ -129,6 +129,8 @@ function toPublicQuestion(
     questionIndex,
     totalQuestions,
     startedAt,
+    // Giờ server tại lúc gửi — client dùng để hiệu chỉnh skew đồng hồ
+    serverNow: Date.now(),
   };
 }
 

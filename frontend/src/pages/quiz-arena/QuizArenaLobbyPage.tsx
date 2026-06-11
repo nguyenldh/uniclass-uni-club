@@ -62,18 +62,23 @@ export function QuizArenaLobbyPage() {
   const grade = user?.grade ? `Lớp ${user.grade}` : undefined;
   const me = { name: displayName, grade, avatar: user?.avatar };
 
-  const handleEnterGame = () => {
-    if (!result?.sessionId) return;
-    navigate('/quiz-arena/game', {
-      state: {
-        sessionId: result.sessionId,
-        opponentId: result.opponentId ?? null,
-        isAI: result.isAI ?? false,
-        role: result.role ?? 'first',
-        opponentProfile: result.opponentProfile,
-      },
-    });
-  };
+  // Tự động vào game khi đã ghép (matched) hoặc fallback bot (timeout).
+  // PHẢI nằm trong useEffect — gọi navigate() trực tiếp trong render bị React Router
+  // nuốt/cảnh báo, điều hướng không chạy → kẹt ở màn "đang tìm".
+  useEffect(() => {
+    if ((phase === 'matched' || phase === 'timeout') && result?.sessionId) {
+      navigate('/quiz-arena/game', {
+        state: {
+          sessionId: result.sessionId,
+          opponentId: result.opponentId ?? null,
+          isAI: result.isAI ?? false,
+          role: result.role ?? 'first',
+          opponentProfile: result.opponentProfile,
+        },
+        replace: true,
+      });
+    }
+  }, [phase, result?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Đang kiểm tra session ----
   if (checkingSession) {
@@ -99,8 +104,10 @@ export function QuizArenaLobbyPage() {
   }
 
   // ---- Searching / Matched / Timeout: dùng lại panel ghép trận ----
+  // Khi matched/timeout, useEffect ở trên điều hướng sang game; ở đây chỉ render
+  // panel "đã ghép" trong lúc chuyển trang (tránh nháy về searching).
   const isFound = phase === 'matched' || phase === 'timeout';
-  
+
   // Hiển thị opponent dựa trên opponentProfile (ẩn danh tính AI)
   const opponent = result?.opponentProfile
     ? {
@@ -129,9 +136,6 @@ export function QuizArenaLobbyPage() {
         actions={
           isFound ? (
             <>
-              <GameButton color="orange" onClick={handleEnterGame}>
-                ⚔️ Vào trận
-              </GameButton>
             </>
           ) : (
             <GameButton color="ghost" onClick={cancelMatchmaking}>

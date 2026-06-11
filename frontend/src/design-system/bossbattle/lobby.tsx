@@ -311,6 +311,8 @@ export interface BossLobbyProps extends HTMLAttributes<HTMLDivElement> {
   /** Khối lớp hiển thị góc phải, vd "Khối 4". */
   grade?: ReactNode;
   topRight?: ReactNode;
+  /** Slot hành động đặt ngay dưới tên boss (vd: nút Bảng xếp hạng). */
+  nameAction?: ReactNode;
   /** Hit notifications quanh boss. */
   hits?: HitNotification[];
   /** Rung lắc boss (khi vừa bị đánh). */
@@ -320,7 +322,7 @@ export interface BossLobbyProps extends HTMLAttributes<HTMLDivElement> {
 export function BossLobby({
   bossName, hpPercent, bossArt, currentImg,
   dailyDone, dailyTotal = 5, ctaStatus = 'ready', onBattle,
-  resetAt, playerName, grade, topRight, hits, shaking, className, ...rest
+  resetAt, playerName, grade, topRight, nameAction, hits, shaking, className, ...rest
 }: BossLobbyProps) {
   return (
     <div data-scr="SCR-01" className={cn('bb-stage', className)} {...rest}>
@@ -338,6 +340,7 @@ export function BossLobby({
         <div className="bb-lobby-main">
           <BossDisplay hpPercent={hpPercent} art={bossArt} currentImg={currentImg} shaking={shaking} hits={hits} />
           <BossNameLabel name={bossName} />
+          {nameAction && <div className="bb-name-action">{nameAction}</div>}
           <BossHpBar hpPercent={hpPercent} />
         </div>
 
