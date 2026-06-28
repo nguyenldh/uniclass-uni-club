@@ -30,7 +30,7 @@ import type { BossQuestion, CreateBossQuestionInput } from '@uniclub/shared';
 
 const { Title } = Typography;
 
-const GRADES = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 export function BossQuestionsPage() {
   const [questions, setQuestions] = useState<BossQuestion[]>([]);

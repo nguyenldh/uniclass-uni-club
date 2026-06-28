@@ -278,9 +278,9 @@ export function WeeklyConfigPage() {
       width: 130,
       render: (v: boolean) =>
         v ? (
-          <Tag color="processing">Đã init</Tag>
+          <Tag color="processing">Đã khởi tạo</Tag>
         ) : (
-          <Tag color="default">Chưa init</Tag>
+          <Tag color="default">Chưa khởi tạo</Tag>
         ),
     },
     {
@@ -289,17 +289,17 @@ export function WeeklyConfigPage() {
       render: (_, r) => r.effectiveConfig.hpMax.toLocaleString(),
     },
     {
-      title: 'Câu/ngày',
+      title: <span style={{ whiteSpace: 'nowrap' }}>Câu/ngày</span>,
       width: 90,
       render: (_, r) => r.effectiveConfig.questionsPerDay,
     },
     {
-      title: 'Câu/tuần',
+      title: <span style={{ whiteSpace: 'nowrap' }}>Câu/tuần</span>,
       width: 90,
       render: (_, r) => r.effectiveConfig.questionsPerWeek,
     },
     {
-      title: 'tMax (s)',
+      title: <span style={{ whiteSpace: 'nowrap' }}>tMax (s)</span>,
       width: 90,
       render: (_, r) => r.effectiveConfig.tMaxSec,
     },
@@ -441,9 +441,9 @@ export function WeeklyConfigPage() {
           </Button>
         </Space>
         <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-          Override chỉ áp dụng khi <b>Khởi tạo tuần</b> tạo BossInstance mới. Instance đang
-          chạy giữ nguyên cấu hình đã snapshot. Các field không override sẽ kế thừa từ trang
-          "Cấu hình mặc định".
+          Các chỉnh sửa riêng chỉ có hiệu lực khi bạn <b>Khởi tạo tuần</b> mới. Tuần đang chạy sẽ
+          giữ nguyên cấu hình đã lưu tại thời điểm khởi tạo. Những thông số không chỉnh riêng sẽ
+          tự động dùng giá trị từ trang "Cấu hình mặc định".
         </Text>
       </Card>
 
@@ -474,7 +474,7 @@ export function WeeklyConfigPage() {
         onCancel={() => setSetsModalGrade(null)}
         footer={null}
         width={900}
-        destroyOnClose
+        destroyOnHidden
       >
         {setsModalGrade != null && (
           <QuestionSetsPage weekKey={weekKey} grade={setsModalGrade} lockGrade embedded />
@@ -489,7 +489,7 @@ export function WeeklyConfigPage() {
         confirmLoading={initLoading}
         okText="Khởi tạo"
         cancelText="Hủy"
-        destroyOnClose
+        destroyOnHidden
       >
         <div style={{ marginBottom: 8 }}>
           <Text strong>Tuần:</Text>
@@ -534,7 +534,7 @@ export function WeeklyConfigPage() {
         confirmLoading={addingGrades}
         okText="Thêm"
         cancelText="Hủy"
-        destroyOnClose
+        destroyOnHidden
       >
         <div style={{ marginBottom: 8 }}>
           <Text strong>Chọn khối muốn mở cho tuần này:</Text>
@@ -710,19 +710,20 @@ function WeeklyConfigEditModal({ open, weekKey, item, onClose, onSaved }: EditMo
       onCancel={onClose}
       onOk={handleSave}
       confirmLoading={saving}
-      okText="Lưu override"
+      okText="Lưu chỉnh sửa"
       cancelText="Hủy"
       width={760}
-      destroyOnClose
+      destroyOnHidden
     >
       {item.hasInstance && (
         <Tag color="warning" style={{ marginBottom: 12 }}>
-          BossInstance đã chạy — thay đổi chỉ ảnh hưởng khi init lại (chưa hỗ trợ).
+          Tuần này đã được khởi tạo. Các thay đổi sẽ chưa có hiệu lực cho tới khi khởi tạo lại
+          tuần (tính năng khởi tạo lại hiện chưa hỗ trợ).
         </Tag>
       )}
       <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        Bật công tắc bên trái để override field tương ứng. Field không bật sẽ dùng giá trị từ
-        "Cấu hình mặc định".
+        Bật công tắc ở mỗi dòng để chỉnh riêng thông số đó cho khối này. Thông số không bật sẽ tự
+        động dùng giá trị trong "Cấu hình mặc định".
       </Text>
 
       <Form form={form} layout="horizontal">

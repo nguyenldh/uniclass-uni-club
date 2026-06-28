@@ -14,6 +14,15 @@ import type { BotProfile, CreateBotProfileInput, UpdateBotProfileInput } from '@
  * - Redis: cache để lấy nhanh khi tạo session
  */
 export class BotProfileService {
+  /**
+   * Sinh URL avatar đầy đủ từ tên bot (dùng cho seed mặc định).
+   * Trả về URL ngoài luôn load được, thay cho path tương đối /bots/*.png
+   * vốn không tồn tại trên server.
+   */
+  static buildDefaultAvatarUrl(name: string): string {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128`;
+  }
+
   // ============================================================
   // Cache Operations
   // ============================================================
@@ -255,6 +264,8 @@ export class BotProfileService {
       return;
     }
 
+    // Avatar bên dưới chỉ là placeholder — sẽ được thay bằng URL đầy đủ
+    // sinh từ tên (buildDefaultAvatarUrl) ngay trước khi insert.
     const defaultBots: CreateBotProfileInput[] = [
       { name: 'Minh Anh', avatar: '/bots/minh-anh.png', isActive: true },
       { name: 'Tuấn Kiệt', avatar: '/bots/tuan-kiet.png', isActive: true },
@@ -302,7 +313,9 @@ export class BotProfileService {
       { name: 'Văn Toàn', avatar: '/bots/van-toan.png', isActive: true },
     ];
 
-    await this.createMany(defaultBots);
+    await this.createMany(
+      defaultBots.map((b) => ({ ...b, avatar: this.buildDefaultAvatarUrl(b.name) })),
+    );
     console.log(`[BotProfile] Seeded ${defaultBots.length} default bots.`);
   }
 }

@@ -51,8 +51,15 @@ export const DEFAULT_CARD_FLIP_CONFIG: CardFlipConfig = {
   botActivationSeconds: 15,
   winPoints: 50,
   pairCount: 15,
-  turnTimeout: 60 * 2,
-  maxGameDuration: 600,
+  // Cơ bản: tổng thời gian trận (giây)
+  basicTotalTime: 60,
+  // Nâng cao: quỹ giờ xuất phát mỗi người + thời gian cộng thêm khi ghép đúng (giây)
+  advancedStartTime: 45,
+  timeBonusOnMatch: 3,
+  // Cơ bản: auto-pass lượt khi AFK (giây)
+  turnTimeout: 30,
+  // Tốc độ lật thẻ của bot (mili giây)
+  botFlipDelayMs: 900,
 };
 
 /** Emoji pool cho Card Flip / Memory Match */

@@ -16,6 +16,14 @@ export interface CardFlipItem {
   value: string;
 }
 
+/**
+ * Chế độ chơi Lật thẻ — người chơi chọn trước khi tìm trận.
+ * - `basic`:    1 đồng hồ CHUNG cho cả trận (chạy liên tục). Hết giờ / lật hết → điểm cao thắng.
+ * - `advanced`: đồng hồ CỜ VUA — mỗi người 1 quỹ giờ riêng, chỉ chạy trong lượt của mình;
+ *               ghép đúng +bonus giờ & giữ lượt; hết quỹ giờ → thua ngay.
+ */
+export type CardFlipMode = 'basic' | 'advanced';
+
 export interface CardFlipConfig {
   /** Thời gian tối đa ghép trận PvP (giây) */
   matchmakingTimeout: number;
@@ -36,10 +44,28 @@ export interface CardFlipConfig {
   pairCount: number;
   /** Danh sách item hình nền mặt trước thẻ. Nếu rỗng/undefined → dùng CARD_EMOJIS mặc định. */
   cardItems?: CardFlipItem[];
-  /** Thời gian tối đa cho một lượt (giây). Hết thời gian → forfeit. */
+  /**
+   * Chế độ Cơ bản: tổng thời gian chơi CỐ ĐỊNH của cả trận (giây). Hết giờ → điểm cao thắng / hòa.
+   */
+  basicTotalTime: number;
+  /**
+   * Chế độ Nâng cao: quỹ thời gian xuất phát của MỖI người chơi (giây).
+   */
+  advancedStartTime: number;
+  /**
+   * Chế độ Nâng cao: thời gian cộng thêm vào quỹ giờ khi ghép đúng một cặp (giây).
+   */
+  timeBonusOnMatch: number;
+  /**
+   * Chế độ Cơ bản: thời gian tối đa cho một lượt (giây). Hết giờ → tự động chuyển lượt (auto-pass),
+   * KHÔNG xử thua. Chống treo khi người chơi AFK. Không áp dụng cho chế độ Nâng cao.
+   */
   turnTimeout: number;
-  /** Thời gian tối đa cho toàn bộ trận đấu (giây). Hết giờ → người điểm cao thắng / hòa. */
-  maxGameDuration: number;
+  /**
+   * Tốc độ lật thẻ của bot (mili giây) — độ trễ giữa các thao tác lật của AI.
+   * Số càng lớn bot lật càng chậm. Lưu ý: ở chế độ Nâng cao, độ trễ này tiêu vào quỹ giờ của bot.
+   */
+  botFlipDelayMs: number;
 }
 
 export interface CardFlipCard {
@@ -70,8 +96,23 @@ export interface CardFlipSession {
   /** Avatar của AI (lấy từ BotProfile pool) */
   aiAvatar?: string;
   config: CardFlipConfig;
+  /** Chế độ chơi được chọn cho trận này. Session cũ thiếu field → coi như 'basic'. */
+  mode: CardFlipMode;
   startedAt: Date;
   endedAt?: Date;
+  // ---- Đồng hồ chế độ Cơ bản (basic) ----
+  /** Mốc kết thúc trận (epoch ms) = startedAt + basicTotalTime. Chỉ dùng cho mode 'basic'. */
+  deadlineAt?: number;
+  // ---- Đồng hồ cờ vua chế độ Nâng cao (advanced) ----
+  /** Quỹ thời gian còn lại của playerA (ms). Chỉ dùng cho mode 'advanced'. */
+  timeRemainingA?: number;
+  /** Quỹ thời gian còn lại của playerB (ms). Chỉ dùng cho mode 'advanced'. */
+  timeRemainingB?: number;
+  /**
+   * Mốc (epoch ms) bắt đầu tính giờ cho lượt hiện tại — dùng để trừ realtime quỹ giờ
+   * của người đang giữ lượt. Chỉ dùng cho mode 'advanced'.
+   */
+  turnStartedAt?: number;
   /** 2 thẻ đang được lật trong lượt hiện tại (max 2) */
   lastFlipped: number[];
   /** Số cặp ghép liên tiếp đúng hiện tại của playerA */

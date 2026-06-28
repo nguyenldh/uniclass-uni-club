@@ -28,11 +28,14 @@ export function RequireAuth({ children }: RequireAuthProps) {
         style={{
           minHeight: '100vh',
           display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Spin size="large" tip="Đang kiểm tra đăng nhập..." />
+        <Spin size="large" />
+        <div>Đang kiểm tra đăng nhập...</div>
       </div>
     );
   }

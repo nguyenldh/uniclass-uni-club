@@ -12,6 +12,7 @@ import {
 import type { MatchmakingGameType } from '@uniclub/shared';
 import { UserAbilityService } from '../../games/quiz-arena/services/user-ability.service';
 import { setPendingContext } from '../../games/quiz-arena/services/quiz-matchmaking.factory';
+import { setPendingCardFlipMode } from '../../games/mind-game/services/card-flip-matchmaking.factory';
 import { UserService, SocketRegistry, TimerQueueService } from '../../services';
 
 async function clearMatchmakingTimeout(userId: string, gameType: MatchmakingGameType): Promise<void> {
@@ -36,6 +37,8 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
       grade?: number;
       /** Quiz Arena: tên hiển thị */
       displayName?: string;
+      /** Card Flip: chế độ chơi người dùng chọn ('basic' | 'advanced') */
+      mode?: string;
     }) => {
       try {
         const { gameType } = data;
@@ -92,6 +95,14 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
             grade,
             abilityBucket,
           });
+        }
+
+        // ---- Card Flip: tách queue theo chế độ chơi (basic/advanced) ----
+        if (gameType === 'card_flip') {
+          const mode = data.mode === 'advanced' ? 'advanced' : 'basic';
+          partitionKey = mode; // chỉ ghép người cùng chế độ
+          socket.data.quizPartitionKey = mode; // để LEAVE/disconnect dọn đúng partition
+          await setPendingCardFlipMode(userId, mode); // factory đọc khi tạo session
         }
 
         // ---- Thông số ghép trận (timeout / mốc bot / mode) lấy từ config ----

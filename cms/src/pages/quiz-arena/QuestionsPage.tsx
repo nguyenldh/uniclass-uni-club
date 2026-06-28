@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   Table,
   Button,
@@ -11,7 +11,7 @@ import {
   message,
   Tooltip,
   Modal,
-} from 'antd';
+} from "antd";
 import {
   PlusOutlined,
   UploadOutlined,
@@ -20,29 +20,33 @@ import {
   DeleteOutlined,
   SearchOutlined,
   InfoCircleOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import { questionService } from '../../services/question.service';
-import { exportQuestionsToExcel } from '../../utils/excel';
-import { QuestionFormModal } from '../../components/QuestionFormModal';
-import { ImportExcelModal } from '../../components/ImportExcelModal';
-import type { QuizQuestion, QuizDifficulty, CreateQuizQuestionInput } from '@uniclub/shared';
+} from "@ant-design/icons";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import { questionService } from "../../services/question.service";
+import { exportQuestionsToExcel } from "../../utils/excel";
+import { QuestionFormModal } from "../../components/QuestionFormModal";
+import { ImportExcelModal } from "../../components/ImportExcelModal";
+import type {
+  QuizQuestion,
+  QuizDifficulty,
+  CreateQuizQuestionInput,
+} from "@uniclub/shared";
 
 const { Title } = Typography;
 
-const GRADES = [6, 7, 8, 9, 10, 11, 12];
+const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 const difficultyColors: Record<string, string> = {
-  easy: 'green',
-  medium: 'orange',
-  hard: 'red',
+  easy: "green",
+  medium: "orange",
+  hard: "red",
 };
 
 const difficultyLabels: Record<string, string> = {
-  easy: 'Dễ',
-  medium: 'Trung bình',
-  hard: 'Khó',
-  unknown: 'Chưa xác định',
+  easy: "Dễ",
+  medium: "Trung bình",
+  hard: "Khó",
+  unknown: "Chưa xác định",
 };
 
 export function QuestionsPage() {
@@ -54,13 +58,17 @@ export function QuestionsPage() {
 
   // Filters
   const [filterGrade, setFilterGrade] = useState<number | undefined>();
-  const [filterDifficulty, setFilterDifficulty] = useState<QuizDifficulty | 'unknown' | undefined>();
-  const [searchText, setSearchText] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [filterDifficulty, setFilterDifficulty] = useState<
+    QuizDifficulty | "unknown" | undefined
+  >();
+  const [searchText, setSearchText] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
   // Modals
   const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(
+    null,
+  );
   const [formLoading, setFormLoading] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -79,7 +87,7 @@ export function QuestionsPage() {
       setQuestions(result.questions);
       setTotal(result.total);
     } catch (err: any) {
-      message.error(err.response?.data?.error || 'Không thể tải câu hỏi');
+      message.error(err.response?.data?.error || "Không thể tải câu hỏi");
     } finally {
       setLoading(false);
     }
@@ -109,15 +117,15 @@ export function QuestionsPage() {
     try {
       if (editingQuestion) {
         await questionService.update(editingQuestion.id, values);
-        message.success('Đã cập nhật câu hỏi');
+        message.success("Đã cập nhật câu hỏi");
       } else {
         await questionService.create(values);
-        message.success('Đã tạo câu hỏi mới');
+        message.success("Đã tạo câu hỏi mới");
       }
       setFormModalOpen(false);
       loadQuestions();
     } catch (err: any) {
-      message.error(err.response?.data?.error || 'Thao tác thất bại');
+      message.error(err.response?.data?.error || "Thao tác thất bại");
     } finally {
       setFormLoading(false);
     }
@@ -126,10 +134,10 @@ export function QuestionsPage() {
   const handleDelete = async (id: string) => {
     try {
       await questionService.delete(id);
-      message.success('Đã xóa câu hỏi');
+      message.success("Đã xóa câu hỏi");
       loadQuestions();
     } catch (err: any) {
-      message.error(err.response?.data?.error || 'Xóa thất bại');
+      message.error(err.response?.data?.error || "Xóa thất bại");
     }
   };
 
@@ -147,7 +155,7 @@ export function QuestionsPage() {
       exportQuestionsToExcel(result.questions, `questions_${Date.now()}.xlsx`);
       message.success(`Đã export ${result.questions.length} câu hỏi`);
     } catch (err: any) {
-      message.error('Export thất bại');
+      message.error("Export thất bại");
     } finally {
       setExporting(false);
     }
@@ -160,16 +168,16 @@ export function QuestionsPage() {
 
   const columns: ColumnsType<QuizQuestion> = [
     {
-      title: 'Khối',
-      dataIndex: 'grade',
-      key: 'grade',
+      title: "Khối",
+      dataIndex: "grade",
+      key: "grade",
       width: 60,
       render: (grade: number) => <Tag>{grade}</Tag>,
     },
     {
-      title: 'Nội dung',
-      dataIndex: 'content',
-      key: 'content',
+      title: "Nội dung",
+      dataIndex: "content",
+      key: "content",
       ellipsis: true,
       render: (content: string) => (
         <Tooltip title={content}>
@@ -178,44 +186,51 @@ export function QuestionsPage() {
       ),
     },
     {
-      title: 'Độ khó',
-      dataIndex: 'difficultyBucket',
-      key: 'difficultyBucket',
+      title: "Độ khó",
+      dataIndex: "difficultyBucket",
+      key: "difficultyBucket",
       width: 120,
       render: (difficulty: QuizDifficulty | null) =>
         difficulty ? (
-          <Tag color={difficultyColors[difficulty]}>{difficultyLabels[difficulty]}</Tag>
+          <Tag color={difficultyColors[difficulty]}>
+            {difficultyLabels[difficulty]}
+          </Tag>
         ) : (
           <Tag>{difficultyLabels.unknown}</Tag>
         ),
     },
     {
-      title: 'Tỷ lệ đúng',
-      dataIndex: 'correctRate',
-      key: 'correctRate',
+      title: "Tỷ lệ đúng",
+      dataIndex: "correctRate",
+      key: "correctRate",
       width: 100,
-      render: (rate: number | null) => (rate !== null ? `${(rate * 100).toFixed(1)}%` : '-'),
+      render: (rate: number | null) =>
+        rate !== null ? `${(rate * 100).toFixed(1)}%` : "-",
     },
     {
-      title: 'Số lượt',
-      dataIndex: 'totalAttempts',
-      key: 'totalAttempts',
+      title: "Số lượt",
+      dataIndex: "totalAttempts",
+      key: "totalAttempts",
       width: 80,
     },
     {
-      title: 'Thời gian',
-      dataIndex: 'timeLimitSeconds',
-      key: 'timeLimitSeconds',
+      title: "Thời gian",
+      dataIndex: "timeLimitSeconds",
+      key: "timeLimitSeconds",
       width: 80,
       render: (s: number) => `${s}s`,
     },
     {
-      title: 'Hành động',
-      key: 'actions',
+      title: "Hành động",
+      key: "actions",
       width: 100,
       render: (_, record) => (
         <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          />
           <Popconfirm
             title="Xóa câu hỏi này?"
             onConfirm={() => handleDelete(record.id)}
@@ -231,21 +246,38 @@ export function QuestionsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
         <Title level={4} style={{ margin: 0 }}>
           Ngân hàng câu hỏi
         </Title>
         <Space>
-          <Button icon={<InfoCircleOutlined />} onClick={() => setHelpModalOpen(true)}>
+          <Button
+            icon={<InfoCircleOutlined />}
+            onClick={() => setHelpModalOpen(true)}
+          >
             Hướng dẫn import/export
           </Button>
           <Button icon={<PlusOutlined />} type="primary" onClick={handleCreate}>
             Thêm câu hỏi
           </Button>
-          <Button icon={<UploadOutlined />} onClick={() => setImportModalOpen(true)}>
+          <Button
+            icon={<UploadOutlined />}
+            onClick={() => setImportModalOpen(true)}
+          >
             Import Excel
           </Button>
-          <Button icon={<DownloadOutlined />} onClick={handleExport} loading={exporting}>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={handleExport}
+            loading={exporting}
+          >
             Export Excel
           </Button>
         </Space>
@@ -258,19 +290,29 @@ export function QuestionsPage() {
         footer={null}
         width={700}
       >
-        <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+        <div style={{ maxHeight: 400, overflowY: "auto" }}>
           <Typography.Paragraph>
-            <b>1. Export Excel</b>: Nhấn <b>Export Excel</b> để tải toàn bộ câu hỏi ra file Excel. File sẽ có cột <b>ID</b> ở đầu.
+            <b>1. Export Excel</b>: Nhấn <b>Export Excel</b> để tải toàn bộ câu
+            hỏi ra file Excel. File sẽ có cột <b>ID</b> ở đầu.
           </Typography.Paragraph>
           <Typography.Paragraph>
-            <b>2. Import Excel</b>: Nhấn <b>Import Excel</b> để chọn file Excel và import lại vào hệ thống.
+            <b>2. Import Excel</b>: Nhấn <b>Import Excel</b> để chọn file Excel
+            và import lại vào hệ thống.
           </Typography.Paragraph>
           <Typography.Paragraph>
             <b>3. Quy tắc cập nhật:</b>
             <ul>
-              <li><b>Có ID</b>: Nếu ID hợp lệ và tồn tại, hệ thống sẽ <b>cập nhật</b> câu hỏi đó.</li>
-              <li><b>ID không hợp lệ hoặc không tìm thấy</b>: Hệ thống sẽ <b>tạo mới</b> câu hỏi.</li>
-              <li><b>Không có ID</b>: Hệ thống sẽ <b>tạo mới</b> câu hỏi.</li>
+              <li>
+                <b>Có ID</b>: Nếu ID hợp lệ và tồn tại, hệ thống sẽ{" "}
+                <b>cập nhật</b> câu hỏi đó.
+              </li>
+              <li>
+                <b>ID không hợp lệ hoặc không tìm thấy</b>: Hệ thống sẽ{" "}
+                <b>tạo mới</b> câu hỏi.
+              </li>
+              <li>
+                <b>Không có ID</b>: Hệ thống sẽ <b>tạo mới</b> câu hỏi.
+              </li>
             </ul>
           </Typography.Paragraph>
           <Typography.Paragraph>
@@ -279,7 +321,10 @@ export function QuestionsPage() {
               <li>Không tự động xóa câu hỏi khi xóa dòng trong Excel.</li>
               <li>Chỉ sửa các cột nội dung, đáp án, thời gian, khối lớp.</li>
               <li>Hệ thống sẽ báo lỗi chi tiết nếu có dòng không hợp lệ.</li>
-              <li><b>correctIndex</b> phải là số từ <b>0</b> đến <b>3</b> (tương ứng đáp án A, B, C, D).</li>
+              <li>
+                <b>correctIndex</b> phải là số từ <b>0</b> đến <b>3</b> (tương
+                ứng đáp án A, B, C, D).
+              </li>
             </ul>
           </Typography.Paragraph>
         </div>
@@ -315,9 +360,13 @@ export function QuestionsPage() {
           }}
         >
           <Select.Option value="easy">{difficultyLabels.easy}</Select.Option>
-          <Select.Option value="medium">{difficultyLabels.medium}</Select.Option>
+          <Select.Option value="medium">
+            {difficultyLabels.medium}
+          </Select.Option>
           <Select.Option value="hard">{difficultyLabels.hard}</Select.Option>
-          <Select.Option value="unknown">{difficultyLabels.unknown}</Select.Option>
+          <Select.Option value="unknown">
+            {difficultyLabels.unknown}
+          </Select.Option>
         </Select>
 
         <Input.Search

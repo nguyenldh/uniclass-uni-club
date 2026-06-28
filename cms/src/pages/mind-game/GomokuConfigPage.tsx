@@ -51,7 +51,8 @@ export function GomokuConfigPage() {
   if (isLoading && !gomoku) {
     return (
       <div style={{ textAlign: 'center', padding: 50 }}>
-        <Spin size="large" tip="Đang tải cấu hình..." />
+        <Spin size="large" />
+        <div style={{ marginTop: 12 }}>Đang tải cấu hình...</div>
       </div>
     );
   }

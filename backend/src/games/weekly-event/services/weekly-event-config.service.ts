@@ -40,6 +40,7 @@ export class WeeklyEventConfigService {
       defaultExamDuration: doc.defaultExamDuration,
       defaultLeaderboardDuration: doc.defaultLeaderboardDuration,
       leaderboardLimit: doc.leaderboardLimit,
+      pointsPerCorrect: doc.pointsPerCorrect ?? DEFAULT_WEEKLY_EVENT_GENERAL_CONFIG.pointsPerCorrect,
       defaultActiveGrades: doc.defaultActiveGrades,
       timezone: doc.timezone,
       updatedAt: (doc as any).updatedAt?.toISOString(),
@@ -62,6 +63,7 @@ export class WeeklyEventConfigService {
     if (input.defaultExamDuration !== undefined) update.defaultExamDuration = input.defaultExamDuration;
     if (input.defaultLeaderboardDuration !== undefined) update.defaultLeaderboardDuration = input.defaultLeaderboardDuration;
     if (input.leaderboardLimit !== undefined) update.leaderboardLimit = input.leaderboardLimit;
+    if (input.pointsPerCorrect !== undefined) update.pointsPerCorrect = input.pointsPerCorrect;
     if (input.defaultActiveGrades !== undefined) update.defaultActiveGrades = input.defaultActiveGrades;
     if (input.timezone !== undefined) update.timezone = input.timezone;
 

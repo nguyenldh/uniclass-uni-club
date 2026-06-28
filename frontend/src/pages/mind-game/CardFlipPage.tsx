@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GameCanvas, GameButton } from "../../design-system/game";
 import {
@@ -8,7 +8,7 @@ import {
   type GameOverlayState,
   type GameOverlayStat,
 } from "../../design-system/games";
-import { useCardFlipStore } from "../../stores/mind-game";
+import { useCardFlipStore, cardFlipClocks } from "../../stores/mind-game";
 import { mindGameApi } from "../../services/mind-game";
 import { useUser, useCardFlipSocket } from "../../hooks";
 import type { CardFlipStateData } from "../../hooks/useCardFlipSocket";
@@ -46,6 +46,13 @@ export function CardFlipPage() {
     timeElapsed,
     overlayState,
     overlayStats,
+    mode,
+    deadlineAt,
+    timeRemainingA,
+    timeRemainingB,
+    turnStartedAt,
+    clockSkewMs,
+    clockTick,
     setSession,
     syncFromServer,
     tick,
@@ -86,6 +93,25 @@ export function CardFlipPage() {
   const opponentScore = isPlayerA ? scores.playerB : scores.playerA;
   const myData = isPlayerA ? session?.playerAData : session?.playerBData;
   const opponentData = isPlayerA ? session?.playerBData : session?.playerAData;
+
+  // ─── Đồng hồ (tính realtime, hiệu chỉnh lệch giờ; clockTick ép cập nhật mỗi giây) ───
+  const clocks = useMemo(
+    () =>
+      cardFlipClocks({
+        mode,
+        deadlineAt,
+        timeRemainingA,
+        timeRemainingB,
+        turnStartedAt,
+        currentTurn,
+        clockSkewMs,
+        session,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mode, deadlineAt, timeRemainingA, timeRemainingB, turnStartedAt, currentTurn, clockSkewMs, session, clockTick],
+  );
+  const myClock = isPlayerA ? clocks.clockA : clocks.clockB;
+  const opponentClock = isPlayerA ? clocks.clockB : clocks.clockA;
 
   // Load session from matchmaking result on mount (chỉ dùng REST cho lần đầu)
   useEffect(() => {
@@ -311,6 +337,9 @@ export function CardFlipPage() {
       return;
     }
 
+    // Tốc độ lật của bot lấy từ config (CMS). Fallback 900ms nếu thiếu.
+    const botFlipDelayMs = session.config?.botFlipDelayMs ?? 900;
+
     const runAIMove = async () => {
       if (processingRef.current) return;
       processingRef.current = true;
@@ -344,8 +373,8 @@ export function CardFlipPage() {
         const c1 = cards.find((c) => c.id === String(cardId1));
         if (c1) CardFlipAI.remember(cardId1, String(c1.content ?? ""));
 
-        // Delay nhỏ giữa 2 lần lật
-        await new Promise((r) => setTimeout(r, 600));
+        // Delay giữa 2 lần lật — config trên CMS (botFlipDelayMs).
+        await new Promise((r) => setTimeout(r, botFlipDelayMs));
 
         // Flip thẻ 2 qua socket
         flipCard(session.sessionId, "AI", cardId2);
@@ -371,7 +400,7 @@ export function CardFlipPage() {
       }
     };
 
-    const aiTimeout = setTimeout(runAIMove, 800);
+    const aiTimeout = setTimeout(runAIMove, session.config?.botFlipDelayMs ?? 900);
     aiTimeoutRef.current = aiTimeout;
     return () => clearTimeout(aiTimeout);
   }, [
@@ -433,6 +462,11 @@ export function CardFlipPage() {
         currentTurn={currentTurn}
         myUserId={userId}
         timeElapsed={timeElapsed}
+        mode={mode}
+        basicSecondsLeft={clocks.basicLeft}
+        basicTotal={session?.config?.basicTotalTime}
+        playerAClock={myClock}
+        playerBClock={opponentClock}
       >
         <GameButton
           className="exit-in-hud"

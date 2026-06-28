@@ -2,7 +2,7 @@
 // MatchmakingOverlay — reusable UI for any PvP game
 // ============================================================
 
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import {
   MatchmakingPanel,
   GameButton,
@@ -122,6 +122,8 @@ function GameGuideCard({ gameType }: GameGuideCardProps) {
 export interface MatchmakingOverlayProps {
   userId: string;
   gameType: MatchmakingGameType;
+  /** Card Flip: chế độ chơi đã chọn ('basic' | 'advanced') */
+  mode?: string;
   /** Tiêu đề khi đang tìm trận */
   searchingTitle?: string;
   /** Phụ đề khi đang tìm trận */
@@ -151,6 +153,7 @@ export interface MatchmakingOverlayProps {
 export function MatchmakingOverlay({
   userId,
   gameType,
+  mode,
   searchingTitle = 'Đang tìm đối thủ',
   searchingSubtitle = 'Hệ thống đang ghép trận phù hợp với bạn',
   foundTitle = 'Đã ghép được trận!',
@@ -161,8 +164,19 @@ export function MatchmakingOverlay({
   header,
   onPhaseChange,
 }: MatchmakingOverlayProps) {
+  // Card Flip: chọn chế độ chơi TRƯỚC (bước 1), xong mới hiện luật + nút tìm trận (bước 2).
+  const isCardFlip = gameType === 'card_flip';
+  const [selectedMode, setSelectedMode] = useState<string>(mode === 'advanced' ? 'advanced' : 'basic');
+  const [modeConfirmed, setModeConfirmed] = useState<boolean>(false);
+
+  const chooseMode = (m: string) => {
+    setSelectedMode(m);
+    setModeConfirmed(true);
+  };
+  const MODE_LABELS: Record<string, string> = { basic: '⏱️ Cơ bản', advanced: '⏳ Nâng cao' };
+
   const { phase, secondsRemaining, totalSeconds, result, error, startMatchmaking, cancelMatchmaking } =
-    useMatchmaking({ userId, gameType });
+    useMatchmaking({ userId, gameType, mode: isCardFlip ? selectedMode : mode });
 
   // Expose phase cho parent
   useEffect(() => {
@@ -222,12 +236,55 @@ export function MatchmakingOverlay({
           }}
         >
           {error && <div className="error-msg">{error}</div>}
-          <GameGuideCard gameType={gameType} />
-          <div style={{ display: 'flex', gap: 12 }}>
-            <GameButton className='find-game-btn' color="orange" onClick={startMatchmaking}>
-              🔍 Tìm trận
-            </GameButton>
-          </div>
+
+          {/* Bước 1 (chỉ Card Flip): chọn chế độ chơi trước */}
+          {isCardFlip && !modeConfirmed ? (
+            <div className="cf-mode-select">
+              <div className="cf-mode-select-label">Chọn chế độ chơi</div>
+              <div className="cf-mode-options">
+                <button
+                  type="button"
+                  className={`cf-mode-option${selectedMode === 'basic' ? ' active' : ''}`}
+                  onClick={() => chooseMode('basic')}
+                >
+                  <span className="cf-mode-name">⏱️ Cơ bản</span>
+                  <span className="cf-mode-desc">Đồng hồ chung cho cả trận. Hết giờ, ai nhiều cặp hơn thắng.</span>
+                </button>
+                <button
+                  type="button"
+                  className={`cf-mode-option${selectedMode === 'advanced' ? ' active' : ''}`}
+                  onClick={() => chooseMode('advanced')}
+                >
+                  <span className="cf-mode-name">⏳ Nâng cao</span>
+                  <span className="cf-mode-desc">Mỗi người một quỹ giờ. Ghép đúng được cộng giờ; hết giờ thua ngay.</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Bước 2: luật chơi + nút tìm trận */}
+              {isCardFlip && (
+                <div className="cf-mode-chosen">
+                  <span>
+                    Chế độ: <strong>{MODE_LABELS[selectedMode]}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    className="cf-mode-change"
+                    onClick={() => setModeConfirmed(false)}
+                  >
+                    Đổi chế độ
+                  </button>
+                </div>
+              )}
+              <GameGuideCard gameType={gameType} />
+              <div style={{ display: 'flex', gap: 12 }}>
+                <GameButton className='find-game-btn' color="orange" onClick={startMatchmaking}>
+                  🔍 Tìm trận
+                </GameButton>
+              </div>
+            </>
+          )}
         </div>
       )}
 

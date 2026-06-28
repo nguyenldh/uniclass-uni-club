@@ -388,6 +388,47 @@
   flex: 1 1 0;
 }
 
+/* Card Flip — wrapper mỗi bên (PlayerCard + chip đồng hồ chế độ Nâng cao) */
+.cf-hud-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cf-hud-side > .player-card {
+  width: 100%;
+}
+
+/* Chip đồng hồ cờ vua (chế độ Nâng cao) */
+.cf-clock-chip {
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--g-wood-4);
+  background: linear-gradient(180deg, #fff1d4, var(--g-wood-1));
+  border: 2px solid var(--g-wood-4);
+  box-shadow: 0 2px 0 rgba(110, 63, 23, .35);
+  transition: all .2s ease;
+}
+.cf-clock-chip.active {
+  color: #1b6b2e;
+  background: linear-gradient(180deg, #d6f5cf, #a7e39a);
+  border-color: #2f8b3f;
+}
+.cf-clock-chip.danger {
+  color: #fff;
+  background: linear-gradient(180deg, #ff7a5c, #e8350e);
+  border-color: #b62a08;
+  animation: cf-clock-pulse .8s ease-in-out infinite;
+}
+@keyframes cf-clock-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
 .player-card{
   display: flex; align-items: center; gap: 10px;
   padding: 6px 14px 6px 6px;
@@ -599,6 +640,9 @@
   background: #fff; border: 3px solid var(--g-wood-4); border-radius: 14px;
   padding: 10px 8px;
   box-shadow: 0 3px 0 rgba(110,63,23,.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .game-overlay .stat .k{
   font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;

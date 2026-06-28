@@ -13,9 +13,16 @@ import {
   Select,
   Divider,
 } from 'antd';
-import { SaveOutlined, ClearOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import {
+  SaveOutlined,
+  ClearOutlined,
+  PlusOutlined,
+  MinusCircleOutlined,
+  PictureOutlined,
+} from '@ant-design/icons';
 import { useConfigStore } from '../../stores/config.store';
-import { MatchmakingModeSection } from '../../components';
+import { MatchmakingModeSection, CardFlipImportImagesModal } from '../../components';
+import type { CardFlipImportMode } from '../../components/CardFlipImportImagesModal';
 import type { CardFlipConfig, CardFlipItem } from '@uniclub/shared';
 
 const { Title, Text } = Typography;
@@ -24,6 +31,12 @@ export function CardFlipConfigPage() {
   const [form] = Form.useForm<CardFlipConfig>();
   const [saving, setSaving] = useState(false);
   const [invalidating, setInvalidating] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  // Theo dõi field qua useWatch thay vì gọi form.getFieldValue lúc render
+  // (tránh warning "useForm is not connected to any Form element").
+  const pairCount = Form.useWatch('pairCount', form);
+  const cardItems = Form.useWatch('cardItems', form) as CardFlipItem[] | undefined;
 
   const { cardFlip, isLoading, loadConfigs, updateCardFlip, invalidateCache } = useConfigStore();
 
@@ -66,10 +79,22 @@ export function CardFlipConfigPage() {
     }
   };
 
+  const handleImportImages = (urls: string[], mode: CardFlipImportMode) => {
+    const newItems: CardFlipItem[] = urls.map((value) => ({ type: 'image', value }));
+    const current: CardFlipItem[] = form.getFieldValue('cardItems') || [];
+    const next = mode === 'overwrite' ? newItems : [...current, ...newItems];
+    form.setFieldValue('cardItems', next);
+    setImportOpen(false);
+    message.success(
+      `Đã ${mode === 'overwrite' ? 'ghi đè' : 'thêm'} ${newItems.length} ảnh. Nhấn "Lưu cấu hình" để lưu.`,
+    );
+  };
+
   if (isLoading && !cardFlip) {
     return (
       <div style={{ textAlign: 'center', padding: 50 }}>
-        <Spin size="large" tip="Đang tải cấu hình..." />
+        <Spin size="large" />
+        <div style={{ marginTop: 12 }}>Đang tải cấu hình...</div>
       </div>
     );
   }
@@ -114,9 +139,46 @@ export function CardFlipConfigPage() {
             <InputNumber min={4} max={20} style={{ width: '100%' }} />
           </Form.Item>
 
+          <Form.Item
+            name="botFlipDelayMs"
+            label="Tốc độ lật thẻ của bot (mili giây)"
+            rules={[{ required: true, message: 'Bắt buộc' }]}
+            tooltip="Độ trễ giữa các thao tác lật của bot. Số càng lớn bot lật càng chậm (VD: 900 = 0.9 giây). Lưu ý: ở chế độ Nâng cao, độ trễ này tiêu vào quỹ giờ của bot."
+          >
+            <InputNumber min={200} max={3000} step={100} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Divider orientation="left">Chế độ Cơ bản</Divider>
+          <Form.Item
+            name="basicTotalTime"
+            label="Tổng thời gian trận (giây)"
+            rules={[{ required: true, message: 'Bắt buộc' }]}
+            tooltip="Đồng hồ chung cho cả trận ở chế độ Cơ bản. Hết giờ → người điểm cao thắng / hòa."
+          >
+            <InputNumber min={10} max={600} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Divider orientation="left">Chế độ Nâng cao</Divider>
+          <Form.Item
+            name="advancedStartTime"
+            label="Thời gian xuất phát mỗi người (giây)"
+            rules={[{ required: true, message: 'Bắt buộc' }]}
+            tooltip="Quỹ giờ ban đầu của mỗi người chơi (đồng hồ cờ vua). Hết quỹ giờ → thua ngay."
+          >
+            <InputNumber min={5} max={300} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name="timeBonusOnMatch"
+            label="Thời gian cộng thêm khi ghép đúng (giây)"
+            rules={[{ required: true, message: 'Bắt buộc' }]}
+            tooltip="Lượng thời gian cộng vào quỹ giờ khi người chơi ghép đúng một cặp (chế độ Nâng cao)."
+          >
+            <InputNumber min={0} max={60} style={{ width: '100%' }} />
+          </Form.Item>
+
           <Divider orientation="left">Hình ảnh thẻ (tùy chọn)</Divider>
           <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-            Để trống để dùng emoji mặc định. Thêm ít nhất {form.getFieldValue('pairCount') || 8} item.
+            Để trống để dùng emoji mặc định. Thêm ít nhất {pairCount || 8} item.
           </Text>
 
           <Form.List name="cardItems">
@@ -132,7 +194,6 @@ export function CardFlipConfigPage() {
                       {...restField}
                       name={[name, 'type']}
                       rules={[{ required: true, message: 'Chọn loại' }]}
-                      initialValue="emoji"
                     >
                       <Select style={{ width: 100 }}>
                         <Select.Option value="emoji">Emoji</Select.Option>
@@ -162,14 +223,24 @@ export function CardFlipConfigPage() {
                   </Space>
                 ))}
                 <Form.Item>
-                  <Button
-                    type="dashed"
-                    onClick={() => add({ type: 'emoji', value: '' })}
-                    block
-                    icon={<PlusOutlined />}
-                  >
-                    Thêm item
-                  </Button>
+                  <Space style={{ width: '100%' }} direction="vertical">
+                    <Button
+                      type="dashed"
+                      onClick={() => add({ type: 'emoji', value: '' })}
+                      block
+                      icon={<PlusOutlined />}
+                    >
+                      Thêm item
+                    </Button>
+                    <Button
+                      type="dashed"
+                      onClick={() => setImportOpen(true)}
+                      block
+                      icon={<PictureOutlined />}
+                    >
+                      Import ảnh (URL)
+                    </Button>
+                  </Space>
                 </Form.Item>
               </>
             )}
@@ -201,6 +272,13 @@ export function CardFlipConfigPage() {
           </Form.Item>
         </Form>
       </Card>
+
+      <CardFlipImportImagesModal
+        open={importOpen}
+        existingImageCount={(cardItems || []).filter((i) => i?.value?.trim()).length}
+        onCancel={() => setImportOpen(false)}
+        onImport={handleImportImages}
+      />
     </div>
   );
 }

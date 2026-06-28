@@ -68,7 +68,7 @@ export function BossQuestionFormModal({
       okText={editingQuestion ? 'Cập nhật' : 'Tạo'}
       cancelText="Hủy"
       width={700}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         <Space style={{ width: '100%' }} size="large">

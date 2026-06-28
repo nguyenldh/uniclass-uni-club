@@ -127,6 +127,7 @@ export const DEFAULT_WEEKLY_EVENT_GENERAL_CONFIG: WeeklyEventGeneralConfig = {
   defaultExamDuration: 20,
   defaultLeaderboardDuration: 5,
   leaderboardLimit: 10,
+  pointsPerCorrect: 10,
   defaultActiveGrades: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   timezone: 'Asia/Ho_Chi_Minh',
 };

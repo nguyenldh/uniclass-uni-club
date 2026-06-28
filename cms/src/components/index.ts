@@ -7,3 +7,4 @@ export { BossImportExcelModal } from './BossImportExcelModal';
 export { ExamFormModal } from './ExamFormModal';
 export { WeeklyEventImportExcelModal } from './WeeklyEventImportExcelModal';
 export { MatchmakingModeSection } from './MatchmakingModeSection';
+export { CardFlipImportImagesModal } from './CardFlipImportImagesModal';

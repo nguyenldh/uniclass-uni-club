@@ -126,9 +126,9 @@ export function BotProfilesPage() {
       dataIndex: 'avatar',
       key: 'avatar',
       width: 80,
-      render: (avatar: string) => (
-        <Avatar src={avatar} size={40}>
-          {!avatar && 'B'}
+      render: (avatar: string, record) => (
+        <Avatar src={avatar || undefined} size={40}>
+          {record.name?.trim().charAt(0).toUpperCase() || 'B'}
         </Avatar>
       ),
     },
@@ -257,8 +257,8 @@ export function BotProfilesPage() {
             <Form.Item noStyle shouldUpdate={(prev, cur) => prev.avatar !== cur.avatar || prev.name !== cur.name}>
               {({ getFieldValue }) => (
                 <Space>
-                  <Avatar src={getFieldValue('avatar')} size={48}>
-                    {!getFieldValue('avatar') && 'B'}
+                  <Avatar src={getFieldValue('avatar') || undefined} size={48}>
+                    {getFieldValue('name')?.trim().charAt(0).toUpperCase() || 'B'}
                   </Avatar>
                   <span>{getFieldValue('name') || 'Bot Name'}</span>
                 </Space>

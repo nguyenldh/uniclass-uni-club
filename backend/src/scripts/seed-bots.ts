@@ -8,10 +8,13 @@
 
 import mongoose from 'mongoose';
 import { BotProfileModel } from '../models/index';
+import { BotProfileService } from '../services/bot-profile.service';
 
 const MONGO_URI = process.env.MONGO_URI ?? 'mongodb://localhost:27017/uniclub';
 
-// Danh sách bot profiles mẫu (tên người thật để người chơi không nhận ra là BOT)
+// Danh sách bot profiles mẫu (tên người thật để người chơi không nhận ra là BOT).
+// Avatar bên dưới chỉ là placeholder — khi insert sẽ thay bằng URL đầy đủ
+// sinh từ tên (BotProfileService.buildDefaultAvatarUrl).
 const seedBotProfiles = [
   { name: 'Minh Anh', avatar: '/bots/minh-anh.png' },
   { name: 'Tuấn Kiệt', avatar: '/bots/tuan-kiet.png' },
@@ -84,7 +87,7 @@ async function seed(force = false): Promise<void> {
   const docs = await BotProfileModel.insertMany(
     seedBotProfiles.map((bot) => ({
       name: bot.name,
-      avatar: bot.avatar,
+      avatar: BotProfileService.buildDefaultAvatarUrl(bot.name),
       isActive: true,
     })),
   );

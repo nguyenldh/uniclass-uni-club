@@ -50,8 +50,15 @@ const CardFlipConfigSchema = new Schema<CardFlipConfig>(
     winPoints: { type: Number, required: true, default: 50 },
     pairCount: { type: Number, required: true, default: 8 },
     cardItems: { type: [CardFlipItemSchema], default: undefined },
-    turnTimeout: { type: Number, required: true, default: 120 },
-    maxGameDuration: { type: Number, required: true, default: 600 },
+    // Cơ bản: tổng thời gian trận (giây)
+    basicTotalTime: { type: Number, required: true, default: 60 },
+    // Nâng cao: quỹ giờ xuất phát mỗi người + cộng giờ khi ghép đúng (giây)
+    advancedStartTime: { type: Number, required: true, default: 45 },
+    timeBonusOnMatch: { type: Number, required: true, default: 3 },
+    // Cơ bản: auto-pass lượt khi AFK (giây)
+    turnTimeout: { type: Number, required: true, default: 30 },
+    // Tốc độ lật thẻ của bot (mili giây)
+    botFlipDelayMs: { type: Number, required: true, default: 900 },
   },
   { _id: false },
 );
@@ -644,6 +651,7 @@ export interface IWeeklyEventGeneralConfig extends Document {
   defaultExamDuration: number;
   defaultLeaderboardDuration: number;
   leaderboardLimit: number;
+  pointsPerCorrect: number;
   defaultActiveGrades: number[];
   timezone: string;
   updatedAt: Date;
@@ -657,6 +665,7 @@ const WeeklyEventGeneralConfigSchema = new Schema<IWeeklyEventGeneralConfig>(
     defaultExamDuration: { type: Number, required: true, default: 20, min: 1 },
     defaultLeaderboardDuration: { type: Number, required: true, default: 5, min: 1 },
     leaderboardLimit: { type: Number, required: true, default: 10, min: 1 },
+    pointsPerCorrect: { type: Number, required: true, default: 10, min: 1 },
     defaultActiveGrades: {
       type: [Number],
       required: true,

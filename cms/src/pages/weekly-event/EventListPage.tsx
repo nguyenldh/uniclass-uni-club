@@ -156,8 +156,10 @@ export function WeeklyEventListPage() {
     {
       title: 'Tuần',
       dataIndex: 'weekNumber',
-      width: 70,
-      render: (val: number, record: WeeklyEvent) => `${val}/${record.year}`,
+      width: 90,
+      render: (val: number, record: WeeklyEvent) => (
+        <span style={{ whiteSpace: 'nowrap' }}>{`${val}/${record.year}`}</span>
+      ),
     },
     {
       title: 'Tiêu đề',

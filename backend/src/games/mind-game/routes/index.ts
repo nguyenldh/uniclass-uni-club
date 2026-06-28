@@ -38,13 +38,17 @@ router.get('/gomoku/:sessionId', async (req: Request, res: Response) => {
 /** Tạo session Card Flip vs AI */
 router.post('/card-flip/start-vs-ai', async (req: Request, res: Response) => {
   try {
-    const { userId, difficulty } = req.body;
+    const { userId, difficulty, mode } = req.body;
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });
       return;
     }
 
-    const session = await CardFlipService.createAISession(userId, difficulty ?? 'medium');
+    const session = await CardFlipService.createAISession(
+      userId,
+      difficulty ?? 'medium',
+      mode === 'advanced' ? 'advanced' : 'basic',
+    );
     res.json({ success: true, session });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -64,13 +68,10 @@ router.post('/card-flip/flip', async (req: Request, res: Response) => {
 
     // Broadcast updated state to all players in the session room
     const io = getIO();
-    io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE, {
-      cards: result.session.cards,
-      currentTurn: result.session.currentTurn,
-      scores: result.session.scores,
-      lastFlipped: result.session.lastFlipped,
-      isMatch: result.isMatch,
-    });
+    io.to(sessionId).emit(
+      MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE,
+      CardFlipService.statePayload(result.session, result.isMatch),
+    );
 
     if (result.gameOver) {
       io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_END, {
@@ -97,13 +98,10 @@ router.post('/card-flip/reset-flipped', async (req: Request, res: Response) => {
     }
 
     const io = getIO();
-    io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE, {
-      cards: session.cards,
-      currentTurn: session.currentTurn,
-      scores: session.scores,
-      lastFlipped: session.lastFlipped,
-      isMatch: false,
-    });
+    io.to(sessionId).emit(
+      MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE,
+      CardFlipService.statePayload(session, false),
+    );
 
     res.json({ success: true, session });
   } catch (error: any) {

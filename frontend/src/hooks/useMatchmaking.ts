@@ -28,6 +28,8 @@ export interface UseMatchmakingOptions {
   grade?: number;
   /** Quiz Arena: tên hiển thị */
   displayName?: string;
+  /** Card Flip: chế độ chơi đã chọn ('basic' | 'advanced') */
+  mode?: string;
 }
 
 export interface UseMatchmakingReturn extends MatchmakingState {
@@ -43,6 +45,7 @@ export function useMatchmaking({
   timeout: customTimeout,
   grade,
   displayName,
+  mode,
 }: UseMatchmakingOptions): UseMatchmakingReturn {
   const [phase, setPhase] = useState<MatchmakingPhase>('idle');
   const [secondsRemaining, setSecondsRemaining] = useState(
@@ -94,6 +97,7 @@ export function useMatchmaking({
         gameType,
         grade,
         displayName,
+        mode,
       });
     });
 
@@ -157,7 +161,7 @@ export function useMatchmaking({
         return prev - 1;
       });
     }, 1000);
-  }, [userId, gameType, customTimeout]);
+  }, [userId, gameType, customTimeout, mode]);
 
   const cancelMatchmaking = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);

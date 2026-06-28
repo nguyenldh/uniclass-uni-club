@@ -42,6 +42,8 @@ export interface WeeklyEventGeneralConfig {
   defaultLeaderboardDuration: number;
   /** Số lượng hiển thị trong Top — default 10 */
   leaderboardLimit: number;
+  /** Điểm cộng cho mỗi câu trả lời đúng — default 10 */
+  pointsPerCorrect: number;
   /** Các khối lớp mặc định được tham gia */
   defaultActiveGrades: number[];
   /** Múi giờ */
@@ -404,6 +406,7 @@ export interface UpdateGeneralConfigInput {
   defaultExamDuration?: number;
   defaultLeaderboardDuration?: number;
   leaderboardLimit?: number;
+  pointsPerCorrect?: number;
   defaultActiveGrades?: number[];
   timezone?: string;
 }

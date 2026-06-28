@@ -1,3 +1,7 @@
 body {
     margin: 0 !important;
 }
+
+.ant-table-cell {
+    overflow-wrap: unset !important;
+}

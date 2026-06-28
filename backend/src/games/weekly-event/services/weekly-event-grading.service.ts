@@ -27,6 +27,7 @@ import type {
 } from '@uniclub/shared';
 import { WeeklyEventAnswerService } from './weekly-event-answer.service';
 import { WeeklyEventStateMachine } from './weekly-event-state-machine.service';
+import { WeeklyEventConfigService } from './weekly-event-config.service';
 
 export class WeeklyEventGradingService {
   /**
@@ -111,8 +112,9 @@ export class WeeklyEventGradingService {
     }
     totalTimeMs = computedTotalTimeMs;
 
-    // 4. Tính điểm
-    const score = correctCount * 10; // Base score: 10 điểm/câu đúng
+    // 4. Tính điểm — điểm/câu đúng lấy từ cấu hình chung (CMS)
+    const { pointsPerCorrect } = await WeeklyEventConfigService.getGeneralConfig();
+    const score = correctCount * pointsPerCorrect;
 
     // 5. Ghi kết quả vào MongoDB
     const result = await WeeklyEventResultModel.create({
@@ -176,6 +178,7 @@ export class WeeklyEventGradingService {
     const event = await WeeklyEventModel.findById(eventId).lean();
     if (!event) return 0;
 
+    const { pointsPerCorrect } = await WeeklyEventConfigService.getGeneralConfig();
     const examDurationMs = (event.examDuration || 20) * 60 * 1000;
     const questionCount = exam.questions.length;
     const perQuestionMs = examDurationMs / questionCount;
@@ -255,7 +258,7 @@ export class WeeklyEventGradingService {
         }
       }
 
-      const score = correctCount * 10;
+      const score = correctCount * pointsPerCorrect;
 
       resultsToInsert.push({
         participationId: p._id,

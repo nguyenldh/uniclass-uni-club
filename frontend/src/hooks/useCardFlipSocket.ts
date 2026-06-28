@@ -5,7 +5,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { MIND_GAME_SOCKET_EVENTS } from '@uniclub/shared';
-import type { CardFlipCard, AIDifficulty } from '@uniclub/shared';
+import type { CardFlipCard, CardFlipMode, AIDifficulty } from '@uniclub/shared';
 
 export interface CardFlipStateData {
   cards: CardFlipCard[];
@@ -13,6 +13,13 @@ export interface CardFlipStateData {
   scores: { playerA: number; playerB: number };
   lastFlipped: number[];
   isMatch?: boolean;
+  // ---- Đồng hồ ----
+  mode?: CardFlipMode;
+  deadlineAt?: number;
+  timeRemainingA?: number;
+  timeRemainingB?: number;
+  turnStartedAt?: number;
+  serverNow?: number;
 }
 
 export interface UseCardFlipSocketOptions {

@@ -131,6 +131,13 @@ export class TimerQueueService {
             }
             break;
           }
+          case 'mind-game-player-clock-timeout': {
+            // Chỉ Card Flip mode 'advanced' dùng — quỹ giờ cờ vua của một người chơi cạn
+            const { sessionId, userId } = data;
+            const { CardFlipService } = await import('../games/mind-game/services/card-flip.service');
+            await CardFlipService.handlePlayerClockTimeout(sessionId, userId, io);
+            break;
+          }
         }
       },
       { connection }
@@ -290,6 +297,32 @@ export class TimerQueueService {
     sessionId: string,
   ): Promise<void> {
     await queue.remove(`mind-game-game-timeout-${gameType}-${sessionId}`);
+  }
+
+  /**
+   * Đặt flag-fall timer cho quỹ giờ cờ vua của MỘT người chơi (Card Flip mode 'advanced').
+   * jobId kèm userId → mỗi người chơi một timer độc lập.
+   */
+  static async scheduleMindGamePlayerClockTimeout(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+    userId: string,
+    delayMs: number,
+  ): Promise<void> {
+    const jobId = `mind-game-player-clock-timeout-${gameType}-${sessionId}-${userId}`;
+    await queue.remove(jobId);
+    await queue.add('mind-game-player-clock-timeout', { gameType, sessionId, userId }, {
+      jobId,
+      delay: Math.max(0, delayMs),
+    });
+  }
+
+  static async cancelMindGamePlayerClockTimeout(
+    gameType: 'gomoku' | 'card_flip',
+    sessionId: string,
+    userId: string,
+  ): Promise<void> {
+    await queue.remove(`mind-game-player-clock-timeout-${gameType}-${sessionId}-${userId}`);
   }
 
   static async scheduleMindGameDisconnectGrace(

@@ -49,7 +49,8 @@ export class QuestionSetService {
   /**
    * Tự động tạo 7 sets cho (weekKey, gradeLevel).
    * - Lấy `questionsPerDay` từ BossInstance.config (đã snapshot).
-   * - Bốc random từ BossQuestion theo grade, không trùng trong cùng tuần.
+   * - Bốc random từ BossQuestion theo grade, không trùng trong cùng tuần
+   *   và không trùng với câu đã dùng ở các tuần trước (cùng grade).
    * - Nếu set đã tồn tại: skip (trừ khi `force=true` → regenerate).
    */
   static async autoGenerate(
@@ -68,8 +69,21 @@ export class QuestionSetService {
       .lean();
     const existingByDay = new Map<number, any>(existing.map((d: any) => [d.dayIndex, d]));
 
-    // Câu đã dùng trong tuần (để tránh trùng) — chỉ tính nếu không force
     const usedIds = new Set<string>();
+
+    // Câu đã dùng ở các tuần TRƯỚC (cùng grade) → luôn loại trừ để chống trùng giữa các tuần.
+    // Áp dụng kể cả khi force, vì mục tiêu là không lặp lại câu của tuần cũ.
+    const priorSets = await BossQuestionSetModel.find({
+      gradeLevel,
+      weekKey: { $ne: weekKey },
+    })
+      .select('questionIds')
+      .lean();
+    for (const set of priorSets) {
+      for (const qid of set.questionIds || []) usedIds.add(String(qid));
+    }
+
+    // Câu đã dùng trong tuần hiện tại (để tránh trùng trong cùng tuần) — chỉ tính nếu không force
     if (!force) {
       for (const set of existing) {
         for (const qid of set.questionIds || []) usedIds.add(String(qid));

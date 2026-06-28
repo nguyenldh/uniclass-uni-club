@@ -81,7 +81,8 @@ export function QuizArenaConfigPage() {
   if (isLoading && !quizArena) {
     return (
       <div style={{ textAlign: 'center', padding: 50 }}>
-        <Spin size="large" tip="Đang tải cấu hình..." />
+        <Spin size="large" />
+        <div style={{ marginTop: 12 }}>Đang tải cấu hình...</div>
       </div>
     );
   }
@@ -128,7 +129,7 @@ export function QuizArenaConfigPage() {
 
           <Form.Item
             name="uniPointsPerCorrect"
-            label="UniPoints mỗi câu đúng"
+            label="Điểm mỗi câu đúng"
             rules={[{ required: true, message: 'Bắt buộc' }]}
             tooltip="Số UniPoints đồng bộ về UniClass khi trả lời đúng"
           >

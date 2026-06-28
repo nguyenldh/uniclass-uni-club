@@ -84,12 +84,39 @@ export interface CardFlipHUDProps extends HTMLAttributes<HTMLDivElement> {
   currentTurn: string;
   /** userId của người chơi hiện tại (để xác định active). */
   myUserId: string;
-  /** Thời gian đã trôi qua (giây). */
+  /** Thời gian đã trôi qua (giây) — dùng cho fallback. */
   timeElapsed: number;
   playerAAvatar?: string;
   playerBAvatar?: string;
+  // ---- Đồng hồ theo chế độ ----
+  /** Chế độ chơi. */
+  mode?: 'basic' | 'advanced';
+  /** Cơ bản: thời gian chung còn lại (giây) + tổng để vẽ ring. */
+  basicSecondsLeft?: number;
+  basicTotal?: number;
+  /** Nâng cao: quỹ giờ còn lại từng người (giây). */
+  playerAClock?: number;
+  playerBClock?: number;
   /** Slot bổ sung bên trong HUD (vd: nút thoát ở landscape). */
   children?: ReactNode;
+}
+
+/** Định dạng giây → mm:ss cho chip đồng hồ */
+function fmtClock(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  const mm = Math.floor(s / 60);
+  const ss = s % 60;
+  return `${mm}:${ss.toString().padStart(2, '0')}`;
+}
+
+/** Chip đồng hồ nhỏ hiển thị quỹ giờ một người (chế độ Nâng cao) */
+function ClockChip({ seconds, active }: { seconds: number; active: boolean }) {
+  const danger = seconds <= 5;
+  return (
+    <div className={cn('cf-clock-chip', active && 'active', danger && 'danger')}>
+      ⏱ {fmtClock(seconds)}
+    </div>
+  );
 }
 
 export function CardFlipHUD({
@@ -102,6 +129,11 @@ export function CardFlipHUD({
   timeElapsed,
   playerAAvatar,
   playerBAvatar,
+  mode = 'basic',
+  basicSecondsLeft,
+  basicTotal,
+  playerAClock,
+  playerBClock,
   children,
   className,
   ...rest
@@ -110,23 +142,48 @@ export function CardFlipHUD({
 
   return (
     <div
-      className={cn('game-hud', className)}
+      className={cn('game-hud', `cf-hud-${mode}`, className)}
       style={{ width: '100%', maxWidth: 600 }}
       {...rest}
     >
-      <PlayerCard
-        name={playerAName}
-        avatar={playerAAvatar}
-        score={playerAScore}
-        active={currentTurn === myUserId}
-      />
-      <Timer seconds={timeElapsed} mode="up" />
-      <PlayerCard
-        name={playerBName}
-        avatar={playerBAvatar}
-        score={playerBScore}
-        active={currentTurn !== myUserId}
-      />
+      <div className="cf-hud-side">
+        <PlayerCard
+          name={playerAName}
+          avatar={playerAAvatar}
+          score={playerAScore}
+          active={isMyTurn}
+        />
+        {mode === 'advanced' && playerAClock != null && (
+          <ClockChip seconds={playerAClock} active={isMyTurn} />
+        )}
+      </div>
+
+      {mode === 'basic' ? (
+        <Timer
+          seconds={basicSecondsLeft ?? timeElapsed}
+          total={basicTotal}
+          mode="countdown"
+        />
+      ) : (
+        // Nâng cao: đồng hồ trung tâm hiển thị quỹ giờ của người ĐANG đến lượt
+        <Timer
+          seconds={(isMyTurn ? playerAClock : playerBClock) ?? 0}
+          mode="countdown"
+        />
+      )}
+
+      <div className="cf-hud-side">
+        <PlayerCard
+          name={playerBName}
+          avatar={playerBAvatar}
+          score={playerBScore}
+          active={!isMyTurn}
+        />
+        {mode === 'advanced' && playerBClock != null && (
+          <ClockChip seconds={playerBClock} active={!isMyTurn} />
+        )}
+      </div>
+
       {children}
     </div>
   );

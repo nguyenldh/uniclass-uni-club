@@ -10,7 +10,6 @@ import {
   Typography,
   Divider,
   Checkbox,
-  Alert,
   Row,
   Col,
 } from 'antd';
@@ -61,14 +60,6 @@ export function WeeklyEventGeneralSettingsPage() {
     <div>
       <Title level={4}>Cấu hình chung — Sự kiện tuần</Title>
 
-      <Alert
-        type="warning"
-        showIcon
-        message="Lưu ý"
-        description="Thay đổi cron expression không ảnh hưởng đến các sự kiện đã Scheduled. Chỉ áp dụng cho sự kiện được tạo mới."
-        style={{ marginBottom: 16 }}
-      />
-
       <Card style={{ maxWidth: 900 }}>
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Divider orientation="left">Thời gian</Divider>
@@ -103,6 +94,17 @@ export function WeeklyEventGeneralSettingsPage() {
               </Form.Item>
             </Col>
           </Row>
+
+          <Divider orientation="left">Tính điểm</Divider>
+
+          <Form.Item
+            name="pointsPerCorrect"
+            label="Điểm mỗi câu đúng"
+            rules={[{ required: true }]}
+            tooltip="Số điểm cộng cho mỗi câu trả lời đúng. Áp dụng từ lần chấm điểm tiếp theo."
+          >
+            <InputNumber min={1} max={1000} style={{ width: '100%' }} />
+          </Form.Item>
 
           <Divider orientation="left">Hiển thị</Divider>
 

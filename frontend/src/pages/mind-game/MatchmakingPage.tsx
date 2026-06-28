@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { GameCanvas, Banner } from "../../design-system/game";
 import { MatchmakingOverlay, ExitButton } from "../../components";
 import { useUser } from "../../hooks/useUser";
@@ -48,6 +48,9 @@ const GAME_META: Record<
 export function MatchmakingPage() {
   const navigate = useNavigate();
   const { gameType } = useParams<{ gameType: string }>();
+  const [searchParams] = useSearchParams();
+  // Card Flip: chế độ chơi người dùng chọn ở lobby (mặc định 'basic')
+  const cardFlipMode = searchParams.get("mode") === "advanced" ? "advanced" : "basic";
   const { user, error: userError } = useUser();
 
   // Redirect về error page nếu không xác thực được
@@ -159,6 +162,7 @@ export function MatchmakingPage() {
           isAI,
           role,
           opponentProfile,
+          mode: cardFlipMode,
         },
       });
     } else if (validGameType === "quiz") {
@@ -223,6 +227,7 @@ export function MatchmakingPage() {
       <MatchmakingOverlay
         userId={userId}
         gameType={validGameType}
+        mode={validGameType === "card_flip" ? cardFlipMode : undefined}
         searchingTitle={meta.searchingTitle}
         searchingSubtitle={meta.searchingSubtitle}
         foundTitle={meta.foundTitle}

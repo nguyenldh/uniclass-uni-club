@@ -83,13 +83,10 @@ export function registerMindGameHandlers(io: Server, socket: Socket): void {
       const { sessionId, userId, cardId } = data;
       const result = await CardFlipService.flipCard(sessionId, userId, cardId);
 
-      io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE, {
-        cards: result.session.cards,
-        currentTurn: result.session.currentTurn,
-        scores: result.session.scores,
-        lastFlipped: result.session.lastFlipped,
-        isMatch: result.isMatch,
-      });
+      io.to(sessionId).emit(
+        MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE,
+        CardFlipService.statePayload(result.session, result.isMatch),
+      );
 
       if (result.gameOver) {
         io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_END, {
@@ -108,13 +105,10 @@ export function registerMindGameHandlers(io: Server, socket: Socket): void {
       const { sessionId } = data;
       const session = await CardFlipService.resetFlipped(sessionId);
       if (session) {
-        io.to(sessionId).emit(MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE, {
-          cards: session.cards,
-          currentTurn: session.currentTurn,
-          scores: session.scores,
-          lastFlipped: session.lastFlipped,
-          isMatch: false,
-        });
+        io.to(sessionId).emit(
+          MIND_GAME_SOCKET_EVENTS.CARD_FLIP_STATE,
+          CardFlipService.statePayload(session, false),
+        );
       }
     } catch (error: any) {
       socket.emit(SOCKET_EVENTS.ERROR, { message: error.message });

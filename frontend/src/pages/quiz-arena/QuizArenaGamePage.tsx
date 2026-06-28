@@ -6,6 +6,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GameButton, GameCanvas } from "../../design-system/game";
+import { ExitButton } from "../../components";
 import {
   VersusScreen,
   QuestionCard,
@@ -106,11 +107,6 @@ export function QuizArenaGamePage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittedRef = useRef(false); // tránh double-submit khi timeout
   const gameEndedSentRef = useRef(false);
-
-  // ─── Handler: thoát giữa trận (forfeit) ───
-  const handleForfeit = useCallback(() => {
-    exitWebView("/quiz-arena/game");
-  }, [userId, session?.sessionId, timeElapsed]);
 
   // Xác định mình là playerA hay playerB
   const amIPlayerA = session?.playerA === userId;
@@ -428,18 +424,14 @@ export function QuizArenaGamePage() {
       className="quiz-arena-page no-top"
       style={{ display: "flex", flexDirection: "column" }}
     >
-      {/* Nút thoát (X) */}
-      <button
-        type="button"
-        className="exit-button"
-        onClick={handleForfeit}
-        aria-label="Thoát"
-        title="Thoát"
-        // top/right do class .exit-button quản lý (đã tôn trọng safe-area); chỉ giữ zIndex để nổi trên HUD
+      {/* Nút thoát (X) — có modal xác nhận (giống các trang khác) */}
+      {/* top/right do class .exit-button quản lý (đã tôn trọng safe-area); chỉ giữ zIndex để nổi trên HUD */}
+      <ExitButton
+        from="/quiz-arena/game"
         style={{ zIndex: 100 }}
-      >
-        ✕
-      </button>
+        confirmTitle="Thoát trận đấu?"
+        confirmMessage="Bạn đang trong trận. Thoát bây giờ có thể bị xử thua. Bạn có chắc không?"
+      />
 
       {/* Top scorebar */}
       <VersusBar

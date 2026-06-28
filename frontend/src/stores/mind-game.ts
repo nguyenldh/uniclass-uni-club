@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   GomokuSession,
   CardFlipSession,
+  CardFlipMode,
   Board,
   CellValue,
 } from '@uniclub/shared';
@@ -140,6 +141,20 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
 // Card Flip Store
 // ============================================================
 
+/** Field đồng hồ trong payload CARD_FLIP_STATE / session */
+interface CardFlipClockFields {
+  mode?: CardFlipMode;
+  /** Cơ bản: mốc kết thúc trận (epoch ms, giờ server) */
+  deadlineAt?: number;
+  /** Nâng cao: quỹ giờ còn lại (ms) */
+  timeRemainingA?: number;
+  timeRemainingB?: number;
+  /** Nâng cao: mốc bắt đầu tính giờ lượt hiện tại (epoch ms, giờ server) */
+  turnStartedAt?: number;
+  /** Giờ server lúc phát state — để hiệu chỉnh lệch đồng hồ */
+  serverNow?: number;
+}
+
 interface CardFlipState {
   session: CardFlipSession | null;
   cards: Array<MemoryCardData & { state: MemoryCardState }>;
@@ -147,13 +162,21 @@ interface CardFlipState {
   scores: { playerA: number; playerB: number };
   lastFlipped: number[];
   timeElapsed: number;
-  /** Lệch đồng hồ client↔server (ms) = serverNow - clientNow, đo 1 lần khi hydrate session */
+  /** Lệch đồng hồ client↔server (ms) = serverNow - clientNow, đo lại mỗi lần nhận state */
   clockSkewMs: number;
+  // ---- Đồng hồ ----
+  mode: CardFlipMode;
+  deadlineAt: number | null;
+  timeRemainingA: number | null;
+  timeRemainingB: number | null;
+  turnStartedAt: number | null;
+  /** Bộ đếm ép re-render mỗi giây để cập nhật đồng hồ hiển thị */
+  clockTick: number;
   overlayState: 'win' | 'lose' | 'draw' | 'idle';
   overlayStats: Array<{ label: string; value: string }>;
 
   setSession: (session: CardFlipSession, serverNow?: number) => void;
-  syncFromServer: (data: { cards: Array<{ id: number; pairId: number; value: string; flipped: boolean; matched: boolean }>; currentTurn: string; scores: { playerA: number; playerB: number }; lastFlipped: number[] }) => void;
+  syncFromServer: (data: { cards: Array<{ id: number; pairId: number; value: string; flipped: boolean; matched: boolean }>; currentTurn: string; scores: { playerA: number; playerB: number }; lastFlipped: number[] } & CardFlipClockFields) => void;
   flipCard: (cardId: number) => void;
   markMatched: (cardId1: number, cardId2: number) => void;
   resetFlipped: () => void;
@@ -171,6 +194,12 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
   lastFlipped: [],
   timeElapsed: 0,
   clockSkewMs: 0,
+  mode: 'basic',
+  deadlineAt: null,
+  timeRemainingA: null,
+  timeRemainingB: null,
+  turnStartedAt: null,
+  clockTick: 0,
   overlayState: 'idle',
   overlayStats: [],
 
@@ -196,21 +225,42 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
       lastFlipped: session.lastFlipped,
       timeElapsed: elapsed,
       clockSkewMs,
+      mode: session.mode ?? 'basic',
+      deadlineAt: session.deadlineAt ?? null,
+      timeRemainingA: session.timeRemainingA ?? null,
+      timeRemainingB: session.timeRemainingB ?? null,
+      turnStartedAt: session.turnStartedAt ?? null,
       overlayState: 'idle',
       overlayStats: [],
     });
   },
 
   /** Đồng bộ toàn bộ state từ server (dùng cho socket broadcast) */
-  syncFromServer: (data: { cards: Array<{ id: number; pairId: number; value: string; type?: 'emoji' | 'image'; flipped: boolean; matched: boolean }>; currentTurn: string; scores: { playerA: number; playerB: number }; lastFlipped: number[] }) => {
+  syncFromServer: (data) => {
     const cards: Array<MemoryCardData & { state: MemoryCardState }> = data.cards.map((c) => ({
       id: String(c.id),
       pairId: String(c.pairId),
       content: c.value,
-      type: c.type === 'image' ? ('image' as const) : ('text' as const),
+      type: (c as { type?: 'emoji' | 'image' }).type === 'image' ? ('image' as const) : ('text' as const),
       state: c.matched ? 'matched' : c.flipped ? 'revealed' : 'hidden',
     }));
-    set({ cards, currentTurn: data.currentTurn, scores: data.scores, lastFlipped: data.lastFlipped });
+
+    // Đo lại lệch đồng hồ mỗi lần nhận state (giữ đồng hồ cờ vua chính xác).
+    const clockSkewMs = data.serverNow != null ? data.serverNow - Date.now() : get().clockSkewMs;
+
+    set((s) => ({
+      cards,
+      currentTurn: data.currentTurn,
+      scores: data.scores,
+      lastFlipped: data.lastFlipped,
+      clockSkewMs,
+      mode: data.mode ?? s.mode,
+      deadlineAt: data.deadlineAt ?? s.deadlineAt,
+      timeRemainingA: data.timeRemainingA ?? s.timeRemainingA,
+      timeRemainingB: data.timeRemainingB ?? s.timeRemainingB,
+      // turnStartedAt có thể thay đổi mỗi segment → ưu tiên giá trị mới nếu có
+      turnStartedAt: data.turnStartedAt ?? s.turnStartedAt,
+    }));
   },
 
   flipCard: (cardId) => {
@@ -242,12 +292,12 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
   switchTurn: (newTurn) => set({ currentTurn: newTurn }),
 
   // Tính lại từ startedAt (hiệu chỉnh skew), KHÔNG cộng dồn → miễn nhiễm throttle khi nền
-  // và lệch đồng hồ thiết bị.
+  // và lệch đồng hồ thiết bị. clockTick++ để ép re-render đồng hồ countdown mỗi giây.
   tick: () => set((s) => {
-    if (!s.session?.startedAt) return {};
+    if (!s.session?.startedAt) return { clockTick: s.clockTick + 1 };
     const startedAtMs = new Date(s.session.startedAt).getTime();
     const elapsed = Math.max(0, Math.floor((Date.now() + s.clockSkewMs - startedAtMs) / 1000));
-    return { timeElapsed: elapsed };
+    return { timeElapsed: elapsed, clockTick: s.clockTick + 1 };
   }),
 
   endGame: (result, timeElapsed, myScore, opponentScore) => {
@@ -271,7 +321,38 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
     lastFlipped: [],
     timeElapsed: 0,
     clockSkewMs: 0,
+    mode: 'basic',
+    deadlineAt: null,
+    timeRemainingA: null,
+    timeRemainingB: null,
+    turnStartedAt: null,
+    clockTick: 0,
     overlayState: 'idle',
     overlayStats: [],
   }),
 }));
+
+/**
+ * Tính đồng hồ hiển thị (giây) từ state store, hiệu chỉnh lệch giờ server.
+ * - basic:    `basicLeft` = thời gian chung còn lại.
+ * - advanced: `clockA`/`clockB` = quỹ giờ còn lại từng người; người đang giữ lượt bị trừ realtime.
+ */
+export function cardFlipClocks(s: Pick<CardFlipState,
+  'mode' | 'deadlineAt' | 'timeRemainingA' | 'timeRemainingB' | 'turnStartedAt' | 'currentTurn' | 'clockSkewMs' | 'session'
+>): { basicLeft: number; clockA: number; clockB: number } {
+  const serverNow = Date.now() + s.clockSkewMs;
+  const basicLeft = s.deadlineAt ? Math.max(0, Math.round((s.deadlineAt - serverNow) / 1000)) : 0;
+
+  let aMs = s.timeRemainingA ?? 0;
+  let bMs = s.timeRemainingB ?? 0;
+  if (s.mode === 'advanced' && s.session?.status === 'playing' && s.turnStartedAt) {
+    const elapsed = Math.max(0, serverNow - s.turnStartedAt);
+    if (s.currentTurn === s.session.playerA) aMs -= elapsed;
+    else if (s.currentTurn === s.session.playerB) bMs -= elapsed;
+  }
+  return {
+    basicLeft,
+    clockA: Math.max(0, Math.round(aMs / 1000)),
+    clockB: Math.max(0, Math.round(bMs / 1000)),
+  };
+}
