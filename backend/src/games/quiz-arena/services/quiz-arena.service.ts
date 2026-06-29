@@ -75,7 +75,11 @@ function calcEarnedPoints(
   minRetention: number,
 ): number {
   if (!isCorrect) return 0;
-  const ratio = Math.min(responseTimeMs / timeLimitMs, 1);
+  // Tính theo SỐ GIÂY (làm tròn xuống) đã trôi để khớp đúng với số điểm hiển thị
+  // trên thanh progress ở client (client decay theo giây nguyên, không theo mili-giây).
+  const elapsedSec = Math.floor(responseTimeMs / 1000);
+  const timeLimitSec = Math.max(1, Math.round(timeLimitMs / 1000));
+  const ratio = Math.min(elapsedSec / timeLimitSec, 1);
   return Math.round(maxPoints * (1 - minRetention * ratio));
 }
 
@@ -346,6 +350,26 @@ export class QuizArenaService {
   static async startMatch(sessionId: string, io: Server): Promise<void> {
     const session = await this.getSession(sessionId);
     if (!session || session.status !== "waiting") return;
+
+    // Khối lớp chưa có câu hỏi → không thể bắt đầu trận.
+    // Kết thúc session KHÔNG tính thắng/thua/điểm và báo client hiển thị màn "không có câu hỏi".
+    if (!session.questions || session.questions.length === 0) {
+      session.status = "finished";
+      session.winner = null;
+      session.endedAt = new Date();
+      await this.saveSession(session);
+
+      await MatchmakingService.clearActiveSession(session.playerA);
+      if (!session.isBot) {
+        await MatchmakingService.clearActiveSession(session.playerB);
+      }
+
+      io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.NO_QUESTIONS, {
+        sessionId,
+        grade: session.grade,
+      });
+      return;
+    }
 
     session.status = "playing";
     await this.saveSession(session);

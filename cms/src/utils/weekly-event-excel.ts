@@ -13,7 +13,6 @@ export interface WeeklyEventExamParseResult {
 
 const HEADER = [
   'examTitle',
-  'subject',
   'grade',
   'questionStem',
   'optionA',
@@ -28,7 +27,6 @@ const HEADER = [
 export function generateWeeklyEventExamTemplate(): void {
   const sampleQuestions = Array.from({ length: 25 }, (_, i) => [
     `Đề mẫu khối 5`,           // examTitle
-    'Toán',                     // subject
     5,                          // grade
     `Câu hỏi mẫu số ${i + 1}: Nội dung câu hỏi...`, // questionStem
     `Đáp án A câu ${i + 1}`,   // optionA
@@ -54,7 +52,7 @@ function parseShuffleable(v: any): boolean {
 
 /**
  * Parse file Excel thành danh sách đề thi.
- * Mỗi dòng là 1 câu hỏi. Các dòng có cùng (examTitle, subject, grade) được gộp thành 1 đề.
+ * Mỗi dòng là 1 câu hỏi. Các dòng có cùng (examTitle, grade) được gộp thành 1 đề.
  * Mỗi đề phải có đúng 25 câu hỏi.
  */
 export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventExamParseResult> {
@@ -71,7 +69,6 @@ export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventE
         const questionRows: Array<{
           row: number;
           examTitle: string;
-          subject: string;
           grade: number;
           stem: string;
           optionA: string;
@@ -86,22 +83,20 @@ export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventE
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
           const rowNum = i + 1;
-          if (!row || row.length === 0 || (!row[0] && !row[3])) continue;
+          if (!row || row.length === 0 || (!row[0] && !row[2])) continue;
 
           const examTitle = String(row[0] || '').trim();
-          const subject = String(row[1] || '').trim();
-          const grade = parseInt(row[2], 10);
-          const stem = String(row[3] || '').trim();
-          const optionA = String(row[4] || '').trim();
-          const optionB = String(row[5] || '').trim();
-          const optionC = String(row[6] || '').trim();
-          const optionD = String(row[7] || '').trim();
-          const correctKey = String(row[8] || '').trim().toUpperCase();
-          const shuffleable = parseShuffleable(row[9]);
+          const grade = parseInt(row[1], 10);
+          const stem = String(row[2] ?? '').trim();
+          const optionA = String(row[3] ?? '').trim();
+          const optionB = String(row[4] ?? '').trim();
+          const optionC = String(row[5] ?? '').trim();
+          const optionD = String(row[6] ?? '').trim();
+          const correctKey = String(row[7] || '').trim().toUpperCase();
+          const shuffleable = parseShuffleable(row[8]);
 
           const rowErrors: string[] = [];
           if (!examTitle) rowErrors.push('Thiếu tên đề (examTitle)');
-          if (!subject) rowErrors.push('Thiếu môn học (subject)');
           if (isNaN(grade) || grade < 1 || grade > 12) rowErrors.push('grade phải từ 1-12');
           if (!stem) rowErrors.push('Thiếu nội dung câu hỏi (questionStem)');
           if (!optionA || !optionB || !optionC || !optionD) rowErrors.push('Thiếu đáp án (cần đủ A, B, C, D)');
@@ -115,7 +110,6 @@ export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventE
           questionRows.push({
             row: rowNum,
             examTitle,
-            subject,
             grade,
             stem,
             optionA,
@@ -127,11 +121,11 @@ export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventE
           });
         }
 
-        // Gộp câu hỏi thành đề thi theo (examTitle, subject, grade)
+        // Gộp câu hỏi thành đề thi theo (examTitle, grade)
         const examMap = new Map<string, typeof questionRows>();
 
         for (const q of questionRows) {
-          const key = `${q.examTitle}|${q.subject}|${q.grade}`;
+          const key = `${q.examTitle}|${q.grade}`;
           if (!examMap.has(key)) {
             examMap.set(key, []);
           }
@@ -141,7 +135,7 @@ export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventE
         const exams: CreateExamInput[] = [];
 
         for (const [key, questions] of examMap) {
-          const [examTitle, subject, gradeStr] = key.split('|');
+          const [examTitle, gradeStr] = key.split('|');
           const grade = parseInt(gradeStr, 10);
 
           if (questions.length !== 25) {
@@ -156,7 +150,6 @@ export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventE
           exams.push({
             grade,
             title: examTitle,
-            subject,
             questions: questions.map((q) => ({
               stem: q.stem,
               options: [
@@ -187,7 +180,6 @@ export function parseWeeklyEventExamsFromExcel(file: File): Promise<WeeklyEventE
 export function exportWeeklyEventExamsToExcel(
   exams: Array<{
     title: string;
-    subject: string;
     grade: number;
     questions: Array<{
       stem: string;
@@ -204,7 +196,6 @@ export function exportWeeklyEventExamsToExcel(
     for (const q of exam.questions) {
       rows.push([
         exam.title,
-        exam.subject,
         exam.grade,
         q.stem,
         q.options.find((o) => o.key === 'A')?.text || '',

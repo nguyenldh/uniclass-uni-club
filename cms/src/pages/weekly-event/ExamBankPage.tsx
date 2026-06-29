@@ -91,11 +91,6 @@ export function WeeklyEventExamBankPage() {
       width: 80,
     },
     {
-      title: 'Môn',
-      dataIndex: 'subject',
-      width: 120,
-    },
-    {
       title: 'Số câu',
       dataIndex: 'totalQuestions',
       width: 80,

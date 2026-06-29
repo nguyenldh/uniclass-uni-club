@@ -43,7 +43,7 @@ export function QuizArenaConfigPage() {
     setSaving(true);
     try {
       await updateQuizArena(values);
-      message.success('Đã lưu cấu hình Quiz Arena');
+      message.success('Đã lưu cấu hình So Tài');
     } catch (error: any) {
       message.error(error.response?.data?.error || 'Lưu cấu hình thất bại');
     } finally {
@@ -55,7 +55,7 @@ export function QuizArenaConfigPage() {
     setInvalidating(true);
     try {
       await invalidateCache('quiz_arena');
-      message.success('Đã xóa cache Quiz Arena');
+      message.success('Đã xóa cache So Tài');
     } catch (error: any) {
       message.error(error.response?.data?.error || 'Xóa cache thất bại');
     } finally {
@@ -89,7 +89,7 @@ export function QuizArenaConfigPage() {
 
   return (
     <div>
-      <Title level={4}>Cấu hình Quiz Arena (So Tài)</Title>
+      <Title level={4}>Cấu hình So Tài</Title>
 
       <Card style={{ maxWidth: 800 }}>
         <Form
@@ -129,9 +129,9 @@ export function QuizArenaConfigPage() {
 
           <Form.Item
             name="uniPointsPerCorrect"
-            label="Điểm mỗi câu đúng"
+            label="Cúp mỗi câu đúng"
             rules={[{ required: true, message: 'Bắt buộc' }]}
-            tooltip="Số UniPoints đồng bộ về UniClass khi trả lời đúng"
+            tooltip="Số Cúp đồng bộ về hệ thống cha khi trả lời đúng"
           >
             <InputNumber min={0} max={100} style={{ width: '100%' }} />
           </Form.Item>
@@ -241,7 +241,7 @@ export function QuizArenaConfigPage() {
               </Button>
 
               <Popconfirm
-                title="Xóa cache Quiz Arena?"
+                title="Xóa cache So Tài?"
                 description="Cache sẽ được xây dựng lại khi có request mới."
                 onConfirm={handleInvalidateCache}
                 okText="Xóa"

@@ -65,6 +65,12 @@ export const QUIZ_ARENA_SOCKET_EVENTS = {
   END: 'quiz-arena:end',
   /** Server → Client: đối thủ mất kết nối */
   OPPONENT_DISCONNECTED: 'quiz-arena:opponent-disconnected',
+  /**
+   * Server → Client: khối lớp chưa có câu hỏi → không thể bắt đầu trận.
+   * Client hiển thị màn "không có câu hỏi" thay vì màn kết quả.
+   * Payload: { sessionId: string; grade: number }
+   */
+  NO_QUESTIONS: 'quiz-arena:no-questions',
 } as const;
 
 // ---- Default config ----

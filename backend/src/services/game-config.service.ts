@@ -83,7 +83,9 @@ export class GameConfigService {
     if (cached) return JSON.parse(cached);
 
     const doc = await GameConfigModel.findOne({ gameType: 'boss_battle' });
-    const config = doc?.bossBattle ?? DEFAULT_BOSS_BATTLE_CONFIG;
+    const config = doc?.bossBattle
+      ? { ...DEFAULT_BOSS_BATTLE_CONFIG, ...(doc.bossBattle as any).toObject() }
+      : DEFAULT_BOSS_BATTLE_CONFIG;
 
     await redis.set(
       `${REDIS_KEYS.GAME_CONFIG}:boss_battle`,

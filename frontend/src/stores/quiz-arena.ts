@@ -19,7 +19,8 @@ export type QuizGamePhase =
   | 'answering'
   | 'waiting'
   | 'revealing'
-  | 'finished';
+  | 'finished'
+  | 'no-questions';
 
 export interface QuestionResult {
   questionIndex: number;
@@ -65,6 +66,8 @@ interface QuizArenaState {
   setQuestionResult: (result: QuestionResult) => void;
   setPlayerStates: (playerA: QuizPlayerState, playerB: QuizPlayerState) => void;
   endGame: (result: QuizArenaResult) => void;
+  /** Khối lớp chưa có câu hỏi → chuyển sang màn "không có câu hỏi" */
+  setNoQuestions: () => void;
   startCountdown: (startsAt: number) => void;
   tick: () => void;
   reset: () => void;
@@ -121,7 +124,10 @@ export const useQuizArenaStore = create<QuizArenaState>((set) => ({
 
     // Xác định phase dựa trên trạng thái session
     let phase: QuizGamePhase;
-    if (session.status === 'finished') {
+    if (session.questions.length === 0) {
+      // Khối lớp chưa có câu hỏi (kể cả khi reload lại session đã kết thúc kiểu này)
+      phase = 'no-questions';
+    } else if (session.status === 'finished') {
       phase = 'finished';
     } else if (session.status === 'playing') {
       // Reconnect vào giữa trận: chờ server gửi QUESTION, không hiện versus
@@ -188,6 +194,8 @@ export const useQuizArenaStore = create<QuizArenaState>((set) => ({
       gameResult: result,
       phase: 'finished',
     }),
+
+  setNoQuestions: () => set({ phase: 'no-questions' }),
 
   startCountdown: (startsAt) =>
     set({

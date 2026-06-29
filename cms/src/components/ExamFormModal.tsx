@@ -54,7 +54,6 @@ export function ExamFormModal({ open, exam, onClose }: ExamFormModalProps) {
         form.setFieldsValue({
           grade: exam.grade,
           title: exam.title,
-          subject: exam.subject,
         });
         setQuestions(exam.questions.map(({ questionId: _qid, ...rest }) => rest));
       } else {
@@ -120,7 +119,6 @@ export function ExamFormModal({ open, exam, onClose }: ExamFormModalProps) {
       const input = {
         grade: values.grade,
         title: values.title,
-        subject: values.subject,
         questions,
       };
 
@@ -162,14 +160,6 @@ export function ExamFormModal({ open, exam, onClose }: ExamFormModalProps) {
             style={{ width: 150 }}
           >
             <Select options={GRADE_OPTIONS.map((g) => ({ value: g, label: `Khối ${g}` }))} />
-          </Form.Item>
-          <Form.Item
-            name="subject"
-            label="Môn học"
-            rules={[{ required: true, message: 'Nhập môn học' }]}
-            style={{ width: 200 }}
-          >
-            <Input placeholder="VD: Toán, Tiếng Việt..." />
           </Form.Item>
           <Form.Item
             name="title"

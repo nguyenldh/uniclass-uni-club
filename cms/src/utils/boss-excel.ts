@@ -64,12 +64,12 @@ export function parseBossQuestionsFromExcel(file: File): Promise<BossParseResult
 
           const id = row[0] ? String(row[0]).trim() : undefined;
           const grade = parseInt(row[1], 10);
-          const content = String(row[2] || '').trim();
+          const content = String(row[2] ?? '').trim();
           const imageUrl = row[3] ? String(row[3]).trim() : undefined;
-          const optionA = String(row[4] || '').trim();
-          const optionB = String(row[5] || '').trim();
-          const optionC = String(row[6] || '').trim();
-          const optionD = String(row[7] || '').trim();
+          const optionA = String(row[4] ?? '').trim();
+          const optionB = String(row[5] ?? '').trim();
+          const optionC = String(row[6] ?? '').trim();
+          const optionD = String(row[7] ?? '').trim();
           const correctIndex = parseInt(row[8], 10);
           const isActive = parseBool(row[9]);
 

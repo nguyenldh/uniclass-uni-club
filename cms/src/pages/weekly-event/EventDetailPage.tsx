@@ -557,7 +557,7 @@ export function WeeklyEventDetailPage() {
                   }
                   options={(examOptions[record.grade] || []).map((e) => ({
                     value: e._id,
-                    label: `${e.title} (${e.subject}, ${e.totalQuestions} câu)`,
+                    label: `${e.title} (${e.totalQuestions} câu)`,
                   }))}
                 />
               ),

@@ -121,7 +121,19 @@ function makeIcon(symbolId: string, defaultSize = 24, defaultColor?: string): Ic
 export const StarIcon:   IconComponent = makeIcon('icon-star',   24);
 export const CoinIcon:   IconComponent = makeIcon('icon-coin',   24);
 export const FlameIcon:  IconComponent = makeIcon('icon-flame',  40);
-export const TrophyIcon: IconComponent = makeIcon('icon-trophy', 50);
+/** Cúp — dùng ảnh SVG tại /public/images/icon/trophy.svg (thay cho icon sprite cũ). */
+export const TrophyIcon: IconComponent = ({ size = 50, className, style }) => (
+  <img
+    src="/images/icon/trophy.svg"
+    alt=""
+    aria-hidden="true"
+    width={size}
+    height={size}
+    className={['game-trophy', className].filter(Boolean).join(' ')}
+    style={style}
+  />
+);
+TrophyIcon.displayName = 'TrophyIcon';
 export const ChestIcon:  IconComponent = makeIcon('icon-chest',  60);
 export const SparkIcon:  IconComponent = makeIcon('icon-spark',  18, '#fff');
 export const SendIcon:   IconComponent = makeIcon('icon-send',   24, '#fff');

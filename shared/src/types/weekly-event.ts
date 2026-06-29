@@ -136,8 +136,6 @@ export interface ExamBank {
   grade: number;
   /** Tiêu đề đề thi */
   title: string;
-  /** Môn học */
-  subject: string;
   /** Tổng số câu hỏi */
   totalQuestions: number;
   /** Danh sách câu hỏi */
@@ -363,14 +361,12 @@ export interface CurrentEventResponse {
 export interface CreateExamInput {
   grade: number;
   title: string;
-  subject: string;
   questions: Omit<ExamQuestion, 'questionId'>[];
 }
 
 export interface UpdateExamInput {
   grade?: number;
   title?: string;
-  subject?: string;
   questions?: Omit<ExamQuestion, 'questionId'>[];
 }
 

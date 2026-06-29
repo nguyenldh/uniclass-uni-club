@@ -97,12 +97,22 @@ export function registerMatchmakingHandlers(io: Server, socket: Socket): void {
           });
         }
 
-        // ---- Card Flip: tách queue theo chế độ chơi (basic/advanced) ----
+        // Phần khối lớp cho partition — chỉ ghép người THẬT cùng khối, không lẫn khối.
+        // Nếu client không gửi grade → gom vào 'g-na' (vẫn cô lập, không lẫn với khối đã biết).
+        const gradePart = data.grade != null ? `g${data.grade}` : 'g-na';
+
+        // ---- Card Flip: tách queue theo KHỐI + chế độ chơi (basic/advanced) ----
         if (gameType === 'card_flip') {
           const mode = data.mode === 'advanced' ? 'advanced' : 'basic';
-          partitionKey = mode; // chỉ ghép người cùng chế độ
-          socket.data.quizPartitionKey = mode; // để LEAVE/disconnect dọn đúng partition
+          partitionKey = `${gradePart}:${mode}`; // chỉ ghép cùng khối + cùng chế độ
+          socket.data.quizPartitionKey = partitionKey; // để LEAVE/disconnect dọn đúng partition
           await setPendingCardFlipMode(userId, mode); // factory đọc khi tạo session
+        }
+
+        // ---- Gomoku: tách queue theo KHỐI (chỉ ghép người cùng khối) ----
+        if (gameType === 'gomoku') {
+          partitionKey = gradePart;
+          socket.data.quizPartitionKey = partitionKey; // để LEAVE/disconnect dọn đúng partition
         }
 
         // ---- Thông số ghép trận (timeout / mốc bot / mode) lấy từ config ----

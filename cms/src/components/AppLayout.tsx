@@ -32,11 +32,11 @@ function getItem(
 
 const menuItems: MenuItem[] = [
   getItem('Dashboard', '/', <BarChartOutlined />),
-  getItem('Mind Game', 'mind-game', <SettingOutlined />, [
-    getItem('Gomoku', '/mind-game/gomoku'),
-    getItem('Card Flip', '/mind-game/card-flip'),
+  getItem('Đấu Trí', 'mind-game', <SettingOutlined />, [
+    getItem('Cờ Caro', '/mind-game/gomoku'),
+    getItem('Lật Thẻ Bài', '/mind-game/card-flip'),
   ]),
-  getItem('Quiz Arena', 'quiz-arena', <QuestionCircleOutlined />, [
+  getItem('So Tài', 'quiz-arena', <QuestionCircleOutlined />, [
     getItem('Cấu hình', '/quiz-arena/config'),
     getItem('Ngân hàng câu hỏi', '/quiz-arena/questions'),
   ]),

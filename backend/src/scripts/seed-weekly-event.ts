@@ -55,7 +55,6 @@ async function seed() {
     const doc = await ExamBankModel.create({
       grade,
       title: `Đề mẫu khối ${grade}`,
-      subject: 'Toán',
       totalQuestions: 25,
       questions: sampleQuestions,
     });

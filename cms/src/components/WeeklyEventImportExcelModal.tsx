@@ -71,7 +71,6 @@ export function WeeklyEventImportExcelModal({ open, onCancel, onSuccess }: Weekl
 
   const examPreviewColumns = [
     { title: 'Tên đề', dataIndex: 'title', key: 'title', ellipsis: true },
-    { title: 'Môn', dataIndex: 'subject', key: 'subject', width: 100 },
     { title: 'Khối', dataIndex: 'grade', key: 'grade', width: 60 },
     {
       title: 'Số câu',
@@ -115,7 +114,7 @@ export function WeeklyEventImportExcelModal({ open, onCancel, onSuccess }: Weekl
           type="info"
           showIcon
           message="Định dạng file Excel"
-          description="Mỗi dòng là 1 câu hỏi. Các dòng có cùng (Tên đề, Môn, Khối) sẽ được gộp thành 1 đề. Mỗi đề phải có đúng 25 câu."
+          description="Mỗi dòng là 1 câu hỏi. Các dòng có cùng (Tên đề, Khối) sẽ được gộp thành 1 đề. Mỗi đề phải có đúng 25 câu."
         />
 
         <Upload

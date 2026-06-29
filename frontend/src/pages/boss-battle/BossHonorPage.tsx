@@ -59,11 +59,10 @@ export function BossHonorPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 600,
+          minHeight: '100dvh',
           color: '#fff',
           fontSize: 18,
           background: '#170f24',
-          borderRadius: 22,
         }}
       >
         Đang tải vinh danh...
@@ -80,11 +79,10 @@ export function BossHonorPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 600,
+          minHeight: '100dvh',
           gap: 16,
           color: '#fff',
           background: '#170f24',
-          borderRadius: 22,
         }}
       >
         <div style={{ color: '#ff6a5a', fontSize: 18, fontWeight: 800 }}>Lỗi</div>
@@ -105,11 +103,10 @@ export function BossHonorPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 600,
+          minHeight: '100dvh',
           gap: 16,
           color: '#fff',
           background: '#170f24',
-          borderRadius: 22,
         }}
       >
         <div style={{ fontSize: 48 }}>👑</div>

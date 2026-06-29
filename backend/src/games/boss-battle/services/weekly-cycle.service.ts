@@ -21,6 +21,7 @@ import {
 import type { BossBattleConfig, WeeklyHonor } from '@uniclub/shared';
 import { GameConfigService } from '../../../services/game-config.service';
 import { QuestionSetService } from './question-set.service';
+import { BossQuestionService } from './boss-question.service';
 import { BossWeeklyConfigService } from './boss-weekly-config.service';
 import { getPreviousWeekKey } from '../utils/week';
 
@@ -66,6 +67,26 @@ export class WeeklyCycleService {
     }
 
     try {
+      // Validate: mỗi khối CHƯA khởi tạo phải có đủ số câu hỏi (questionsPerWeek) trong kho.
+      // Nếu thiếu → chặn toàn bộ init (không tạo BossInstance nào) để tránh tuần lỗi.
+      const insufficient: Array<{ grade: number; have: number; need: number }> = [];
+      for (const grade of grades) {
+        const alreadyInit = await BossInstanceModel.exists({ weekKey, gradeLevel: grade });
+        if (alreadyInit) continue;
+        const cfg = await BossWeeklyConfigService.getEffectiveConfig(weekKey, grade);
+        const need = cfg.questionsPerWeek;
+        const have = await BossQuestionService.countActiveByGrade(grade);
+        if (have < need) insufficient.push({ grade, have, need });
+      }
+      if (insufficient.length > 0) {
+        const detail = insufficient
+          .map((x) => `Khối ${x.grade} (có ${x.have}/${x.need})`)
+          .join(', ');
+        throw new Error(
+          `Không đủ câu hỏi để khởi tạo tuần. Mỗi khối cần đủ số câu hỏi trong kho: ${detail}. Vui lòng bổ sung câu hỏi rồi thử lại.`,
+        );
+      }
+
       const initialized: number[] = [];
       const skipped: number[] = [];
 

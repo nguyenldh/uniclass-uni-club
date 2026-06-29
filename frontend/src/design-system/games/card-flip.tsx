@@ -109,12 +109,42 @@ function fmtClock(sec: number): string {
   return `${mm}:${ss.toString().padStart(2, '0')}`;
 }
 
-/** Chip đồng hồ nhỏ hiển thị quỹ giờ một người (chế độ Nâng cao) */
+/** Chip đồng hồ nhỏ hiển thị quỹ giờ một người (chế độ Nâng cao).
+ *  Khi quỹ giờ TĂNG (được thưởng giờ lúc ghép đúng ở chế độ Nâng cao) → hiện hiệu ứng "+Xs"
+ *  nổi lên để học sinh dễ nhận biết. Quỹ giờ chỉ giảm đều theo thời gian nên mọi lần tăng
+ *  đều là do được cộng thưởng. */
 function ClockChip({ seconds, active }: { seconds: number; active: boolean }) {
   const danger = seconds <= 5;
+  const prevRef = React.useRef(seconds);
+  const activeRef = React.useRef(active);
+  activeRef.current = active;
+  const idRef = React.useRef(0);
+  const [bonus, setBonus] = React.useState<{ amount: number; id: number } | null>(null);
+
+  React.useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = seconds;
+    // Chỉ hiện khi quỹ giờ TĂNG, người này đang giữ lượt (thưởng giờ thuộc về người vừa ghép đúng),
+    // và đã có quỹ giờ thực (prev > 0) để tránh báo nhầm lúc khởi tạo từ 0.
+    if (seconds > prev && prev > 0 && activeRef.current) {
+      setBonus({ amount: seconds - prev, id: ++idRef.current });
+    }
+  }, [seconds]);
+
+  React.useEffect(() => {
+    if (!bonus) return;
+    const t = setTimeout(() => setBonus(null), 1300);
+    return () => clearTimeout(t);
+  }, [bonus]);
+
   return (
     <div className={cn('cf-clock-chip', active && 'active', danger && 'danger')}>
       ⏱ {fmtClock(seconds)}
+      {bonus && (
+        <span key={bonus.id} className="cf-clock-bonus">
+          +{bonus.amount}s
+        </span>
+      )}
     </div>
   );
 }

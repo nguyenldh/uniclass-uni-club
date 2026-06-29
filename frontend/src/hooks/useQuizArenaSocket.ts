@@ -26,6 +26,8 @@ export interface UseQuizArenaSocketOptions {
   onGameEnd: (result: QuizArenaResult) => void;
   /** Called when opponent disconnects mid-game */
   onOpponentDisconnected: (userId: string) => void;
+  /** Called when grade has no questions → show "no questions" screen */
+  onNoQuestions: () => void;
 }
 
 export interface QuizArenaSocketActions {
@@ -45,6 +47,7 @@ export function useQuizArenaSocket({
   onStateUpdate,
   onGameEnd,
   onOpponentDisconnected,
+  onNoQuestions,
 }: UseQuizArenaSocketOptions): QuizArenaSocketActions {
   const socketRef = useRef<Socket | null>(null);
   /** Track if joinSession was called so we can re-emit on reconnect */
@@ -58,6 +61,7 @@ export function useQuizArenaSocket({
   const onStateUpdateRef = useRef(onStateUpdate);
   const onGameEndRef = useRef(onGameEnd);
   const onOpponentDisconnectedRef = useRef(onOpponentDisconnected);
+  const onNoQuestionsRef = useRef(onNoQuestions);
 
   onCountdownRef.current = onCountdown;
   onQuestionRef.current = onQuestion;
@@ -66,6 +70,7 @@ export function useQuizArenaSocket({
   onStateUpdateRef.current = onStateUpdate;
   onGameEndRef.current = onGameEnd;
   onOpponentDisconnectedRef.current = onOpponentDisconnected;
+  onNoQuestionsRef.current = onNoQuestions;
 
   useEffect(() => {
     const socket = io(import.meta.env.VITE_SOCKET_URL || '/', {
@@ -131,6 +136,10 @@ export function useQuizArenaSocket({
         onOpponentDisconnectedRef.current(data.userId);
       },
     );
+
+    socket.on(QUIZ_ARENA_SOCKET_EVENTS.NO_QUESTIONS, () => {
+      onNoQuestionsRef.current();
+    });
 
     return () => {
       console.log('[QuizArenaSocket] Disconnecting');

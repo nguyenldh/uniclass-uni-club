@@ -164,6 +164,38 @@ export const bossBattleService = {
     );
     return res.data.set;
   },
+  /** Xóa 1 câu khỏi set — câu trở thành "chưa được gán" */
+  async removeQuestionFromSet(setId: string, questionId: string): Promise<BossQuestionSet> {
+    const res = await api.post<{ success: boolean; set: BossQuestionSet }>(
+      `/boss-battle/question-sets/${setId}/remove`,
+      { questionId },
+    );
+    return res.data.set;
+  },
+  /** Thêm 1 câu (chưa được gán) vào set */
+  async addQuestionToSet(setId: string, questionId: string): Promise<BossQuestionSet> {
+    const res = await api.post<{ success: boolean; set: BossQuestionSet }>(
+      `/boss-battle/question-sets/${setId}/add`,
+      { questionId },
+    );
+    return res.data.set;
+  },
+  /** Danh sách câu "chưa được gán" theo khối (dùng cho popup Thay thế) */
+  async getUnassignedQuestions(grade: number, search?: string): Promise<BossQuestion[]> {
+    const res = await api.get<{ success: boolean; items: BossQuestion[] }>(
+      '/boss-battle/questions/unassigned',
+      { params: { grade, search: search || undefined } },
+    );
+    return res.data.items;
+  },
+
+  /** Đếm số câu hỏi active theo từng khối → { [grade]: count } */
+  async getQuestionCountByGrade(): Promise<Record<number, number>> {
+    const res = await api.get<{ success: boolean; counts: Record<number, number> }>(
+      '/boss-battle/questions/count-by-grade',
+    );
+    return res.data.counts;
+  },
 
   // ---- Cycle ----
   async initWeek(weekKey: string, grades?: number[]): Promise<InitWeekResult> {

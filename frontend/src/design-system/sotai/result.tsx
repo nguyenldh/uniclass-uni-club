@@ -201,7 +201,7 @@ export function ResultCompare({
         </div>
 
         <div className="st-reward">
-          <div className="lab">UniPoints nhận được</div>
+          <div className="lab">Cúp nhận được</div>
           <div className="pts">+{uniPointsEarned.toLocaleString('vi-VN')}</div>
         </div>
 

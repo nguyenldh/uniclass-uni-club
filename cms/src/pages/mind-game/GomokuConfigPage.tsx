@@ -28,7 +28,7 @@ export function GomokuConfigPage() {
     setSaving(true);
     try {
       await updateGomoku(values);
-      message.success('Đã lưu cấu hình Gomoku');
+      message.success('Đã lưu cấu hình Cờ Caro');
     } catch (error: any) {
       message.error(error.response?.data?.error || 'Lưu cấu hình thất bại');
     } finally {
@@ -40,7 +40,7 @@ export function GomokuConfigPage() {
     setInvalidating(true);
     try {
       await invalidateCache('gomoku');
-      message.success('Đã xóa cache Gomoku');
+      message.success('Đã xóa cache Cờ Caro');
     } catch (error: any) {
       message.error(error.response?.data?.error || 'Xóa cache thất bại');
     } finally {
@@ -59,7 +59,7 @@ export function GomokuConfigPage() {
 
   return (
     <div>
-      <Title level={4}>Cấu hình Gomoku (Cờ Caro)</Title>
+      <Title level={4}>Cấu hình Cờ Caro</Title>
       
       <Card style={{ maxWidth: 600 }}>
         <Form
@@ -81,9 +81,9 @@ export function GomokuConfigPage() {
 
           <Form.Item
             name="winPoints"
-            label="Điểm thưởng khi thắng"
+            label="Cúp thưởng khi thắng"
             rules={[{ required: true, message: 'Bắt buộc' }]}
-            tooltip="Số điểm người chơi nhận được khi thắng trận"
+            tooltip="Số Cúp người chơi nhận được khi thắng trận"
           >
             <InputNumber min={0} max={1000} style={{ width: '100%' }} />
           </Form.Item>
@@ -109,7 +109,7 @@ export function GomokuConfigPage() {
               </Button>
               
               <Popconfirm
-                title="Xóa cache Gomoku?"
+                title="Xóa cache Cờ Caro?"
                 description="Cache sẽ được xây dựng lại khi có request mới."
                 onConfirm={handleInvalidateCache}
                 okText="Xóa"

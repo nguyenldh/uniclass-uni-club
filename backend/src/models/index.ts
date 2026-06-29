@@ -807,7 +807,6 @@ const ExamQuestionSchema = new Schema<ExamQuestion>(
 export interface IExamBank extends Document {
   grade: number;
   title: string;
-  subject: string;
   totalQuestions: number;
   questions: ExamQuestion[];
   createdAt: Date;
@@ -818,7 +817,6 @@ const ExamBankSchema = new Schema<IExamBank>(
   {
     grade: { type: Number, required: true, min: 1, max: 12 },
     title: { type: String, required: true, trim: true },
-    subject: { type: String, required: true, trim: true },
     totalQuestions: { type: Number, required: true, default: 25 },
     questions: {
       type: [ExamQuestionSchema],
@@ -833,7 +831,6 @@ const ExamBankSchema = new Schema<IExamBank>(
 );
 
 ExamBankSchema.index({ grade: 1 });
-ExamBankSchema.index({ subject: 1 });
 
 export const ExamBankModel = mongoose.model<IExamBank>(
   'ExamBank',

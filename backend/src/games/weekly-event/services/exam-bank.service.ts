@@ -19,19 +19,16 @@ export class ExamBankService {
    */
   static async listExams(params: {
     grade?: number;
-    subject?: string;
     search?: string;
     page?: number;
     pageSize?: number;
   }): Promise<{ items: ExamBank[]; total: number; page: number; pageSize: number }> {
-    const { grade, subject, search, page = 1, pageSize = 20 } = params;
+    const { grade, search, page = 1, pageSize = 20 } = params;
     const filter: Record<string, unknown> = {};
     if (grade) filter.grade = grade;
-    if (subject) filter.subject = subject;
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { subject: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -88,7 +85,6 @@ export class ExamBankService {
     const doc = await ExamBankModel.create({
       grade: input.grade,
       title: input.title,
-      subject: input.subject,
       totalQuestions: questions.length,
       questions,
     });
@@ -103,7 +99,6 @@ export class ExamBankService {
     const update: Record<string, unknown> = {};
     if (input.grade !== undefined) update.grade = input.grade;
     if (input.title !== undefined) update.title = input.title;
-    if (input.subject !== undefined) update.subject = input.subject;
     if (input.questions !== undefined) {
       update.questions = input.questions.map((q) => ({
         ...q,
@@ -160,7 +155,6 @@ export class ExamBankService {
       _id: String(doc._id),
       grade: doc.grade as number,
       title: doc.title as string,
-      subject: doc.subject as string,
       totalQuestions: doc.totalQuestions as number,
       questions: (doc.questions as ExamBank['questions']) || [],
       createdAt: doc.createdAt?.toISOString(),

@@ -256,7 +256,7 @@ export function DashboardPage() {
                     prefix={<FireOutlined />}
                   />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    DailyAttempt COMPLETED / Tổng attempts
+                    Lượt chơi hoàn thành / Tổng lượt chơi
                   </Text>
                 </Card>
               </Col>
@@ -294,7 +294,7 @@ export function DashboardPage() {
                 <Card
                   title={
                     <span>
-                      <ThunderboltOutlined style={{ color: '#13c2c2' }} /> So Tài (Quiz Arena)
+                      <ThunderboltOutlined style={{ color: '#13c2c2' }} /> So Tài
                     </span>
                   }
                   hoverable
@@ -326,7 +326,7 @@ export function DashboardPage() {
                 <Card
                   title={
                     <span>
-                      <ThunderboltOutlined style={{ color: '#2f54eb' }} /> Đấu Trí (Mind Game)
+                      <ThunderboltOutlined style={{ color: '#2f54eb' }} /> Đấu Trí
                     </span>
                   }
                   hoverable
@@ -357,7 +357,7 @@ export function DashboardPage() {
             {/* Footer info */}
             <div style={{ marginTop: 24, textAlign: 'center' }}>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Dữ liệu được tính toán từ MongoDB aggregation. Khoảng thời gian:{' '}
+                Khoảng thời gian:{' '}
                 {overview.period.label === 'all'
                   ? 'Tất cả'
                   : `${new Date(overview.period.from).toLocaleDateString('vi-VN')} — ${new Date(overview.period.to).toLocaleDateString('vi-VN')}`}

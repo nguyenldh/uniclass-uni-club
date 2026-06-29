@@ -12,8 +12,10 @@ import {
   message,
   Modal,
   List,
+  Popconfirm,
+  Alert,
 } from 'antd';
-import { ReloadOutlined, SwapOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SwapOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { bossBattleService } from '../../services/boss-battle.service';
 import type { BossQuestion, BossQuestionSet } from '@uniclub/shared';
 
@@ -87,10 +89,13 @@ export function QuestionSetsPage({
   const [questionMap, setQuestionMap] = useState<Record<string, BossQuestion>>({});
 
   const [swapModalOpen, setSwapModalOpen] = useState(false);
-  const [swapContext, setSwapContext] = useState<{ setId: string; oldQId: string } | null>(null);
+  // oldQId = null → chế độ THÊM câu; có giá trị → chế độ THAY THẾ câu đó
+  const [swapContext, setSwapContext] = useState<{ setId: string; oldQId: string | null } | null>(null);
   const [candidates, setCandidates] = useState<BossQuestion[]>([]);
   const [candidateSearch, setCandidateSearch] = useState('');
   const [candidatesLoading, setCandidatesLoading] = useState(false);
+  // Số câu tối đa mỗi ngày (questionsPerDay) của tuần × khối — để giới hạn nút "Thêm câu hỏi"
+  const [maxPerDay, setMaxPerDay] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -98,13 +103,13 @@ export function QuestionSetsPage({
       const data = await bossBattleService.listSets(weekKey, grade);
       setSets(data);
     } catch (err: any) {
-      message.error(err.response?.data?.error || 'Tải sets thất bại');
+      message.error(err.response?.data?.error || 'Tải bộ câu hỏi thất bại');
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto-load khi (weekKey, grade) thay đổi — tránh phải bấm "Tải sets"
+  // Auto-load khi (weekKey, grade) thay đổi — tránh phải bấm "Tải lại"
   useEffect(() => {
     if (!weekKey || !grade) return;
     let cancelled = false;
@@ -115,10 +120,27 @@ export function QuestionSetsPage({
         if (!cancelled) setSets(data);
       } catch (err: any) {
         if (!cancelled) {
-          message.error(err.response?.data?.error || 'Tải sets thất bại');
+          message.error(err.response?.data?.error || 'Tải bộ câu hỏi thất bại');
         }
       } finally {
         if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [weekKey, grade]);
+
+  // Lấy giới hạn số câu/ngày (questionsPerDay) theo cấu hình hiệu lực của tuần × khối
+  useEffect(() => {
+    if (!weekKey || !grade) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const cfg = await bossBattleService.getWeeklyConfig(weekKey, grade);
+        if (!cancelled) setMaxPerDay(cfg?.effectiveConfig?.questionsPerDay ?? null);
+      } catch {
+        if (!cancelled) setMaxPerDay(null);
       }
     })();
     return () => {
@@ -154,7 +176,7 @@ export function QuestionSetsPage({
     setGenerating(true);
     try {
       const res = await bossBattleService.autoGenerate(weekKey, grade, force);
-      message.success(`Đã tạo ${res.created} set, bỏ qua ${res.skipped}`);
+      message.success(`Đã tạo ${res.created} bộ, bỏ qua ${res.skipped}`);
       load();
     } catch (err: any) {
       message.error(err.response?.data?.error || 'Tạo bộ câu thất bại');
@@ -170,31 +192,53 @@ export function QuestionSetsPage({
     await searchCandidates('');
   };
 
+  const openAdd = async (setId: string) => {
+    const set = sets.find((s) => s.id === setId);
+    if (maxPerDay != null && set && set.questionIds.length >= maxPerDay) {
+      message.warning(`Bộ này đã đủ ${maxPerDay} câu cho 1 ngày — không thể thêm.`);
+      return;
+    }
+    setSwapContext({ setId, oldQId: null });
+    setSwapModalOpen(true);
+    setCandidateSearch('');
+    await searchCandidates('');
+  };
+
   const searchCandidates = async (search: string) => {
     setCandidatesLoading(true);
     try {
-      const res = await bossBattleService.listQuestions({
-        grade,
-        isActive: true,
-        search: search || undefined,
-        page: 1,
-        pageSize: 30,
-      });
-      setCandidates(res.items);
+      // Danh sách Thay thế: chỉ câu CÙNG KHỐI và CHƯA ĐƯỢC GÁN set nào (backend lọc cả 2 điều kiện).
+      const items = await bossBattleService.getUnassignedQuestions(grade, search || undefined);
+      setCandidates(items);
     } finally {
       setCandidatesLoading(false);
     }
   };
 
-  const handleSwap = async (newQId: string) => {
+  const handlePick = async (newQId: string) => {
     if (!swapContext) return;
     try {
-      await bossBattleService.swapQuestion(swapContext.setId, swapContext.oldQId, newQId);
-      message.success('Đã thay câu hỏi');
+      if (swapContext.oldQId) {
+        await bossBattleService.swapQuestion(swapContext.setId, swapContext.oldQId, newQId);
+        message.success('Đã thay câu hỏi');
+      } else {
+        await bossBattleService.addQuestionToSet(swapContext.setId, newQId);
+        message.success('Đã thêm câu hỏi');
+      }
       setSwapModalOpen(false);
       load();
     } catch (err: any) {
-      message.error(err.response?.data?.error || 'Thay thất bại');
+      message.error(err.response?.data?.error || 'Thao tác thất bại');
+    }
+  };
+
+  const handleRemove = async (setId: string, qid: string) => {
+    try {
+      await bossBattleService.removeQuestionFromSet(setId, qid);
+      message.success('Đã xóa câu khỏi bộ (câu trở thành "chưa được gán")');
+      load();
+    } catch (err: any) {
+      message.error(err.response?.data?.error || 'Xóa thất bại');
     }
   };
 
@@ -220,7 +264,7 @@ export function QuestionSetsPage({
             options={GRADES.map((g) => ({ label: `Khối ${g}`, value: g }))}
           />
           <Button onClick={load} loading={loading}>
-            Tải sets
+            Tải lại
           </Button>
           <Button
             type="primary"
@@ -228,7 +272,7 @@ export function QuestionSetsPage({
             loading={generating}
             onClick={() => handleAutoGenerate(false)}
           >
-            Auto-generate
+            Tạo câu hỏi tự động
           </Button>
           <Button
             danger
@@ -236,13 +280,13 @@ export function QuestionSetsPage({
             loading={generating}
             onClick={() =>
               Modal.confirm({
-                title: 'Regenerate tất cả?',
-                content: 'Sẽ ghi đè cả 7 ngày của tuần này. Tiếp tục?',
+                title: 'Tạo lại từ đầu?',
+                content: 'Sẽ ghi đè câu hỏi của cả 7 ngày trong tuần này. Tiếp tục?',
                 onOk: () => handleAutoGenerate(true),
               })
             }
           >
-            Force regenerate
+            Tạo lại từ đầu (ghi đè)
           </Button>
         </Space>
       </Card>
@@ -255,6 +299,7 @@ export function QuestionSetsPage({
           pagination={false}
           expandable={{
             expandedRowRender: (record) => (
+              <>
               <List
                 size="small"
                 dataSource={record.questionIds}
@@ -269,8 +314,20 @@ export function QuestionSetsPage({
                           icon={<SwapOutlined />}
                           onClick={() => openSwap(record.id, qid)}
                         >
-                          Đổi
+                          Thay thế
                         </Button>,
+                        <Popconfirm
+                          key="del"
+                          title="Xóa câu khỏi bộ này?"
+                          description='Câu sẽ trở thành "chưa được gán" và có thể chọn lại khi Thay thế.'
+                          onConfirm={() => handleRemove(record.id, qid)}
+                          okText="Xóa"
+                          cancelText="Hủy"
+                        >
+                          <Button size="small" danger icon={<DeleteOutlined />}>
+                            Xóa
+                          </Button>
+                        </Popconfirm>,
                       ]}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -300,6 +357,22 @@ export function QuestionSetsPage({
                   );
                 }}
               />
+              <Button
+                size="small"
+                type="dashed"
+                icon={<PlusOutlined />}
+                style={{ marginTop: 8 }}
+                disabled={maxPerDay != null && record.questionIds.length >= maxPerDay}
+                onClick={() => openAdd(record.id)}
+              >
+                Thêm câu hỏi
+              </Button>
+              {maxPerDay != null && record.questionIds.length >= maxPerDay && (
+                <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                  Đã đủ {maxPerDay} câu cho ngày này
+                </Text>
+              )}
+              </>
             ),
           }}
           columns={[
@@ -310,18 +383,24 @@ export function QuestionSetsPage({
               render: (dayIndex: number) => formatDayLabel(weekKey, dayIndex),
             },
             { title: 'Số câu', render: (_, r) => r.questionIds.length, width: 100 },
-            { title: 'Set ID', dataIndex: 'id', ellipsis: true },
+            { title: 'Mã bộ', dataIndex: 'id', ellipsis: true },
           ]}
         />
       </Card>
 
       <Modal
         open={swapModalOpen}
-        title="Chọn câu thay thế"
+        title={swapContext?.oldQId ? 'Chọn câu thay thế' : 'Chọn câu để thêm'}
         onCancel={() => setSwapModalOpen(false)}
         footer={null}
         width={700}
       >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={`Chỉ hiển thị câu Khối ${grade} và chưa được gán vào bất kỳ bộ nào.`}
+        />
         <Input.Search
           placeholder="Tìm câu hỏi"
           allowClear
@@ -334,7 +413,7 @@ export function QuestionSetsPage({
           renderItem={(q) => (
             <List.Item
               actions={[
-                <Button key="pick" type="primary" size="small" onClick={() => handleSwap(q.id)}>
+                <Button key="pick" type="primary" size="small" onClick={() => handlePick(q.id)}>
                   Chọn
                 </Button>,
               ]}

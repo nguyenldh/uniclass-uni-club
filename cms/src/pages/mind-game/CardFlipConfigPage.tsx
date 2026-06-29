@@ -59,7 +59,7 @@ export function CardFlipConfigPage() {
         cardItems: values.cardItems?.filter((item) => item?.value?.trim()),
       };
       await updateCardFlip(cleanedValues);
-      message.success('Đã lưu cấu hình Card Flip');
+      message.success('Đã lưu cấu hình Lật Thẻ Bài');
     } catch (error: any) {
       message.error(error.response?.data?.error || 'Lưu cấu hình thất bại');
     } finally {
@@ -71,7 +71,7 @@ export function CardFlipConfigPage() {
     setInvalidating(true);
     try {
       await invalidateCache('card_flip');
-      message.success('Đã xóa cache Card Flip');
+      message.success('Đã xóa cache Lật Thẻ Bài');
     } catch (error: any) {
       message.error(error.response?.data?.error || 'Xóa cache thất bại');
     } finally {
@@ -101,7 +101,7 @@ export function CardFlipConfigPage() {
 
   return (
     <div>
-      <Title level={4}>Cấu hình Card Flip (Lật thẻ)</Title>
+      <Title level={4}>Cấu hình Lật Thẻ Bài</Title>
 
       <Card style={{ maxWidth: 800 }}>
         <Form
@@ -123,9 +123,9 @@ export function CardFlipConfigPage() {
 
           <Form.Item
             name="winPoints"
-            label="Điểm thưởng khi thắng"
+            label="Cúp thưởng khi thắng"
             rules={[{ required: true, message: 'Bắt buộc' }]}
-            tooltip="Số điểm người chơi nhận được khi thắng trận"
+            tooltip="Số Cúp người chơi nhận được khi thắng trận"
           >
             <InputNumber min={0} max={1000} style={{ width: '100%' }} />
           </Form.Item>
@@ -258,7 +258,7 @@ export function CardFlipConfigPage() {
               </Button>
 
               <Popconfirm
-                title="Xóa cache Card Flip?"
+                title="Xóa cache Lật Thẻ Bài?"
                 description="Cache sẽ được xây dựng lại khi có request mới."
                 onConfirm={handleInvalidateCache}
                 okText="Xóa"

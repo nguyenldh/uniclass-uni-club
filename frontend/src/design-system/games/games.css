@@ -323,8 +323,9 @@
 /* Nút "Thoát" ở màn matchmaking — pill chữ, giống các game khác */
 .mm-exit-btn{
   position: absolute;
+  /* +14px để không bị thanh cuộn (kể cả overlay scrollbar trong WebView) che khuất */
   top: max(8px, env(safe-area-inset-top, 0px));
-  right: max(8px, env(safe-area-inset-right, 0px));
+  right: max(14px, calc(env(safe-area-inset-right, 0px) + 14px));
   z-index: 10;
   display: inline-flex;
   align-items: center;
@@ -402,6 +403,7 @@
 
 /* Chip đồng hồ cờ vua (chế độ Nâng cao) */
 .cf-clock-chip {
+  position: relative;
   font-weight: 800;
   font-size: 15px;
   line-height: 1;
@@ -412,6 +414,36 @@
   border: 2px solid var(--g-wood-4);
   box-shadow: 0 2px 0 rgba(110, 63, 23, .35);
   transition: all .2s ease;
+}
+
+/* Hiệu ứng "+Xs" khi được thưởng giờ (chế độ Nâng cao) — nổi lên & mờ dần */
+.cf-clock-bonus {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(180deg, #4ade80, #16a34a);
+  border: 2px solid #0f7a37;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, .5);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+  animation: cf-clock-bonus-float 1.3s ease-out forwards;
+}
+@keyframes cf-clock-bonus-float {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.7); }
+  18%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.12); }
+  35%  { transform: translateX(-50%) translateY(-2px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-26px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-clock-bonus { animation-duration: .6s; }
 }
 .cf-clock-chip.active {
   color: #1b6b2e;
@@ -604,7 +636,7 @@
 
 .game-overlay .crown{
   position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
-  filter: drop-shadow(0 4px 0 var(--g-wood-4));
+  filter: drop-shadow(0 2px 0 var(--g-wood-4));
 }
 .game-overlay h3{
   font-weight: 900; color: #fff;

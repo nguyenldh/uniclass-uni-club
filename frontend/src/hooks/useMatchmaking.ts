@@ -161,7 +161,7 @@ export function useMatchmaking({
         return prev - 1;
       });
     }, 1000);
-  }, [userId, gameType, customTimeout, mode]);
+  }, [userId, gameType, customTimeout, grade, mode]);
 
   const cancelMatchmaking = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);

@@ -99,6 +99,7 @@ export function QuizArenaGamePage() {
     setQuestionResult,
     setPlayerStates,
     endGame,
+    setNoQuestions,
     startCountdown,
     tick,
     reset,
@@ -146,6 +147,7 @@ export function QuizArenaGamePage() {
     onOpponentDisconnected: useCallback(() => {
       console.warn("[QuizArena] Opponent disconnected");
     }, []),
+    onNoQuestions: useCallback(() => setNoQuestions(), [setNoQuestions]),
   });
 
   // ---- Load session & join immediately ----
@@ -287,6 +289,68 @@ export function QuizArenaGamePage() {
         }}
         startsAt={countdownStartsAt}
       />
+    );
+  }
+
+  // ---- No questions screen ----
+  // Khối lớp chưa có câu hỏi → hiển thị thông báo thay vì màn kết quả chiến thắng.
+  if (phase === "no-questions") {
+    return (
+      <GameCanvas className="quiz-arena-page no-top">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 20,
+            minHeight: "100dvh",
+            padding: "0 24px",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 64, lineHeight: 1 }}>📭</div>
+          <div
+            style={{
+              color: "#fff",
+              fontFamily: "var(--f-game, Nunito, sans-serif)",
+              fontWeight: 900,
+              fontSize: 22,
+              textShadow: "0 2px 0 rgba(0,0,0,.25)",
+            }}
+          >
+            Chưa có câu hỏi cho khối này
+          </div>
+          <div
+            style={{
+              color: "rgba(255,255,255,.9)",
+              fontFamily: "Nunito, sans-serif",
+              fontWeight: 600,
+              fontSize: 15,
+              maxWidth: 420,
+            }}
+          >
+            Hiện chưa có câu hỏi nào cho khối lớp của bạn. Vui lòng quay lại sau
+            khi quản trị viên bổ sung câu hỏi.
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            <GameButton
+              color="ghost"
+              size="md"
+              onClick={() => exitWebView("/quiz-arena/game")}
+            >
+              Thoát
+            </GameButton>
+            <GameButton
+              color="orange"
+              size="md"
+              onClick={() => navigate("/quiz-arena")}
+            >
+              Về sảnh
+            </GameButton>
+          </div>
+        </div>
+      </GameCanvas>
     );
   }
 
@@ -465,6 +529,8 @@ export function QuizArenaGamePage() {
             options={options}
             timeLimit={timeLimit}
             timeElapsed={timeElapsed}
+            maxScore={session.config.maxPointsPerQuestion}
+            minRatio={session.config.minScoreRetention}
             selected={myAnswer}
             correct={correctKey}
             phase={questionPhase}

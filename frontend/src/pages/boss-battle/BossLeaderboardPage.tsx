@@ -84,11 +84,10 @@ export function BossLeaderboardPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 600,
+          minHeight: '100dvh',
           color: '#fff',
           fontSize: 18,
           background: '#170f24',
-          borderRadius: 22,
         }}
       >
         Đang tải bảng xếp hạng...
@@ -105,11 +104,10 @@ export function BossLeaderboardPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 600,
+          minHeight: '100dvh',
           gap: 16,
           color: '#fff',
           background: '#170f24',
-          borderRadius: 22,
         }}
       >
         <div style={{ color: '#ff6a5a', fontSize: 18, fontWeight: 800 }}>Lỗi</div>
@@ -121,7 +119,32 @@ export function BossLeaderboardPage() {
     );
   }
 
-  if (!leaderboard) return null;
+  // ---- No leaderboard data yet ----
+  if (!leaderboard || leaderboard.entries.length === 0) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100dvh',
+          gap: 16,
+          color: '#fff',
+          background: '#170f24',
+        }}
+      >
+        <div style={{ fontSize: 48 }}>🏆</div>
+        <div style={{ fontWeight: 900, fontSize: 20 }}>Chưa có bảng xếp hạng tuần này</div>
+        <div style={{ fontSize: 13, opacity: 0.7 }}>
+          Hãy là người đầu tiên ghi danh trên bảng xếp hạng!
+        </div>
+        <GameButton color="ghost" onClick={() => navigate('/boss-battle')}>
+          Về sảnh
+        </GameButton>
+      </div>
+    );
+  }
 
   const entries: RankEntry[] = leaderboard.entries.map((e) => toRankEntry(e, userId));
   const myEntry = leaderboard.myEntry ? toRankEntry(leaderboard.myEntry, userId) : null;

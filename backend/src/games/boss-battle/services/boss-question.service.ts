@@ -3,7 +3,7 @@
 // ============================================================
 
 import mongoose from 'mongoose';
-import { BossQuestionModel } from '../../../models/index';
+import { BossQuestionModel, BossQuestionSetModel } from '../../../models/index';
 import type {
   BossQuestion,
   CreateBossQuestionInput,
@@ -88,6 +88,30 @@ export class BossQuestionService {
       page,
       pageSize,
     };
+  }
+
+  /**
+   * Liệt kê câu hỏi "chưa được gán" theo khối — phục vụ danh sách Thay thế:
+   *  (1) đúng khối (grade), (2) đang active, (3) KHÔNG nằm trong bất kỳ BossQuestionSet nào.
+   * Câu vừa bị Xóa khỏi set sẽ không còn trong set nào → tự động xuất hiện ở đây.
+   */
+  static async listUnassignedByGrade(
+    grade: number,
+    search?: string,
+    limit = 50,
+  ): Promise<BossQuestion[]> {
+    const assignedIds = await BossQuestionSetModel.distinct('questionIds');
+    const filter: Record<string, unknown> = {
+      grade,
+      isActive: true,
+      _id: { $nin: assignedIds },
+    };
+    if (search?.trim()) filter.content = { $regex: search.trim(), $options: 'i' };
+    const docs = await BossQuestionModel.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    return docs.map(toDto);
   }
 
   static async getById(id: string): Promise<BossQuestion | null> {
@@ -221,5 +245,16 @@ export class BossQuestionService {
   /** Đếm tổng câu active theo grade */
   static async countActiveByGrade(grade: number): Promise<number> {
     return BossQuestionModel.countDocuments({ grade, isActive: true });
+  }
+
+  /** Đếm câu active gom nhóm theo grade → { [grade]: count } */
+  static async countActiveGroupedByGrade(): Promise<Record<number, number>> {
+    const rows = await BossQuestionModel.aggregate<{ _id: number; count: number }>([
+      { $match: { isActive: true } },
+      { $group: { _id: '$grade', count: { $sum: 1 } } },
+    ]);
+    const out: Record<number, number> = {};
+    for (const r of rows) out[r._id] = r.count;
+    return out;
   }
 }

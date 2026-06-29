@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Button,
   Card,
   Form,
@@ -17,14 +18,12 @@ import {
   message,
 } from 'antd';
 import {
-  ClockCircleOutlined,
   EditOutlined,
   FileTextOutlined,
   PlayCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
   RollbackOutlined,
-  StopOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -122,9 +121,10 @@ export function WeeklyConfigPage() {
   const [initWeekKey, setInitWeekKey] = useState<string>('');
   const [initializedWeeks, setInitializedWeeks] = useState<string[]>([]);
   const [initLoading, setInitLoading] = useState(false);
+  // Số câu hỏi active theo khối + ngưỡng câu/tuần — để cảnh báo khi thiếu lúc khởi tạo
+  const [questionCounts, setQuestionCounts] = useState<Record<number, number>>({});
+  const [requiredPerWeek, setRequiredPerWeek] = useState<number>(35);
 
-  const [closing, setClosing] = useState(false);
-  const [expiring, setExpiring] = useState(false);
 
   const load = useCallback(async () => {
     if (!weekKey.trim()) return;
@@ -184,6 +184,17 @@ export function WeeklyConfigPage() {
     setInitWeekKey(weekKey);
     setInitOpen(true);
     refreshInitializedWeeks();
+    // Tải số câu hỏi theo khối + ngưỡng câu/tuần để cảnh báo khi thiếu
+    try {
+      const [counts, config] = await Promise.all([
+        bossBattleService.getQuestionCountByGrade(),
+        bossBattleService.getConfig(),
+      ]);
+      setQuestionCounts(counts);
+      setRequiredPerWeek(config.questionsPerWeek ?? 35);
+    } catch {
+      // Bỏ qua — backend vẫn chặn init khi thiếu câu hỏi
+    }
   };
 
   const handleInit = async () => {
@@ -193,6 +204,13 @@ export function WeeklyConfigPage() {
     }
     if (!initWeekKey) {
       message.warning('Chọn tuần');
+      return;
+    }
+    const short = initGrades.filter((g) => (questionCounts[g] ?? 0) < requiredPerWeek);
+    if (short.length > 0) {
+      message.error(
+        `Không đủ ${requiredPerWeek} câu hỏi cho ${short.map((g) => `Khối ${g}`).join(', ')}. Vui lòng bổ sung câu hỏi trước khi khởi tạo.`,
+      );
       return;
     }
     setInitLoading(true);
@@ -239,32 +257,6 @@ export function WeeklyConfigPage() {
     }
   };
 
-  const handleClose = async (topN: number) => {
-    setClosing(true);
-    try {
-      const res = await bossBattleService.closeWeek(weekKey, topN);
-      const total = res.honorsCreated.reduce((s, h) => s + h.count, 0);
-      message.success(`Đã đóng tuần ${res.weekKey} — tạo ${total} honor`);
-      load();
-    } catch (err: any) {
-      message.error(err.response?.data?.error || 'Đóng tuần thất bại');
-    } finally {
-      setClosing(false);
-    }
-  };
-
-  const handleExpire = async () => {
-    setExpiring(true);
-    try {
-      const res = await bossBattleService.expireHonors();
-      message.success(`Đã hết hạn ${res.updated} honor`);
-    } catch (err: any) {
-      message.error(err.response?.data?.error || 'Expire thất bại');
-    } finally {
-      setExpiring(false);
-    }
-  };
-
   const columns: ColumnsType<BossWeeklyConfig> = [
     {
       title: 'Khối',
@@ -286,33 +278,33 @@ export function WeeklyConfigPage() {
     {
       title: 'HP',
       width: 100,
-      render: (_, r) => r.effectiveConfig.hpMax.toLocaleString(),
+      render: (_, r) => r.effectiveConfig?.hpMax != null ? r.effectiveConfig.hpMax.toLocaleString() : '—',
     },
     {
       title: <span style={{ whiteSpace: 'nowrap' }}>Câu/ngày</span>,
       width: 90,
-      render: (_, r) => r.effectiveConfig.questionsPerDay,
+      render: (_, r) => r.effectiveConfig?.questionsPerDay ?? '—',
     },
     {
       title: <span style={{ whiteSpace: 'nowrap' }}>Câu/tuần</span>,
       width: 90,
-      render: (_, r) => r.effectiveConfig.questionsPerWeek,
+      render: (_, r) => r.effectiveConfig?.questionsPerWeek ?? '—',
     },
     {
       title: <span style={{ whiteSpace: 'nowrap' }}>tMax (s)</span>,
       width: 90,
-      render: (_, r) => r.effectiveConfig.tMaxSec,
+      render: (_, r) => r.effectiveConfig?.tMaxSec ?? '—',
     },
     {
       title: 'Tên Boss',
       width: 160,
       ellipsis: true,
       render: (_, r) => (
-        <Tooltip title={r.effectiveConfig.bossName}>{r.effectiveConfig.bossName}</Tooltip>
+        <Tooltip title={r.effectiveConfig?.bossName}>{r.effectiveConfig?.bossName ?? '—'}</Tooltip>
       ),
     },
     {
-      title: 'Đã override',
+      title: 'Đã tùy chỉnh',
       render: (_, r) => {
         const keys = Object.keys(r.overrides) as OverridableBossBattleConfigKey[];
         if (keys.length === 0) {
@@ -377,6 +369,9 @@ export function WeeklyConfigPage() {
     },
   ];
 
+  // Khối được chọn nhưng chưa đủ câu hỏi trong kho → cảnh báo & chặn khởi tạo
+  const initShortGrades = initGrades.filter((g) => (questionCounts[g] ?? 0) < requiredPerWeek);
+
   return (
     <div>
       <Title level={4}>Cấu hình theo tuần × khối</Title>
@@ -420,24 +415,6 @@ export function WeeklyConfigPage() {
           </Tooltip>
           <Button type="primary" icon={<PlayCircleOutlined />} onClick={openInit}>
             Khởi tạo tuần mới
-          </Button>
-          <Popconfirm
-            title={`Đóng tuần ${weekKey}?`}
-            description="Sẽ tạo honors cho top người chơi. Idempotent."
-            onConfirm={() => handleClose(10)}
-            okText="Đóng (Top 10)"
-            cancelText="Hủy"
-          >
-            <Button danger icon={<StopOutlined />} loading={closing}>
-              Đóng tuần
-            </Button>
-          </Popconfirm>
-          <Button
-            icon={<ClockCircleOutlined />}
-            loading={expiring}
-            onClick={handleExpire}
-          >
-            Hết hạn honors
           </Button>
         </Space>
         <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
@@ -489,6 +466,7 @@ export function WeeklyConfigPage() {
         confirmLoading={initLoading}
         okText="Khởi tạo"
         cancelText="Hủy"
+        okButtonProps={{ disabled: initShortGrades.length > 0 }}
         destroyOnHidden
       >
         <div style={{ marginBottom: 8 }}>
@@ -518,8 +496,34 @@ export function WeeklyConfigPage() {
           onChange={setInitGrades}
           style={{ width: '100%' }}
           placeholder="Chọn khối"
-          options={BOSS_BATTLE_GRADES.map((g) => ({ label: `Khối ${g}`, value: g }))}
+          options={BOSS_BATTLE_GRADES.map((g) => {
+            const count = questionCounts[g] ?? 0;
+            const short = count < requiredPerWeek;
+            return {
+              value: g,
+              label: short
+                ? `Khối ${g} — thiếu câu hỏi (${count}/${requiredPerWeek})`
+                : `Khối ${g} (${count} câu)`,
+            };
+          })}
         />
+        {initShortGrades.length > 0 && (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginTop: 12 }}
+            message={`Chưa đủ ${requiredPerWeek} câu hỏi`}
+            description={
+              <>
+                Không thể khởi tạo: các khối sau chưa đủ {requiredPerWeek} câu hỏi trong kho —{' '}
+                {initShortGrades
+                  .map((g) => `Khối ${g} (${questionCounts[g] ?? 0}/${requiredPerWeek})`)
+                  .join(', ')}
+                . Vui lòng bổ sung câu hỏi (tab "Ngân hàng câu hỏi") rồi thử lại.
+              </>
+            }
+          />
+        )}
         <Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
           Các tuần đã có BossInstance sẽ bị vô hiệu hóa. Mặc định chọn sẵn khối đang mở cho tuần
           hiện tại — có thể thêm/bớt tùy ý.

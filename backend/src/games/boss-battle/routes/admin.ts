@@ -94,6 +94,32 @@ router.post('/questions/by-ids', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/questions/count-by-grade', async (_req: Request, res: Response) => {
+  try {
+    const counts = await BossQuestionService.countActiveGroupedByGrade();
+    res.json({ success: true, counts });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/** GET /questions/unassigned?grade=&search= — câu hỏi chưa được gán set nào (theo khối) */
+router.get('/questions/unassigned', async (req: Request, res: Response) => {
+  try {
+    const grade = parseInt((req.query.grade as string) || '0', 10);
+    if (!grade) {
+      res.status(400).json({ error: 'Missing grade' });
+      return;
+    }
+    const search = (req.query.search as string) || undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const items = await BossQuestionService.listUnassignedByGrade(grade, search, limit);
+    res.json({ success: true, items });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/questions/:id', async (req: Request, res: Response) => {
   try {
     const q = await BossQuestionService.getById(req.params.id);
@@ -241,6 +267,44 @@ router.post('/question-sets/:setId/swap', async (req: Request, res: Response) =>
       String(oldQuestionId),
       String(newQuestionId),
     );
+    if (!set) {
+      res.status(404).json({ error: 'Set not found' });
+      return;
+    }
+    res.json({ success: true, set });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/** POST /question-sets/:setId/remove — xóa 1 câu khỏi set (câu trở thành "chưa được gán") */
+router.post('/question-sets/:setId/remove', async (req: Request, res: Response) => {
+  try {
+    const { questionId } = req.body ?? {};
+    if (!questionId) {
+      res.status(400).json({ error: 'Missing questionId' });
+      return;
+    }
+    const set = await QuestionSetService.removeQuestion(req.params.setId, String(questionId));
+    if (!set) {
+      res.status(404).json({ error: 'Set not found' });
+      return;
+    }
+    res.json({ success: true, set });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/** POST /question-sets/:setId/add — thêm 1 câu (chưa được gán) vào set */
+router.post('/question-sets/:setId/add', async (req: Request, res: Response) => {
+  try {
+    const { questionId } = req.body ?? {};
+    if (!questionId) {
+      res.status(400).json({ error: 'Missing questionId' });
+      return;
+    }
+    const set = await QuestionSetService.addQuestion(req.params.setId, String(questionId));
     if (!set) {
       res.status(404).json({ error: 'Set not found' });
       return;

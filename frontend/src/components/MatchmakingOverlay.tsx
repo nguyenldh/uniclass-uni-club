@@ -175,8 +175,16 @@ export function MatchmakingOverlay({
   };
   const MODE_LABELS: Record<string, string> = { basic: '⏱️ Cơ bản', advanced: '⏳ Nâng cao' };
 
+  const { user } = useUser();
+
   const { phase, secondsRemaining, totalSeconds, result, error, startMatchmaking, cancelMatchmaking } =
-    useMatchmaking({ userId, gameType, mode: isCardFlip ? selectedMode : mode });
+    useMatchmaking({
+      userId,
+      gameType,
+      // Gửi khối lớp để server CHỈ ghép người cùng khối (không lẫn khối)
+      grade: user?.grade,
+      mode: isCardFlip ? selectedMode : mode,
+    });
 
   // Expose phase cho parent
   useEffect(() => {
@@ -184,7 +192,6 @@ export function MatchmakingOverlay({
   }, [phase, onPhaseChange]);
 
   const me: MatchmakingPlayer = { name: playerName };
-  const {user} = useUser();
   me.avatar = user?.avatar;
 
   // Hiển thị opponent dựa trên opponentProfile (ẩn danh tính AI)

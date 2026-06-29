@@ -58,7 +58,7 @@ interface WeeklyEventState {
   loadRooms: (eventId: string) => Promise<void>;
 
   // Actions — Exams
-  loadExams: (params?: { grade?: number; subject?: string; search?: string; page?: number; pageSize?: number }) => Promise<void>;
+  loadExams: (params?: { grade?: number; search?: string; page?: number; pageSize?: number }) => Promise<void>;
   loadExamsByGrade: (grade: number) => Promise<ExamBank[]>;
   loadExam: (id: string) => Promise<void>;
   createExam: (input: CreateExamInput) => Promise<ExamBank>;

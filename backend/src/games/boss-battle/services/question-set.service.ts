@@ -169,7 +169,88 @@ export class QuestionSetService {
       throw new Error('newQuestionId already in set');
     }
 
+    // Câu thay thế phải "chưa được gán" — không nằm trong bất kỳ set nào khác
+    const assignedElsewhere = await BossQuestionSetModel.exists({
+      _id: { $ne: set._id },
+      questionIds: new mongoose.Types.ObjectId(newQuestionId),
+    });
+    if (assignedElsewhere) {
+      throw new Error('newQuestionId already assigned to another set');
+    }
+
     set.questionIds[idx] = new mongoose.Types.ObjectId(newQuestionId);
+    await set.save();
+
+    return toDto(set.toObject());
+  }
+
+  /**
+   * Xóa 1 câu khỏi set (hành động "Xóa"). Câu đó trở thành "chưa được gán"
+   * (nếu không còn nằm trong set nào khác) và sẽ xuất hiện lại ở danh sách Thay thế.
+   */
+  static async removeQuestion(
+    setId: string,
+    questionId: string,
+  ): Promise<BossQuestionSet | null> {
+    if (!mongoose.Types.ObjectId.isValid(setId)) return null;
+
+    const set = await BossQuestionSetModel.findById(setId);
+    if (!set) return null;
+
+    const idx = set.questionIds.findIndex((id) => String(id) === questionId);
+    if (idx < 0) throw new Error('questionId not in set');
+
+    set.questionIds.splice(idx, 1);
+    await set.save();
+
+    return toDto(set.toObject());
+  }
+
+  /**
+   * Thêm 1 câu vào set (hành động "Thêm câu hỏi"). Câu phải cùng khối với set,
+   * chưa có trong set, và "chưa được gán" ở bất kỳ set nào khác.
+   */
+  static async addQuestion(
+    setId: string,
+    questionId: string,
+  ): Promise<BossQuestionSet | null> {
+    if (!mongoose.Types.ObjectId.isValid(setId)) return null;
+    if (!mongoose.Types.ObjectId.isValid(questionId)) {
+      throw new Error('Invalid questionId');
+    }
+
+    const set = await BossQuestionSetModel.findById(setId);
+    if (!set) return null;
+
+    // Giới hạn theo ngày: không vượt quá số câu/ngày (questionsPerDay) của tuần × khối.
+    const instance = await BossInstanceModel.findOne({
+      weekKey: set.weekKey,
+      gradeLevel: set.gradeLevel,
+    }).lean();
+    const maxPerDay = instance?.config?.questionsPerDay;
+    if (maxPerDay != null && set.questionIds.length >= maxPerDay) {
+      throw new Error(`Bộ này đã đủ ${maxPerDay} câu cho 1 ngày — không thể thêm.`);
+    }
+
+    const q = await BossQuestionService.getById(questionId);
+    if (!q) throw new Error('questionId not found');
+    if (q.grade !== set.gradeLevel) {
+      throw new Error(`Question grade mismatch (set=${set.gradeLevel}, question=${q.grade})`);
+    }
+    if (set.questionIds.some((id) => String(id) === questionId)) {
+      throw new Error('questionId already in set');
+    }
+
+    // Câu thêm vào phải "chưa được gán" — không nằm trong bất kỳ set nào khác
+    const assignedElsewhere = await BossQuestionSetModel.exists({
+      _id: { $ne: set._id },
+      questionIds: new mongoose.Types.ObjectId(questionId),
+    });
+    if (assignedElsewhere) {
+      throw new Error('questionId already assigned to another set');
+    }
+
+    set.questionIds.push(new mongoose.Types.ObjectId(questionId));
     await set.save();
 
     return toDto(set.toObject());

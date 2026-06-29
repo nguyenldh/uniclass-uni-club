@@ -116,7 +116,7 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
       overlayStats: [
         { label: 'Thời gian', value: `${timeElapsed}s` },
         { label: 'Số nước', value: String(moves) },
-        { label: 'Điểm', value: `+${score}` },
+        { label: 'Cúp', value: `+${score}` },
       ],
     });
   },

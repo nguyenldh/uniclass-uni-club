@@ -297,9 +297,9 @@ export function BossQuestionsPage() {
             </ul>
           </Typography.Paragraph>
           <Typography.Paragraph>
-            <b>Lưu ý:</b> Câu hỏi đã đưa vào QuestionSet vẫn được phục vụ kể cả khi sửa hoặc tắt,
-            vì server đọc câu hỏi theo ID trong set. Tắt chỉ ngăn câu xuất hiện ở những lần
-            auto-generate tiếp theo.
+            <b>Lưu ý:</b> Câu hỏi đã đưa vào bộ câu hỏi vẫn được phục vụ kể cả khi sửa hoặc tắt,
+            vì server đọc câu hỏi theo ID trong bộ. Tắt chỉ ngăn câu xuất hiện ở những lần
+            tạo bộ tự động tiếp theo.
           </Typography.Paragraph>
         </div>
       </Modal>

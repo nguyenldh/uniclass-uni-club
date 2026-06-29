@@ -60,13 +60,13 @@ export function parseQuestionsFromExcel(file: File): Promise<ParseResult> {
           // Skip empty rows
           if (!row || row.length === 0 || !row[1]) continue;
 
-          const id = row[0] ? String(row[0]).trim() : undefined;
+          const id = row[0] != null && row[0] !== '' ? String(row[0]).trim() : undefined;
           const grade = parseInt(row[1], 10);
-          const content = String(row[2] || '').trim();
-          const optionA = String(row[3] || '').trim();
-          const optionB = String(row[4] || '').trim();
-          const optionC = String(row[5] || '').trim();
-          const optionD = String(row[6] || '').trim();
+          const content = String(row[2] ?? '').trim();
+          const optionA = String(row[3] ?? '').trim();
+          const optionB = String(row[4] ?? '').trim();
+          const optionC = String(row[5] ?? '').trim();
+          const optionD = String(row[6] ?? '').trim();
           const correctIndex = parseInt(row[7], 10);
           const timeLimitSeconds = parseInt(row[8], 10) || 20;
 

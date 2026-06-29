@@ -362,10 +362,9 @@ router.get(
 /** GET /api/admin/weekly-event/exams */
 router.get('/exams', async (req: Request, res: Response) => {
   try {
-    const { grade, subject, search, page, pageSize } = req.query;
+    const { grade, search, page, pageSize } = req.query;
     const result = await ExamBankService.listExams({
       grade: grade ? parseInt(grade as string) : undefined,
-      subject: subject as string | undefined,
       search: search as string | undefined,
       page: page ? parseInt(page as string) : undefined,
       pageSize: pageSize ? parseInt(pageSize as string) : undefined,
@@ -405,8 +404,8 @@ router.get('/exams/:id', async (req: Request, res: Response) => {
 router.post('/exams', async (req: Request, res: Response) => {
   try {
     const input = req.body as CreateExamInput;
-    if (!input.grade || !input.title || !input.subject || !input.questions?.length) {
-      res.status(400).json({ error: 'Missing required fields: grade, title, subject, questions' });
+    if (!input.grade || !input.title || !input.questions?.length) {
+      res.status(400).json({ error: 'Missing required fields: grade, title, questions' });
       return;
     }
     const exam = await ExamBankService.createExam(input);
@@ -460,7 +459,7 @@ router.post('/exams/bulk', async (req: Request, res: Response) => {
     for (let i = 0; i < exams.length; i++) {
       try {
         const input = exams[i] as CreateExamInput;
-        if (!input.grade || !input.title || !input.subject || !input.questions?.length) {
+        if (!input.grade || !input.title || !input.questions?.length) {
           errors.push({ index: i, title: input.title, error: 'Missing required fields' });
           continue;
         }
