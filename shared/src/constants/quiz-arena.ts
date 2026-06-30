@@ -103,18 +103,18 @@ export const DEFAULT_QUIZ_ARENA_CONFIG: QuizArenaConfig = {
 export const QUIZ_BOT_PROFILES: Record<QuizDifficulty, QuizBotProfile> = {
   easy: {
     correctRate: 0.40,
-    minResponseMs: 12000,
-    maxResponseMs: 20000,
+    minResponseMs: 3000,
+    maxResponseMs: 10000,
   },
   medium: {
     correctRate: 0.65,
-    minResponseMs: 7000,
-    maxResponseMs: 15000,
+    minResponseMs: 3000,
+    maxResponseMs: 10000,
   },
   hard: {
     correctRate: 0.88,
-    minResponseMs: 2000,
-    maxResponseMs: 8000,
+    minResponseMs: 3000,
+    maxResponseMs: 10000,
   },
 };
 

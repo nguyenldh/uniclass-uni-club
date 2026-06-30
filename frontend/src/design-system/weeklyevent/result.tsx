@@ -45,7 +45,9 @@ export function PersonalResultScreen({
         <div className="we-body">
           <div className="we-result-hero">
             <div className="we-eyebrow">Kết quả của bạn</div>
-            <div className="we-bigscore">{score}</div>
+            <div className="we-bigscore">
+              {score} <span style={{ fontSize: '0.45em', fontWeight: 800, opacity: 0.85 }}>cúp</span>
+            </div>
             <div className="we-subtle">
               Hạng <b style={{ color: 'var(--we-gold)' }}>#{rank}</b>
               {totalParticipants != null && <> trên {totalParticipants.toLocaleString('vi-VN')} bạn cùng khối</>}

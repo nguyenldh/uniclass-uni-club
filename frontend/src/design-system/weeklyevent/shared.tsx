@@ -351,7 +351,7 @@ export function PersonalStatsCard({
         <div className="we-stat ok"><span className="v">{correct}</span><span className="l">Đúng</span></div>
         <div className="we-stat bad"><span className="v">{wrong}</span><span className="l">Sai</span></div>
         <div className="we-stat skip"><span className="v">{skipped}</span><span className="l">Bỏ qua</span></div>
-        <div className="we-stat score"><span className="v">{score}</span><span className="l">Điểm</span></div>
+        <div className="we-stat score"><span className="v">{score}</span><span className="l">Cúp</span></div>
       </div>
       <div style={{ textAlign: 'center', marginTop: 10, fontWeight: 800, fontSize: 12, color: 'var(--g-wood-3)' }}>
         Hoàn thành trong {fmtDuration(totalTimeMs / 1000)}

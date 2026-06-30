@@ -2049,6 +2049,13 @@ h3 {
     padding: 28px 20px;
   }
 
+  /* Gomoku (màn đang chơi, class `playing`): bỏ padding trái/phải để vùng cuộn
+     bàn cờ dùng trọn bề ngang màn hình → căn giữa bàn cờ chính xác trên mobile. */
+  .game-canvas.playing {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   /* Màn dọc điện thoại: nén spacing màn Tìm trận để nút "Tìm trận"
      luôn nằm gọn trong màn hình, không phải scroll.
      Scope vào .mm-page để KHÔNG ảnh hưởng màn đang chơi (Gomoku/Card Flip). */

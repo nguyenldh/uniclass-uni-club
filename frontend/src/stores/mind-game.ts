@@ -300,15 +300,17 @@ export const useCardFlipStore = create<CardFlipState>((set, get) => ({
     return { timeElapsed: elapsed, clockTick: s.clockTick + 1 };
   }),
 
-  endGame: (result, timeElapsed, myScore, opponentScore) => {
+  endGame: (result, timeElapsed, myScore, _opponentScore) => {
     const { session } = get();
+    // Cúp nhận được khi thắng = winPoints từ config (CMS); thua = 0.
+    const cupsEarned = result === 'win' ? (session?.config?.winPoints ?? 0) : 0;
     set({
       session: session ? { ...session, status: 'finished' as const } : null,
       overlayState: result,
       overlayStats: [
         { label: 'Thời gian', value: `${timeElapsed}s` },
         { label: 'Điểm của bạn', value: String(myScore) },
-        { label: 'Điểm đối thủ', value: String(opponentScore) },
+        { label: 'Cúp nhận được', value: `+${cupsEarned}` },
       ],
     });
   },

@@ -33,13 +33,15 @@ export class AnalyticsService {
         break;
     }
 
-    const [participation, retention, completion, avgScores, avgTimes] = await Promise.all([
-      this.getParticipationMetrics(from, now),
-      this.getRetentionRate(),
-      this.getCompletionRates(from, now),
-      this.getAverageScores(from, now),
-      this.getAverageTimes(from, now),
-    ]);
+    const [participation, retention, completion, avgScores, avgTimes, bossWeeklyAvgs] =
+      await Promise.all([
+        this.getParticipationMetrics(from, now),
+        this.getRetentionRate(),
+        this.getCompletionRates(from, now),
+        this.getAverageScores(from, now),
+        this.getAverageTimes(from, now),
+        this.getBossWeeklyAverages(from, now),
+      ]);
 
     return {
       period: {
@@ -52,6 +54,7 @@ export class AnalyticsService {
       ...completion,
       ...avgScores,
       ...avgTimes,
+      ...bossWeeklyAvgs,
     };
   }
 
@@ -271,5 +274,57 @@ export class AnalyticsService {
     const avgTimeMindGame = Math.round((mindGameTimeResult[0]?.avgTime ?? 0) * 100) / 100;
 
     return { avgTimeQuizArena, avgTimeMindGame };
+  }
+
+  // ============================================================
+  // Average scores & times — Săn Boss + Weekly Event
+  // Gộp điểm + thời gian vào 1 aggregation/nguồn để hạn chế số lần quét
+  // collection (tránh ảnh hưởng performance). Chạy song song 2 nguồn.
+  // ============================================================
+
+  private static async getBossWeeklyAverages(from: Date, to: Date) {
+    // Săn Boss — log ở GameMatchLog (gameType 'boss_battle'), lọc theo playedAt.
+    // Điểm tính trên mọi lượt; thời gian chỉ tính lượt đã hoàn thành (loại bằng $$REMOVE).
+    const bossDateFilter = from.getTime() === 0 ? {} : { playedAt: { $gte: from, $lte: to } };
+    // Weekly Event — không ghi GameMatchLog, lấy trực tiếp từ WeeklyEventResult.
+    // Mỗi result = 1 bài đã nộp (đã hoàn thành); totalTimeMs ở mili-giây → đổi sang giây.
+    const weDateFilter = from.getTime() === 0 ? {} : { createdAt: { $gte: from, $lte: to } };
+
+    const [bossResult, weResult] = await Promise.all([
+      GameMatchLogModel.aggregate([
+        { $match: { gameType: 'boss_battle', ...bossDateFilter } },
+        {
+          $group: {
+            _id: null,
+            avgScore: { $avg: '$points' },
+            avgTime: {
+              $avg: { $cond: ['$sessionCompleted', '$playTimeSec', '$$REMOVE'] },
+            },
+          },
+        },
+      ]),
+      WeeklyEventResultModel.aggregate([
+        { $match: { ...weDateFilter } },
+        {
+          $group: {
+            _id: null,
+            avgScore: { $avg: '$score' },
+            avgTimeMs: { $avg: '$totalTimeMs' },
+          },
+        },
+      ]),
+    ]);
+
+    const avgScoreBossBattle = Math.round((bossResult[0]?.avgScore ?? 0) * 100) / 100;
+    const avgTimeBossBattle = Math.round((bossResult[0]?.avgTime ?? 0) * 100) / 100;
+    const avgScoreWeeklyEvent = Math.round((weResult[0]?.avgScore ?? 0) * 100) / 100;
+    const avgTimeWeeklyEvent = Math.round(((weResult[0]?.avgTimeMs ?? 0) / 1000) * 100) / 100;
+
+    return {
+      avgScoreBossBattle,
+      avgTimeBossBattle,
+      avgScoreWeeklyEvent,
+      avgTimeWeeklyEvent,
+    };
   }
 }

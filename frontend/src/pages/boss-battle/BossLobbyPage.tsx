@@ -111,7 +111,6 @@ export function BossLobbyPage() {
       ctaStatus={ctaStatus}
       onBattle={handleBattle}
       resetAt={new Date(lobby.weeklyResetAt).getTime()}
-      playerName={user?.name}
       grade={`Khối ${grade}`}
       hits={hits}
       shaking={shaking}

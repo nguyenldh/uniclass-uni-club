@@ -6,6 +6,7 @@
 
 import { Router, Request, Response } from 'express';
 import { QuizArenaService } from '../services/quiz-arena.service';
+import { QuestionService } from '../services/question.service';
 import { MatchmakingService } from '../../../services/matchmaking.service';
 
 const router = Router();
@@ -45,6 +46,29 @@ router.get('/active-session/:userId', async (req: Request, res: Response) => {
       gameType: active.gameType,
       isBot: session.isBot,
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ---- Has Questions Check (trước khi ghép trận) ----
+
+/**
+ * GET /api/game/quiz-arena/has-questions/:grade
+ * Kiểm tra khối lớp đã có câu hỏi chưa.
+ * Frontend gọi TRƯỚC khi bắt đầu ghép trận — nếu chưa có câu hỏi thì hiển thị
+ * màn "không có câu hỏi" thay vì vào ghép trận rồi mới báo.
+ * PHẢI khai báo trước route '/:sessionId' để không bị nuốt bởi param động.
+ */
+router.get('/has-questions/:grade', async (req: Request, res: Response) => {
+  try {
+    const grade = parseInt(req.params.grade, 10);
+    if (Number.isNaN(grade)) {
+      res.status(400).json({ error: 'Invalid grade' });
+      return;
+    }
+    const hasQuestions = await QuestionService.hasQuestionsForGrade(grade);
+    res.json({ success: true, hasQuestions });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

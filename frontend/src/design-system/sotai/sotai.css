@@ -170,6 +170,7 @@
   text-transform: uppercase;
   color: rgba(255,255,255,.7);
   display:flex; align-items:center; gap:10px;
+  text-align:center; justify-content:center;
 }
 .st-lobby-cta .cue::before,
 .st-lobby-cta .cue::after{

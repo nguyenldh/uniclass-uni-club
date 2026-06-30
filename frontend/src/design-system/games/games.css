@@ -27,6 +27,24 @@
 .caro-board[data-size="15"] { --cell: 32px; }
 .caro-board[data-size="20"] { --cell: 26px; }
 
+/* Vùng cuộn ngang bao quanh bảng — căn giữa khi vừa khít, cuộn đối xứng khi tràn.
+   `min-width: min-content` ở lớp trong giúp phần tràn ở CẢ hai bên đều cuộn tới được
+   (tránh lỗi flex center làm mất phần bên trái). JS sẽ scroll về giữa khi vào trận. */
+.caro-board-scroll{
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.caro-board-scroll-inner{
+  display: flex;
+  justify-content: center;
+  min-width: min-content;
+}
+.caro-board-scroll-inner > .caro-board{
+  margin: 0;
+  flex: 0 0 auto;
+}
+
 .caro-cell{
   width: var(--cell, 56px);
   height: var(--cell, 56px);
@@ -882,5 +900,12 @@
   }
   .exit-at-bottom{
     display: none;
+  }
+
+  /* Caro landscape: vùng cuộn co theo nội dung để board nằm cạnh HUD,
+     không chiếm full width như ở chế độ dọc. */
+  .caro-board-scroll{
+    width: auto;
+    overflow-x: visible;
   }
 }

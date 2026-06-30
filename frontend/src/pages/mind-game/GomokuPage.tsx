@@ -77,6 +77,8 @@ export function GomokuPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const processingRef = useRef(false);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Vùng cuộn ngang của bảng — dùng để mặc định scroll ra giữa khi vào trận
+  const boardScrollRef = useRef<HTMLDivElement>(null);
   const gameEndedSentRef = useRef(false);
   // Track sessionId hiện tại để tránh bắn game:ended cho game cũ khi store chưa reset
   const activeSessionIdRef = useRef<string | null>(null);
@@ -216,6 +218,26 @@ export function GomokuPage() {
       setError("Đối thủ đã ngắt kết nối");
     },
   });
+
+  // Mặc định cuộn bảng ra GIỮA khi vào trận: phần trung tâm bảng nằm giữa màn hình,
+  // ô dư thừa chia đều sang hai bên. Chỉ có tác dụng khi bảng tràn khỏi vùng nhìn.
+  // PHẢI phụ thuộc `loading`: khi đang tải, board chưa render nên ref null; effect cần
+  // chạy lại đúng lúc loading=false (board đã gắn vào DOM). Double rAF để layout xong.
+  useEffect(() => {
+    if (loading) return;
+    const el = boardScrollRef.current;
+    if (!el || !session) return;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [loading, session?.sessionId, board.length]);
 
   // Timer
   useEffect(() => {
@@ -509,14 +531,18 @@ export function GomokuPage() {
 
       {error && <div className="error-msg">{error}</div>}
 
-      {/* Board */}
-      <CaroBoard
-        cells={board as CaroValue[][]}
-        lastMove={lastMove as CaroCoord | null}
-        win={win as CaroWinInfo | null}
-        disabled={status !== "playing" || currentTurn !== playerSymbol}
-        onCellClick={handleCellClick}
-      />
+      {/* Board — bọc trong vùng cuộn để mặc định scroll ra giữa khi vào trận */}
+      <div className="caro-board-scroll" ref={boardScrollRef}>
+        <div className="caro-board-scroll-inner">
+          <CaroBoard
+            cells={board as CaroValue[][]}
+            lastMove={lastMove as CaroCoord | null}
+            win={win as CaroWinInfo | null}
+            disabled={status !== "playing" || currentTurn !== playerSymbol}
+            onCellClick={handleCellClick}
+          />
+        </div>
+      </div>
 
       {/* Overlay */}
       {overlayState !== "idle" && (

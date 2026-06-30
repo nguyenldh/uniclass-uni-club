@@ -1,0 +1,772 @@
+<title>Kế hoạch MGM — Mời Bạn (So Tài)</title>
+<meta name="description" content="Kế hoạch triển khai tính năng Mời bạn (MGM) cho game So Tài / Quiz Arena trong monorepo UniClub.">
+<style>
+  :root {
+    --ink: #12141c;
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #fbfbfd;
+    --border: #e3e6eb;
+    --border-strong: #cfd4dc;
+    --text: #1a1d26;
+    --muted: #5c6471;
+    --faint: #8a92a0;
+    --indigo: #5b5bd6;
+    --indigo-soft: #ececfb;
+    --amber: #d98a1f;
+    --amber-soft: #fbf0dc;
+    --green: #1f9d6b;
+    --green-soft: #e2f3ec;
+    --change: #c0791a;
+    --change-soft: #f8eed9;
+    --edge: #cf4655;
+    --edge-soft: #fbe6e9;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --maxw: 880px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---- top nav ---- */
+  nav.bar {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(18,20,28,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #262a36;
+  }
+  nav.bar .wrap {
+    display: flex; align-items: center; gap: 18px;
+    height: 52px;
+  }
+  nav.bar .brand {
+    font-weight: 700; color: #fff; font-size: 14px; letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  nav.bar .brand b { color: #a6a6f0; }
+  nav.bar .links { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; overflow-x: auto; }
+  nav.bar a {
+    color: #aeb4c0; text-decoration: none; font-size: 12.5px; font-weight: 600;
+    padding: 5px 9px; border-radius: 6px; white-space: nowrap;
+  }
+  nav.bar a:hover { color: #fff; background: #262a36; }
+
+  /* ---- hero ---- */
+  header.hero {
+    background:
+      radial-gradient(120% 120% at 85% -10%, #1d2030 0%, var(--ink) 55%);
+    color: #eef0f4;
+    padding: 54px 0 46px;
+    border-bottom: 1px solid #262a36;
+  }
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: #8d92f0;
+  }
+  header.hero h1 {
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.08; margin: 14px 0 0; font-weight: 800;
+    letter-spacing: -.02em; text-wrap: balance; color: #fff;
+  }
+  header.hero h1 span { color: var(--amber); }
+  header.hero p.lead {
+    color: #b9bfca; font-size: 17px; max-width: 64ch; margin: 16px 0 0;
+  }
+  .metarow { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 28px; }
+  .metarow .m { font-size: 13px; color: #9aa1ad; }
+  .metarow .m b { color: #e6e8ee; font-weight: 600; }
+  .metarow .m code { color: #cdd1f5; }
+
+  main { padding: 8px 0 80px; }
+
+  section { padding-top: 52px; }
+  section > .wrap > .sec-head { margin-bottom: 22px; }
+  .sec-num {
+    font-family: var(--mono); font-size: 12.5px; font-weight: 600;
+    color: var(--indigo); letter-spacing: .04em;
+  }
+  h2 {
+    font-size: 25px; font-weight: 800; letter-spacing: -.01em;
+    margin: 6px 0 0; text-wrap: balance;
+  }
+  h2 + p.sub { color: var(--muted); margin: 8px 0 0; max-width: 70ch; }
+
+  h3 {
+    font-size: 17px; font-weight: 700; margin: 30px 0 10px;
+    letter-spacing: -.005em;
+  }
+  h3 .tag { font-size: 11px; vertical-align: middle; }
+
+  p { margin: 12px 0; }
+  a.inl { color: var(--indigo); text-decoration: none; border-bottom: 1px solid var(--indigo-soft); }
+  a.inl:hover { border-bottom-color: var(--indigo); }
+
+  code {
+    font-family: var(--mono); font-size: .86em;
+    background: #eef0f3; padding: 1px 5px; border-radius: 4px;
+    color: #313643; word-break: break-word;
+  }
+
+  ul, ol { margin: 12px 0; padding-left: 22px; }
+  li { margin: 5px 0; }
+  li::marker { color: var(--faint); }
+
+  /* ---- chips ---- */
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; line-height: 1.5;
+    padding: 1px 8px; border-radius: 999px; letter-spacing: .03em;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .t-new   { background: var(--green-soft);  color: #117a4f; }
+  .t-edit  { background: var(--change-soft); color: #9a5e0e; }
+  .t-cfg   { background: var(--indigo-soft); color: #4242b8; }
+  .t-edge  { background: var(--edge-soft);   color: #ad303f; }
+
+  /* ---- cards / callouts ---- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 22px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .callout {
+    border: 1px solid var(--border); border-left: 3px solid var(--indigo);
+    background: var(--surface); border-radius: 10px;
+    padding: 16px 18px; margin: 18px 0;
+  }
+  .callout.q { border-left-color: var(--amber); background: #fffdf8; }
+  .callout h4 { margin: 0 0 8px; font-size: 14px; font-weight: 700; }
+  .callout .q-rec {
+    font-size: 13.5px; color: #6a5012; background: var(--amber-soft);
+    border-radius: 7px; padding: 7px 11px; margin-top: 8px;
+  }
+  .callout .q-rec b { color: #5a4310; }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 560px; }
+  th, td { text-align: left; padding: 10px 14px; vertical-align: top; border-bottom: 1px solid var(--border); }
+  thead th {
+    background: var(--surface-2); font-size: 11.5px; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--muted); font-weight: 700;
+    position: sticky; top: 0;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbfc; }
+  td.path { font-family: var(--mono); font-size: 12px; color: #3a3f4b; white-space: nowrap; }
+  td.path .new-badge { color: var(--green); font-weight: 700; }
+  table .num { font-variant-numeric: tabular-nums; }
+
+  /* ---- flow diagram ---- */
+  .flow {
+    display: grid; gap: 12px; margin: 18px 0;
+  }
+  .flow .lane {
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    background: var(--surface);
+  }
+  .lane .lane-h {
+    padding: 9px 16px; font-size: 12px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: #fff;
+  }
+  .lane.host .lane-h { background: var(--indigo); }
+  .lane.guest .lane-h { background: var(--amber); }
+  .steps { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 14px 16px; }
+  .step {
+    flex: 0 0 auto; min-width: 132px; max-width: 168px;
+    font-size: 12.5px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 9px 11px; line-height: 1.4;
+  }
+  .step b { display: block; font-size: 11px; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+  .arrow { flex: 0 0 auto; align-self: center; color: var(--border-strong); padding: 0 6px; font-size: 18px; }
+
+  /* ---- phase timeline ---- */
+  .phases { display: grid; gap: 12px; margin-top: 16px; }
+  .phase {
+    display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: start;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+  }
+  .phase .pn {
+    font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--indigo);
+    background: var(--indigo-soft); border-radius: 8px; text-align: center; padding: 6px 0;
+  }
+  .phase h4 { margin: 0 0 4px; font-size: 15px; }
+  .phase p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .phase .dep { font-size: 12px; color: var(--faint); margin-top: 6px; }
+
+  hr.rule { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  footer { color: var(--muted); font-size: 13px; padding: 30px 0 60px; border-top: 1px solid var(--border); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+</style>
+
+<nav class="bar">
+  <div class="wrap">
+    <div class="brand">UniClub · <b>MGM</b> Mời Bạn</div>
+    <div class="links">
+      <a href="#tongquan">Tổng quan</a>
+      <a href="#luong">Luồng</a>
+      <a href="#quyetdinh">Quyết định</a>
+      <a href="#shared">Shared</a>
+      <a href="#backend">Backend</a>
+      <a href="#frontend">Frontend</a>
+      <a href="#cms">CMS</a>
+      <a href="#edge">Edge case</a>
+      <a href="#phase">Lộ trình</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Kế hoạch triển khai · So Tài / Quiz Arena</div>
+    <h1>Tính năng <span>Mời Bạn</span> (MGM)</h1>
+    <p class="lead">
+      Mời bạn từ ngoài vào chơi một trận So Tài riêng qua link, tương tác real-time (emoji),
+      chơi lại tối đa 3 trận, điểm ×2. Tài liệu này map từng yêu cầu vào đúng package &amp; file
+      của monorepo hiện tại để đội phát triển ước lượng và thực thi.
+    </p>
+    <div class="metarow">
+      <div class="m"><b>Phạm vi</b> · Quiz Arena (game <code>quiz</code>)</div>
+      <div class="m"><b>Đụng tới</b> · shared · backend · frontend · cms</div>
+      <div class="m"><b>Nền tảng</b> · Express + Socket.IO + Redis + Mongo · React/Zustand · Ant Design CMS</div>
+      <div class="m"><b>Nguồn</b> · Tài liệu "Uniclub – MGM" + code hiện trạng</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- =================== 1. TỔNG QUAN =================== -->
+<section id="tongquan">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">01 — Bối cảnh</div>
+      <h2>Tổng quan &amp; nguyên tắc tận dụng code sẵn có</h2>
+      <p class="sub">
+        MGM chạy song song với chế độ ghép trận ngẫu nhiên. Khác biệt cốt lõi: <b>ghép cặp trực tiếp qua link</b>
+        (không qua hàng đợi random), <b>người được mời không đăng nhập</b>, <b>chơi lại 3 trận</b>, và <b>điểm ×2</b>.
+      </p>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0">Tái sử dụng được ngay</h3>
+        <ul>
+          <li>Vòng đời trận đấu: <code>QuizArenaService.createPVPSession()</code> → câu hỏi → tính điểm → <code>endMatch()</code> giữ nguyên.</li>
+          <li>Gameplay socket (<code>join-session</code>, <code>answer</code>, <code>question-result</code>, <code>end</code>) tái dùng 100%.</li>
+          <li>Cơ chế countdown-lock NX + BullMQ timer (<code>TimerQueueService</code>) cho start match, timeout câu, disconnect-grace.</li>
+          <li>Cơ chế config merge-with-default (<code>GameConfigService.getQuizArenaConfig</code>) → thêm field mới an toàn, không vỡ doc cũ.</li>
+          <li>Đăng ký guest profile để hiển thị tên/avatar: <code>UserService.upsertUser()</code>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Phải xây mới</h3>
+        <ul>
+          <li><b>Vòng đời link mời</b> — trạng thái created → opened → used / expired (Redis, 1-link-1-người).</li>
+          <li><b>Danh tính khách (guest)</b> — đăng nhập-không-cần-UniClass, mint guest token.</li>
+          <li><b>Ghép cặp trực tiếp</b> — bỏ qua <code>MatchmakingService</code> random; noti "bạn đã sẵn sàng" cho người mời (TTL 1 phút).</li>
+          <li><b>Replay</b> — phiên mang <code>inviteCode</code> + <code>matchIndex</code>, đồng ý 2 phía trong 30s.</li>
+          <li><b>Tương tác real-time</b> — emoji/icon bay qua lại, cooldown 5s.</li>
+          <li><b>Điểm ×2 + cap</b>, fingerprint chống tự mời chính mình, CMS config.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="tag t-new">NEW</span> file/đối tượng tạo mới</span>
+      <span><span class="tag t-edit">SỬA</span> sửa file hiện có</span>
+      <span><span class="tag t-cfg">CONFIG</span> thêm cấu hình</span>
+      <span><span class="tag t-edge">EDGE</span> xử lý nhánh lỗi</span>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 2. LUỒNG =================== -->
+<section id="luong">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">02 — Luồng nghiệp vụ</div>
+      <h2>Hai luồng người dùng</h2>
+      <p class="sub">Người mời (host) đã đăng nhập UniClass qua WebView. Người được mời (guest) vào bằng link riêng, không đăng nhập.</p>
+    </div>
+
+    <div class="flow">
+      <div class="lane host">
+        <div class="lane-h">Người mời · đã có token UniClass</div>
+        <div class="steps">
+          <div class="step"><b>1 · Sảnh So Tài</b>Bấm "Mời bạn"</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>2 · Tạo link</b>Server sinh code + link; hiện QR/link để chia sẻ</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>3 · Chờ</b>Màn "đang chờ bạn vào". Link sống 30′</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>4 · Noti</b>"Bạn đã sẵn sàng" → bấm <b>Vào trận</b> (≤1 phút)</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>5 · Vào game</b>join-session, trận So Tài bình thường</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>6 · Kết quả</b>Chơi lại (≤3 trận) / Thoát</div>
+        </div>
+      </div>
+
+      <div class="lane guest">
+        <div class="lane-h">Người được mời · không đăng nhập</div>
+        <div class="steps">
+          <div class="step"><b>1 · Mở link</b><code>/invite/:code</code> — không auth guard</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>2 · Landing</b>Nhập tên + chọn avatar → mint guest token</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>3 · Sẵn sàng</b>Đánh dấu link "used", báo host. Màn "chờ người mời"</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>4 · Vào game</b>Host bấm Vào trận → cùng session</div>
+          <div class="arrow">→</div>
+          <div class="step"><b>5 · Kết quả</b>Bấm "Chơi lại" để vào trận kế</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <h4>Điểm chốt kiến trúc</h4>
+      <p style="margin:0">
+        Sau khi guest "sẵn sàng" và host bấm <b>Vào trận</b>, backend gọi thẳng
+        <code>QuizArenaService.createPVPSession(host, guest, …)</code> với grade/bucket của <b>host</b>,
+        rồi đẩy cả hai vào room <code>sessionId</code> như trận PvP thường. <b>Không</b> đi qua hàng đợi
+        <code>matchmaking:queue</code>. Đây là khác biệt lớn nhất so với flow hiện tại và là lý do cần một
+        module <code>invite</code> riêng thay vì nhồi vào <code>MatchmakingService</code>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 3. QUYẾT ĐỊNH / CÂU HỎI MỞ =================== -->
+<section id="quyetdinh">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">03 — Cần chốt trước khi code</div>
+      <h2>Quyết định kiến trúc &amp; câu hỏi mở</h2>
+      <p class="sub">Bốn điểm tài liệu chưa nói rõ; mỗi điểm kèm đề xuất để anh duyệt nhanh.</p>
+    </div>
+
+    <div class="callout q">
+      <h4>① "Điểm ×2 (cap 100/màn)" — nhân lên điểm nào?</h4>
+      <p style="margin:0">Tài liệu CMS ghi "hệ số nhân điểm cho trận mới (×2) và mức điểm tối đa / màn". Hiện có 2 loại điểm:
+        điểm trong trận (<code>maxPointsPerQuestion = 1000</code>) và <b>Cúp/UniPoint</b> đồng bộ về UniClass (<code>uniPointsPerCorrect = 10</code>). "Cúp dùng đổi quà" ⇒ nhiều khả năng ×2 áp lên <b>Cúp</b>.</p>
+      <div class="q-rec"><b>Đề xuất:</b> nhân ×2 vào <b>Cúp</b> mỗi trận mời, cap tổng Cúp/trận = <code>inviteMaxCupPerMatch</code> (mặc định 100). Điểm trong trận giữ nguyên để không lệch thanh điểm decay phía client.</div>
+    </div>
+
+    <div class="callout q">
+      <h4>② Người được mời (guest) có được cộng Cúp &amp; sync UniClass không?</h4>
+      <p style="margin:0">Guest không có <code>profileId</code> UniClass nên không thể sync. <code>ScoreService</code> hiện ghi Mongo + leaderboard cho <i>mọi</i> userId ⇒ nếu không loại trừ, guest sẽ làm bẩn BXH.</p>
+      <div class="q-rec"><b>Đề xuất:</b> guest là danh tính tạm (prefix <code>guest-</code>), <b>không</b> persist score, <b>không</b> lên leaderboard, <b>không</b> sync UniClass. Chỉ host nhận Cúp (×2). Cần guard <code>userId.startsWith('guest-')</code> trong <code>endMatch</code>.</div>
+    </div>
+
+    <div class="callout q">
+      <h4>③ Chọn câu hỏi theo khối nào khi host &amp; guest khác lớp?</h4>
+      <p style="margin:0">Guest chỉ nhập tên + avatar, không có khối lớp.</p>
+      <div class="q-rec"><b>Đề xuất:</b> dùng <code>grade</code> + <code>abilityBucket</code> của host cho cả trận (giống <code>createPVPSession</code> hiện lấy grade của playerA).</div>
+    </div>
+
+    <div class="callout q">
+      <h4>④ "Track browser fingerprint" để chặn tự mời chính mình</h4>
+      <p style="margin:0">Yêu cầu: chặn link nếu được tạo &amp; mở trên <b>cùng thiết bị</b>.</p>
+      <div class="q-rec"><b>Đề xuất:</b> client gửi fingerprint (FingerprintJS open-source hoặc hash UA+canvas tự build) khi tạo &amp; khi mở link; backend so khớp. Cần chốt: dùng thư viện ngoài hay tự hash? Mức chặn (cứng/cảnh báo)?</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 4. SHARED =================== -->
+<section id="shared">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">04 — Package @uniclub/shared</div>
+      <h2>Contract dùng chung (làm trước tiên)</h2>
+      <p class="sub">Theo quy tắc repo: mọi event/type/constant mới phải khai báo ở shared trước, rồi backend/frontend/cms import. Zero dependency.</p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Loại</th><th>Nội dung thêm</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="path">shared/src/types/invite.ts <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td><code>InviteLink</code> (code, hostUserId, status, createdAt, expiresAt, fingerprint, sessionId?, matchIndex, maxMatches), <code>InviteStatus</code> = created·opened·used·expired·cancelled, <code>GuestProfile</code>, DTO tạo/redeem link.</td>
+          </tr>
+          <tr>
+            <td class="path">shared/src/constants/invite.ts <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td><code>INVITE_REDIS_KEYS</code> (link, host-noti, replay-lock), <code>INVITE_SOCKET_EVENTS</code> (guest-ready, host-noti, enter-match, replay-request/accept/cancel, reaction), <code>DEFAULT_INVITE_CONFIG</code>, danh sách emoji + cooldown.</td>
+          </tr>
+          <tr>
+            <td class="path">shared/src/types/quiz-arena.ts</td>
+            <td><span class="tag t-edit">SỬA</span> <span class="tag t-cfg">CONFIG</span></td>
+            <td>Mở rộng <code>QuizArenaConfig</code>: <code>inviteLinkExpiryMinutes</code> (30), <code>inviteMaxMatches</code> (3), <code>inviteScoreMultiplier</code> (2), <code>inviteMaxCupPerMatch</code> (100). Thêm field invite vào <code>QuizArenaSession</code>: <code>inviteCode?</code>, <code>matchIndex?</code>, <code>isGuestMatch?</code>.</td>
+          </tr>
+          <tr>
+            <td class="path">shared/src/constants/quiz-arena.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Cập nhật <code>DEFAULT_QUIZ_ARENA_CONFIG</code> với 4 field invite ở trên (giữ backward-compat).</td>
+          </tr>
+          <tr>
+            <td class="path">shared/src/types/common.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Đánh dấu guest trên <code>AuthUser</code> (vd <code>isGuest?: boolean</code>) để FE/BE phân biệt.</td>
+          </tr>
+          <tr>
+            <td class="path">shared/src/{types,constants}/index.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Barrel export <code>./invite</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 5. BACKEND =================== -->
+<section id="backend">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">05 — Package @uniclub/backend</div>
+      <h2>Backend — link, guest, ghép trực tiếp, replay, reaction</h2>
+      <p class="sub">Module mới <code>src/games/quiz-arena/invite/</code> + mở rộng service &amp; sockets hiện có. Stateless, state ở Redis (an toàn multi-instance).</p>
+    </div>
+
+    <h3>5.1 · Vòng đời link mời &amp; ghép trực tiếp</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Loại</th><th>Việc cần làm</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="path">…/quiz-arena/services/invite.service.ts <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td>CRUD link trên Redis (<code>invite:link:&lt;code&gt;</code> TTL = expiry). <code>createLink(host, fingerprint)</code>, <code>redeemLink(code, fingerprint)</code> với guard NX 1-link-1-người (như countdown-lock), check expiry/used, check fingerprint trùng thiết bị. Sinh code an toàn (nanoid).</td>
+          </tr>
+          <tr>
+            <td class="path">…/quiz-arena/routes/index.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Thêm REST: <code>POST /invite/create</code> (host, cần auth), <code>GET /invite/:code</code> (public — trả trạng thái link để FE hiện màn hết hạn/đã dùng), <code>POST /invite/:code/redeem</code> (public — tạo guest, đánh dấu used).</td>
+          </tr>
+          <tr>
+            <td class="path">…/quiz-arena/sockets/invite.handler.ts <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td>Events: guest gửi <code>guest-ready</code> → emit noti tới host (qua <code>SocketRegistry</code> + Redis adapter, TTL 1′); host gửi <code>enter-match</code> → tạo PVP session + đẩy 2 socket vào room; huỷ phòng nếu host không vào trong 1′ (BullMQ timer).</td>
+          </tr>
+          <tr>
+            <td class="path">src/sockets/handlers/index.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Đăng ký <code>registerInviteHandlers(io, socket)</code>.</td>
+          </tr>
+          <tr>
+            <td class="path">…/services/quiz-arena.service.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td><code>createPVPSession</code> nhận thêm <code>{ inviteCode, matchIndex, isGuestMatch }</code> lưu vào session. Cho phép tạo session không phụ thuộc partition/ability matching.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.2 · Danh tính khách (guest auth)</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Loại</th><th>Việc cần làm</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="path">src/routes/auth/index.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Thêm <code>POST /api/auth/guest</code>: nhận <code>{ name, avatar, inviteCode }</code>, sinh <code>userId = guest-&lt;nanoid&gt;</code>, ký guest JWT (short-lived, cùng <code>JWT_SECRET</code>, payload có <code>isGuest:true</code>), gọi <code>UserService.upsertUser</code> để hiển thị được tên/avatar trong trận.</td>
+          </tr>
+          <tr>
+            <td class="path">src/middleware/index.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td><code>requireUserAuth</code> chấp nhận guest token bình thường (đã verify bằng cùng secret). Cân nhắc helper <code>isGuest(req.user)</code> để chặn guest gọi các endpoint không dành cho khách.</td>
+          </tr>
+          <tr>
+            <td class="path">src/services/user.service.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>(Tuỳ chọn) đánh dấu guest để TTL ngắn / không lưu lâu dài, tránh phình collection <code>User</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.3 · Điểm ×2, replay, tương tác — sửa endMatch &amp; thêm event</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Loại</th><th>Việc cần làm</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="path">…/services/quiz-arena.service.ts → <code>endMatch()</code></td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Nếu <code>session.isGuestMatch</code>: nhân Cúp host ×<code>inviteScoreMultiplier</code>, cap <code>inviteMaxCupPerMatch</code>; <b>bỏ qua</b> score/leaderboard/UniClass-sync cho guest (guard <code>guest-</code>). Mỗi trận độc lập (không cộng dồn — vốn đã đúng).</td>
+          </tr>
+          <tr>
+            <td class="path">…/quiz-arena/services/replay.service.ts <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td>Quản lý đồng ý chơi lại 2 phía (Redis lock, timeout 30s). Khi đủ 2 đồng ý &amp; <code>matchIndex+1 &lt; maxMatches</code>: tạo session mới cùng cặp + cùng <code>inviteCode</code>, <code>matchIndex++</code>. Hết 3 trận → ẩn nút "Chơi lại".</td>
+          </tr>
+          <tr>
+            <td class="path">…/quiz-arena/sockets/invite.handler.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Events <code>replay-request</code> / <code>replay-accept</code> / <code>replay-cancel</code> + <code>reaction</code> (broadcast emoji tới room, server-side cooldown 5s/loại emoji chống spam). Auto-emoji khi đối thủ đúng/sai có thể emit kèm <code>question-result</code>.</td>
+          </tr>
+          <tr>
+            <td class="path">src/services/timer-queue.service.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Thêm job: <code>scheduleHostJoinTimeout</code> (huỷ phòng nếu host không vào sau 1′), <code>scheduleReplayTimeout</code> (30s). Tái dùng pattern BullMQ hiện có.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.4 · Config &amp; admin</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Loại</th><th>Việc cần làm</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="path">src/models/index.ts → <code>QuizArenaConfigSchema</code></td>
+            <td><span class="tag t-edit">SỬA</span> <span class="tag t-cfg">CONFIG</span></td>
+            <td>Thêm 4 field invite (default 30 / 3 / 2 / 100). Nhờ merge-with-default trong service nên doc cũ vẫn chạy.</td>
+          </tr>
+          <tr>
+            <td class="path">src/services/game-config.service.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Không đổi logic — chỉ đảm bảo <code>getQuizArenaConfig</code> trả field invite (đã tự merge). Invite service đọc config qua đây.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 6. FRONTEND =================== -->
+<section id="frontend">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">06 — Package @uniclub/frontend</div>
+      <h2>Frontend game — màn mời, landing khách, tương tác, replay</h2>
+      <p class="sub">WebView-first, 16:9. Tận dụng <code>useQuizArenaSocket</code>, store <code>quiz-arena</code>, design-system <code>sotai</code> sẵn có.</p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Loại</th><th>Việc cần làm</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="path">src/App.tsx</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Thêm route <b>không auth-guard</b> <code>/invite/:code</code> (landing khách) và (tuỳ chọn) <code>/quiz-arena/invite</code> (màn host tạo link &amp; chờ).</td>
+          </tr>
+          <tr>
+            <td class="path">src/pages/quiz-arena/InviteHostPage.tsx <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td>Host bấm "Mời bạn" → gọi <code>POST /invite/create</code>, hiện link + QR + nút copy/share (postMessage WebView). Màn chờ; nhận noti "bạn đã sẵn sàng" → nút <b>Vào trận</b> (đếm ngược 1′). Cho phép tạo link mới khi link cũ còn sống.</td>
+          </tr>
+          <tr>
+            <td class="path">src/pages/quiz-arena/InviteGuestLanding.tsx <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td>Đọc <code>:code</code> → <code>GET /invite/:code</code> kiểm tra trạng thái. Form nhập tên + chọn avatar → <code>POST /invite/:code/redeem</code> + <code>POST /auth/guest</code>, lưu guest token (sessionStorage như token thường) → emit <code>guest-ready</code> → màn "chờ người mời". Hiện màn <span class="tag t-edge">EDGE</span> "Link hết hạn / đã dùng".</td>
+          </tr>
+          <tr>
+            <td class="path">src/pages/quiz-arena/QuizArenaLobbyPage.tsx</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Thêm nút "Mời bạn" cạnh "Tìm trận" (component <code>Lobby</code> trong design-system <code>sotai</code>).</td>
+          </tr>
+          <tr>
+            <td class="path">src/pages/quiz-arena/QuizArenaGamePage.tsx</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Khi <code>isGuestMatch</code>: thêm thanh emoji (gửi <code>reaction</code>, cooldown 5s/emoji), overlay icon bay qua màn; nút "Chơi lại" ở màn kết quả (đếm số trận còn lại), màn "chờ đối thủ chơi lại" (30s). Ẩn "Chơi lại" khi hết 3 trận.</td>
+          </tr>
+          <tr>
+            <td class="path">src/hooks/useInviteSocket.ts <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td>Socket cho host/guest: <code>guest-ready</code>, <code>host-noti</code>, <code>enter-match</code>, navigate sang <code>/quiz-arena/game</code> khi có <code>sessionId</code>.</td>
+          </tr>
+          <tr>
+            <td class="path">src/hooks/useQuizArenaSocket.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Lắng <code>reaction</code>, <code>replay-*</code>; thêm action <code>sendReaction</code>, <code>requestReplay</code>, <code>acceptReplay</code>.</td>
+          </tr>
+          <tr>
+            <td class="path">src/stores/quiz-arena.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>State cho reactions đang bay, cooldown emoji, trạng thái replay (chờ/đồng ý/hết lượt), <code>matchIndex</code>.</td>
+          </tr>
+          <tr>
+            <td class="path">src/services/quiz-arena.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Hàm gọi REST invite (create/get/redeem) + guest auth.</td>
+          </tr>
+          <tr>
+            <td class="path">src/hooks/useUser.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Không bắt buộc token URL cho route <code>/invite/*</code> — guest dùng token mint từ redeem. Tránh redirect <code>/error</code> khi chưa có token UniClass.</td>
+          </tr>
+          <tr>
+            <td class="path">src/design-system/sotai/ (Reactions, InviteCard…) <span class="new-badge">＋</span></td>
+            <td><span class="tag t-new">NEW</span></td>
+            <td>Component UI: thanh emoji, icon bay (Canvas cho mượt), thẻ link/QR, avatar picker, màn "link hết hạn".</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <h4>Lưu ý real-time tương tác (mục 2.2)</h4>
+      <p style="margin:0">Emoji/icon đi qua Socket.IO room <code>sessionId</code> sẵn có — độ trễ thấp, đồng bộ 2 client. Cooldown 5s nên kiểm tra <b>cả</b> client (UX) lẫn server (chống spam). Auto-emoji khi đối thủ đúng/sai: server biết kết quả tại <code>resolveQuestion</code> nên emit kèm là chính xác nhất.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 7. CMS =================== -->
+<section id="cms">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">07 — Package @uniclub/cms</div>
+      <h2>CMS — cấu hình Mời Bạn</h2>
+      <p class="sub">Thêm một section vào form cấu hình So Tài hiện có (Ant Design). Backend đã có sẵn endpoint update/invalidate.</p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Loại</th><th>Việc cần làm</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="path">cms/src/pages/quiz-arena/QuizArenaConfigPage.tsx</td>
+            <td><span class="tag t-edit">SỬA</span> <span class="tag t-cfg">CONFIG</span></td>
+            <td>Thêm <code>&lt;Divider&gt;Mời Bạn (MGM)&lt;/Divider&gt;</code> với 4 <code>Form.Item</code>: thời gian hết hạn link (phút), số trận tối đa/lần ghép, hệ số nhân Cúp, mức Cúp tối đa/trận. Form đã tự load/save qua <code>useConfigStore</code> → không cần sửa store/service nếu type đã mở rộng ở shared.</td>
+          </tr>
+          <tr>
+            <td class="path">cms/src/stores/config.store.ts · services/config.service.ts</td>
+            <td><span class="tag t-edit">SỬA</span></td>
+            <td>Thường không cần đổi (truyền nguyên <code>QuizArenaConfig</code>). Chỉ kiểm tra type khớp sau khi mở rộng shared.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:var(--muted);font-size:14px">
+      Không cần đụng <code>backend/src/routes/admin</code>: <code>PUT /api/admin/config/quiz-arena</code> và invalidate-cache đã nhận trọn config.
+    </p>
+  </div>
+</section>
+
+<!-- =================== 8. EDGE CASES =================== -->
+<section id="edge">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">08 — Nhánh lỗi &amp; unhappy case</div>
+      <h2>Map mục 5 tài liệu → xử lý</h2>
+      <p class="sub">Phần lớn tái dùng cơ chế disconnect/AFK/timeout sẵn có của Quiz Arena; chỉ thêm nhánh riêng cho link &amp; replay.</p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Trường hợp</th><th>Xử lý</th><th>Nơi</th></tr></thead>
+        <tbody>
+          <tr><td>Mở link quá 30′ / đã có người dùng</td><td><span class="tag t-edge">EDGE</span> Màn "Link hết hạn / đã dùng" + gợi ý chơi ngẫu nhiên</td><td class="path">invite.service · InviteGuestLanding</td></tr>
+          <tr><td>Host nhận noti nhưng không bấm "Vào trận"</td><td><span class="tag t-edge">EDGE</span> Guest chờ tối đa 1′ → "Bạn của bạn chưa vào" → thoát; huỷ phòng</td><td class="path">invite.handler · timer-queue</td></tr>
+          <tr><td>Host bấm "Mời bạn" khi link cũ còn sống</td><td>Sinh link mới, link cũ vẫn sống; host xử lý lần lượt</td><td class="path">invite.service</td></tr>
+          <tr><td>Cùng thiết bị tạo &amp; mở link</td><td><span class="tag t-edge">EDGE</span> So fingerprint → chặn (xem Q④)</td><td class="path">invite.service</td></tr>
+          <tr><td>Hết giờ 1 câu, không trả lời</td><td>Tái dùng <code>handleQuestionTimeout</code> (tính sai/bỏ qua)</td><td class="path">đã có</td></tr>
+          <tr><td>Đối thủ thoát giữa trận</td><td>Tái dùng <code>handleDisconnect</code>; câu còn lại của người thoát = 0</td><td class="path">đã có</td></tr>
+          <tr><td>Mất kết nối giữa trận</td><td>Ân hạn 30s rồi xử như thoát — tái dùng disconnect-grace</td><td class="path">đã có (mở cho cả PvP)</td></tr>
+          <tr><td>Một bên bấm "Chơi lại", bên kia chưa</td><td><span class="tag t-edge">EDGE</span> Màn "Chờ đối thủ…"; cần cả 2 đồng ý, tối đa 30s</td><td class="path">replay.service</td></tr>
+          <tr><td>Một bên thoát khi đang chờ replay</td><td><span class="tag t-edge">EDGE</span> Huỷ phiên replay → về màn kết quả</td><td class="path">replay.service</td></tr>
+          <tr><td>Đã hết 3 trận</td><td>Ẩn nút "Chơi lại"</td><td class="path">QuizArenaGamePage</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 9. PHASES =================== -->
+<section id="phase">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">09 — Lộ trình</div>
+      <h2>Thứ tự triển khai đề xuất</h2>
+      <p class="sub">Mỗi pha có thể demo độc lập. Phụ thuộc tăng dần.</p>
+    </div>
+
+    <div class="phases">
+      <div class="phase">
+        <div class="pn">P1</div>
+        <div>
+          <h4>Contract + Guest auth</h4>
+          <p>Shared types/constants invite; <code>POST /auth/guest</code>; guest hiển thị được tên/avatar. Mở rộng config + CMS form.</p>
+          <div class="dep">Nền tảng cho tất cả pha sau.</div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="pn">P2</div>
+        <div>
+          <h4>Link mời + ghép trực tiếp</h4>
+          <p>invite.service (vòng đời link, fingerprint), REST create/get/redeem, invite.handler (guest-ready → noti host → enter-match → createPVPSession). Màn host + landing khách.</p>
+          <div class="dep">Phụ thuộc P1. Hết pha này: 1 trận mời chạy end-to-end.</div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="pn">P3</div>
+        <div>
+          <h4>Điểm ×2 + Replay</h4>
+          <p>Sửa <code>endMatch</code> (×2, cap, loại guest khỏi score/sync). replay.service + UI "Chơi lại" 3 trận, đồng ý 2 phía 30s.</p>
+          <div class="dep">Phụ thuộc P2.</div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="pn">P4</div>
+        <div>
+          <h4>Tương tác real-time</h4>
+          <p>Event <code>reaction</code> + cooldown, auto-emoji theo đúng/sai, UI emoji bay (Canvas).</p>
+          <div class="dep">Độc lập tương đối, có thể song song P3.</div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="pn">P5</div>
+        <div>
+          <h4>Edge case + nghiệm thu</h4>
+          <p>Toàn bộ màn lỗi (mục 8), kiểm thử trên WebView Android/iOS giữ khung 16:9, đối chiếu tiêu chí nghiệm thu mục 6 tài liệu.</p>
+          <div class="dep">Phụ thuộc P2–P4.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:24px">
+      <h4>Tiêu chí nghiệm thu (mục 6 tài liệu) — đã được kế hoạch phủ</h4>
+      <ul style="margin:6px 0 0">
+        <li>1 link / 1 người; hết hạn đúng 30′ hoặc khi có người vào → <b>P2</b> (invite.service guard NX + TTL).</li>
+        <li>Người mời vào đúng trận với host, không lạc vào ghép ngẫu nhiên → <b>P2</b> (ghép trực tiếp, không qua queue).</li>
+        <li>Emoji real-time 2 phía, độ trễ chấp nhận được → <b>P4</b>.</li>
+        <li>Replay tối đa 3 trận, điểm độc lập, ×2 cả 3 trận → <b>P3</b>.</li>
+        <li>Xử lý edge: link hết hạn/đã dùng, mất kết nối, thoát giữa trận → <b>P5</b>.</li>
+        <li>Mượt trên WebView Android/iOS, khung 16:9 → <b>P5</b>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Kế hoạch dựa trên hiện trạng code (commit gần nhất) — không chứa thay đổi thực tế nào.
+    Ưu tiên chốt 4 câu hỏi mở (mục 03) trước khi bắt đầu P1. Tài liệu này để review; mọi tên file/đối tượng có thể tinh chỉnh khi code.
+  </div>
+</footer>

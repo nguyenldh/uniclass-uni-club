@@ -28,6 +28,8 @@ export interface LobbyProps extends HTMLAttributes<HTMLDivElement> {
   player: LobbyPlayer;
   /** Called when user taps the big "Tìm Đối Thủ" CTA. */
   onFindMatch?: () => void;
+  /** Đang xử lý trước khi ghép trận (vd: kiểm tra câu hỏi) → khoá CTA. */
+  findMatchLoading?: boolean;
   /** Override CTA label. */
   ctaLabel?: ReactNode;
   /** Top-right slot (e.g. settings icon, exit). */
@@ -40,6 +42,7 @@ export interface LobbyProps extends HTMLAttributes<HTMLDivElement> {
 export function Lobby({
   player,
   onFindMatch,
+  findMatchLoading = false,
   ctaLabel = 'Tìm Đối Thủ',
   topRight,
   sparks = true,
@@ -95,8 +98,9 @@ export function Lobby({
               color="orange"
               size="lg"
               onClick={onFindMatch}
+              disabled={findMatchLoading}
             >
-              {ctaLabel}
+              {findMatchLoading ? 'Đang kiểm tra…' : ctaLabel}
             </GameButton>
           </div>
         </div>

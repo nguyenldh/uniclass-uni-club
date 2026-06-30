@@ -352,6 +352,70 @@ export function DashboardPage() {
                   </Row>
                 </Card>
               </Col>
+
+              {/* Săn Boss */}
+              <Col xs={24} lg={12}>
+                <Card
+                  title={
+                    <span>
+                      <FireOutlined style={{ color: '#f5222d' }} /> Săn Boss
+                    </span>
+                  }
+                  hoverable
+                >
+                  <Row gutter={24}>
+                    <Col span={12}>
+                      <Statistic
+                        title="Điểm trung bình"
+                        value={overview.avgScoreBossBattle}
+                        precision={1}
+                        valueStyle={{ color: '#f5222d' }}
+                        prefix={<TrophyOutlined />}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Statistic
+                        title="TG trung bình"
+                        value={formatTime(overview.avgTimeBossBattle)}
+                        valueStyle={{ color: '#f5222d' }}
+                        prefix={<ClockCircleOutlined />}
+                      />
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+
+              {/* Weekly Event */}
+              <Col xs={24} lg={12}>
+                <Card
+                  title={
+                    <span>
+                      <CalendarOutlined style={{ color: '#eb2f96' }} /> Weekly Event
+                    </span>
+                  }
+                  hoverable
+                >
+                  <Row gutter={24}>
+                    <Col span={12}>
+                      <Statistic
+                        title="Điểm trung bình"
+                        value={overview.avgScoreWeeklyEvent}
+                        precision={1}
+                        valueStyle={{ color: '#eb2f96' }}
+                        prefix={<TrophyOutlined />}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Statistic
+                        title="TG trung bình"
+                        value={formatTime(overview.avgTimeWeeklyEvent)}
+                        valueStyle={{ color: '#eb2f96' }}
+                        prefix={<ClockCircleOutlined />}
+                      />
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
             </Row>
 
             {/* Footer info */}

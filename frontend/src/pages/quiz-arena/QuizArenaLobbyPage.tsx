@@ -21,9 +21,32 @@ export function QuizArenaLobbyPage() {
 
   const userId = user?.userId ?? 'user-1';
   const [checkingSession, setCheckingSession] = useState(true);
+  const [checkingQuestions, setCheckingQuestions] = useState(false);
 
   const { phase, secondsRemaining, totalSeconds, result, startMatchmaking, cancelMatchmaking } =
     useMatchmaking({ userId, gameType: 'quiz', grade: user?.grade, displayName: user?.name });
+
+  // Bấm "Tìm đối thủ": KIỂM TRA khối có câu hỏi TRƯỚC khi ghép trận.
+  // Nếu chưa có câu hỏi → sang màn "không có câu hỏi" thay vì vào ghép trận
+  // rồi mới báo (yêu cầu: check ngay từ trước khi bắt đầu ghép trận).
+  const handleFindMatch = async () => {
+    const grade = user?.grade;
+    if (grade != null) {
+      setCheckingQuestions(true);
+      try {
+        const res = await quizArenaApi.hasQuestions(grade);
+        if (!res.hasQuestions) {
+          navigate('/quiz-arena/game', { state: { noQuestions: true } });
+          return;
+        }
+      } catch {
+        // Lỗi kiểm tra → vẫn cho ghép trận (fallback an toàn, không chặn người dùng).
+      } finally {
+        setCheckingQuestions(false);
+      }
+    }
+    startMatchmaking();
+  };
 
   // ---- Check active session khi mount ----
   useEffect(() => {
@@ -97,7 +120,8 @@ export function QuizArenaLobbyPage() {
     return (
       <Lobby
         player={{ name: displayName, grade, avatar: user?.avatar }}
-        onFindMatch={startMatchmaking}
+        onFindMatch={handleFindMatch}
+        findMatchLoading={checkingQuestions}
         topRight={<ExitButton from="/quiz-arena" className="st-exit-btn">Thoát</ExitButton>}
       />
     );

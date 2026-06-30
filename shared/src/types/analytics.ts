@@ -41,6 +41,10 @@ export interface AnalyticsOverview {
   avgScoreQuizArena: number;
   /** Điểm trung bình Đấu Trí */
   avgScoreMindGame: number;
+  /** Điểm trung bình Săn Boss */
+  avgScoreBossBattle: number;
+  /** Điểm trung bình Weekly Event */
+  avgScoreWeeklyEvent: number;
 
   // ---- Average times ----
 
@@ -48,4 +52,8 @@ export interface AnalyticsOverview {
   avgTimeQuizArena: number;
   /** Thời gian trung bình hoàn thành Đấu Trí (giây) */
   avgTimeMindGame: number;
+  /** Thời gian trung bình hoàn thành Săn Boss (giây) */
+  avgTimeBossBattle: number;
+  /** Thời gian trung bình hoàn thành Weekly Event (giây) */
+  avgTimeWeeklyEvent: number;
 }

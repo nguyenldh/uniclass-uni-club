@@ -92,6 +92,18 @@ export class WeeklyEventService {
   static async createEvent(input: CreateEventInput, createdBy?: string): Promise<WeeklyEvent> {
     const config = await WeeklyEventConfigService.getGeneralConfig();
 
+    // Mỗi (tuần, năm) chỉ được phép có 1 sự kiện (unique index weekNumber_1_year_1).
+    // Kiểm tra trước để báo lỗi tiếng Việt dễ hiểu thay vì trả về lỗi E11000 của MongoDB.
+    const duplicate = await WeeklyEventModel.findOne({
+      weekNumber: input.weekNumber,
+      year: input.year,
+    }).lean();
+    if (duplicate) {
+      throw new Error(
+        `Đã tồn tại sự kiện cho tuần ${input.weekNumber} năm ${input.year}. Vui lòng chọn tuần khác.`,
+      );
+    }
+
     const doc = await WeeklyEventModel.create({
       weekNumber: input.weekNumber,
       year: input.year,
@@ -105,6 +117,14 @@ export class WeeklyEventService {
       status: 'Draft',
       examAssignments: {},
       createdBy: createdBy || 'system',
+    }).catch((err: any) => {
+      // Bắt lỗi trùng key trong trường hợp tạo đồng thời (race condition) lọt qua kiểm tra trên.
+      if (err?.code === 11000) {
+        throw new Error(
+          `Đã tồn tại sự kiện cho tuần ${input.weekNumber} năm ${input.year}. Vui lòng chọn tuần khác.`,
+        );
+      }
+      throw err;
     });
 
     // Tạo rooms cho từng khối

@@ -57,6 +57,8 @@ interface NavState {
   opponentId: string | null;
   isAI: boolean;
   role: "first" | "second";
+  /** Khối lớp chưa có câu hỏi (đã check ở lobby trước khi ghép trận) → vào thẳng màn no-questions. */
+  noQuestions?: boolean;
 }
 
 // ============================================================
@@ -152,6 +154,14 @@ export function QuizArenaGamePage() {
 
   // ---- Load session & join immediately ----
   useEffect(() => {
+    // Khối lớp chưa có câu hỏi (check ở lobby) → hiển thị màn no-questions ngay,
+    // không cần session, không ghép trận.
+    if (navState?.noQuestions) {
+      reset();
+      setNoQuestions();
+      return;
+    }
+
     if (!navState?.sessionId) {
       navigate("/quiz-arena", { replace: true });
       return;
@@ -248,52 +258,9 @@ export function QuizArenaGamePage() {
 
   // ---- Render ----
 
-  if (!session || phase === "idle") {
-    return (
-      <GameCanvas className="quiz-arena-page no-top">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "100dvh",
-          }}
-        >
-          <span
-            style={{
-              color: "#fff",
-              fontFamily: "Nunito, sans-serif",
-              fontWeight: 700,
-            }}
-          >
-            Đang tải...
-          </span>
-        </div>
-      </GameCanvas>
-    );
-  }
-
-  // ---- Versus screen ----
-  if (phase === "versus") {
-    return (
-      <VersusScreen
-        me={{
-          name: myData?.name,
-          avatar: myData?.avatar,
-          grade: myData?.grade,
-        }}
-        opponent={{
-          name: oppData?.name,
-          avatar: oppData?.avatar,
-          grade: oppData?.grade,
-        }}
-        startsAt={countdownStartsAt}
-      />
-    );
-  }
-
   // ---- No questions screen ----
   // Khối lớp chưa có câu hỏi → hiển thị thông báo thay vì màn kết quả chiến thắng.
+  // Đặt TRƯỚC guard "đang tải" vì lúc này session = null (chưa/không ghép trận).
   if (phase === "no-questions") {
     return (
       <GameCanvas className="quiz-arena-page no-top">
@@ -351,6 +318,50 @@ export function QuizArenaGamePage() {
           </div>
         </div>
       </GameCanvas>
+    );
+  }
+
+  if (!session || phase === "idle") {
+    return (
+      <GameCanvas className="quiz-arena-page no-top">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "100dvh",
+          }}
+        >
+          <span
+            style={{
+              color: "#fff",
+              fontFamily: "Nunito, sans-serif",
+              fontWeight: 700,
+            }}
+          >
+            Đang tải...
+          </span>
+        </div>
+      </GameCanvas>
+    );
+  }
+
+  // ---- Versus screen ----
+  if (phase === "versus") {
+    return (
+      <VersusScreen
+        me={{
+          name: myData?.name,
+          avatar: myData?.avatar,
+          grade: myData?.grade,
+        }}
+        opponent={{
+          name: oppData?.name,
+          avatar: oppData?.avatar,
+          grade: oppData?.grade,
+        }}
+        startsAt={countdownStartsAt}
+      />
     );
   }
 

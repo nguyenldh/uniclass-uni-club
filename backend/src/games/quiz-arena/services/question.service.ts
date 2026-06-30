@@ -75,6 +75,15 @@ export class QuestionService {
   }
 
   /**
+   * Kiểm tra khối lớp có câu hỏi nào không (dùng trước khi ghép trận).
+   * Dùng `exists` (limit 1, có index theo grade) nên rất nhẹ — không scan/đếm toàn bộ.
+   */
+  static async hasQuestionsForGrade(grade: number): Promise<boolean> {
+    const doc = await QuestionModel.exists({ grade });
+    return doc !== null;
+  }
+
+  /**
    * Tăng counter thống kê sau khi user trả lời câu hỏi.
    * Sau đó cập nhật lại `correctRate` và recompute `difficultyBucket` theo threshold.
    */

@@ -21,4 +21,11 @@ export const quizArenaApi = {
    */
   checkActiveSession: (userId: string) =>
     apiRequest<ActiveSessionResponse>(API_BASE, `/active-session/${userId}`),
+
+  /**
+   * Kiểm tra khối lớp đã có câu hỏi chưa — gọi TRƯỚC khi ghép trận.
+   * Nếu chưa có → hiển thị màn "không có câu hỏi" thay vì vào ghép trận.
+   */
+  hasQuestions: (grade: number) =>
+    apiRequest<{ success: boolean; hasQuestions: boolean }>(API_BASE, `/has-questions/${grade}`),
 };

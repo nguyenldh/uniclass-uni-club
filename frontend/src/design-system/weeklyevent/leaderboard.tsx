@@ -42,6 +42,7 @@ export function LeaderboardScreen({
   // Giữ nguyên 3 ô (kể cả khi thiếu người) để hạng 1 luôn nằm ở cột giữa.
   const podiumSlots: Array<LeaderboardEntry | undefined> = [top3[1], top3[0], top3[2]];
   const hasPodium = top3.length > 0;
+  const isEmpty = entries.length === 0;
 
   return (
     <div data-scr="UI-S-005" className={cn('we-stage', className)} {...rest}>
@@ -55,6 +56,16 @@ export function LeaderboardScreen({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minHeight: 0 }}>
+          {isEmpty && (
+            <div
+              className="we-note-plate"
+              style={{ textAlign: 'center', margin: '12px auto', maxWidth: 460 }}
+            >
+              <span className="em" aria-hidden>🏆</span>
+              Bảng xếp hạng tuần trước đã đóng. Bảng xếp hạng tuần này sẽ xuất hiện khi sự kiện tuần này kết thúc!
+            </div>
+          )}
+
           {hasPodium && (
             <div className="we-podium">
               {podiumSlots.map((e, i) =>
