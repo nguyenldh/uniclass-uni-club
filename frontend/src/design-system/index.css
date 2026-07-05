@@ -2324,7 +2324,7 @@ h3 {
 }
 .mm-ring .mm-ring-fg {
   fill: none;
-  stroke: var(--o-500);
+  stroke: var(--success);
   stroke-width: 10;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.9s linear;

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GameCanvas, GameButton } from "../../design-system/game";
 import {
@@ -271,6 +272,9 @@ export function CardFlipPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Popup xác nhận thoát (đồng bộ với các game khác qua component ExitButton)
+  const [confirmingExit, setConfirmingExit] = useState(false);
+
   // ─── Handler: gửi game:ended khi user bỏ cuộc giữa chừng ───
   const handleForfeit = useCallback(() => {
     if (session?.status === "playing" && !gameEndedSentRef.current) {
@@ -471,7 +475,7 @@ export function CardFlipPage() {
         <GameButton
           className="exit-in-hud"
           color="ghost"
-          onClick={handleForfeit}
+          onClick={() => setConfirmingExit(true)}
         >
           ← Thoát
         </GameButton>
@@ -511,10 +515,46 @@ export function CardFlipPage() {
       <GameButton
         className="exit-at-bottom"
         color="ghost"
-        onClick={handleForfeit}
+        onClick={() => setConfirmingExit(true)}
       >
         ← Thoát
       </GameButton>
+
+      {confirmingExit &&
+        createPortal(
+          <div className="exit-confirm-backdrop" onClick={() => setConfirmingExit(false)}>
+            <div
+              className="exit-confirm-dialog"
+              role="alertdialog"
+              aria-modal="true"
+              aria-label="Thoát game ?"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>Thoát game ?</h3>
+              <p>Bạn có chắc muốn thoát không? Ván đang chơi sẽ bị xử thua.</p>
+              <div className="exit-confirm-actions">
+                <button
+                  type="button"
+                  className="exit-confirm-btn stay"
+                  onClick={() => setConfirmingExit(false)}
+                >
+                  Ở lại
+                </button>
+                <button
+                  type="button"
+                  className="exit-confirm-btn leave"
+                  onClick={() => {
+                    setConfirmingExit(false);
+                    handleForfeit();
+                  }}
+                >
+                  Thoát
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </GameCanvas>
   );
 }

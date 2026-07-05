@@ -62,6 +62,7 @@ export function GomokuPage() {
     timeElapsed,
     overlayState,
     overlayStats,
+    lastScore,
     setSession,
     makeMove,
     setWin,
@@ -208,7 +209,8 @@ export function GomokuPage() {
       overlayTimerRef.current = setTimeout(() => {
         if (winner) {
           const won = winner === userId;
-          endGame(won ? "win" : "lose", timeElapsed, moveCount, won ? 100 : 0);
+          const winPoints = session?.config?.winPoints ?? 100;
+          endGame(won ? "win" : "lose", timeElapsed, moveCount, won ? winPoints : 0);
         } else {
           endGame("lose", timeElapsed, moveCount, 0);
         }
@@ -332,8 +334,9 @@ export function GomokuPage() {
     gameEndedSentRef.current = true;
 
     const isWin = overlayState === 'win';
-    const score = overlayStats.find(s => s.label === 'Điểm');
-    const point = score ? parseInt(score.value.replace('+', ''), 10) : 0;
+    // Đọc trực tiếp điểm cúp từ store (nguồn sự thật) — trùng khớp với giá trị hiển thị
+    // trên overlay. KHÔNG parse ngược overlayStats (label từng lệch 'Điểm' vs 'Cúp' → luôn ra 0).
+    const point = isWin ? lastScore : 0;
 
     notifyGameEnded({
       userId,
@@ -341,12 +344,12 @@ export function GomokuPage() {
       kafkaGameType: 'CARO',
       subGame: 'gomoku',
       sessionId: session.sessionId,
-      point: isWin ? point : 0,
+      point,
       playTime: timeElapsed,
       sessionCompleted: true,
       isWin,
     });
-  }, [overlayState, overlayStats]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [overlayState, overlayStats, lastScore]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // AI move — computed locally on frontend
   useEffect(() => {
@@ -514,7 +517,7 @@ export function GomokuPage() {
           avatar={myData?.avatar}
           name={`Bạn`}
           mark={playerSymbol}
-          score={winner === userId ? 100 : 0}
+          score={winner === userId ? (session?.config?.winPoints ?? 100) : 0}
           active={currentTurn === playerSymbol}
         />
         <Timer seconds={timeElapsed} mode="up" />

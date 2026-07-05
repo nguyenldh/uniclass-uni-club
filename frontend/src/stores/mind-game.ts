@@ -26,6 +26,8 @@ interface GomokuState {
   clockSkewMs: number;
   overlayState: 'win' | 'lose' | 'draw' | 'idle';
   overlayStats: Array<{ label: string; value: string }>;
+  /** Điểm cúp thực nhận của ván vừa kết thúc — nguồn sự thật cho postMessage, tránh parse ngược overlayStats */
+  lastScore: number;
 
   setSession: (session: GomokuSession, serverNow?: number) => void;
   makeMove: (row: number, col: number, symbol: 'X' | 'O') => void;
@@ -52,6 +54,7 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
   clockSkewMs: 0,
   overlayState: 'idle',
   overlayStats: [],
+  lastScore: 0,
 
   setSession: (session, serverNow) => {
     const board = session.board.map(row => [...row]) as CellValue[][];
@@ -74,6 +77,7 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
       clockSkewMs,
       overlayState: 'idle',
       overlayStats: [],
+      lastScore: 0,
     });
   },
 
@@ -118,6 +122,7 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
         { label: 'Số nước', value: String(moves) },
         { label: 'Cúp', value: `+${score}` },
       ],
+      lastScore: score,
     });
   },
 
@@ -134,6 +139,7 @@ export const useGomokuStore = create<GomokuState>((set, get) => ({
     clockSkewMs: 0,
     overlayState: 'idle',
     overlayStats: [],
+    lastScore: 0,
   }),
 }));
 

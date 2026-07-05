@@ -105,11 +105,15 @@ export function BossBattleSocketProvider({ children }: BossBattleSocketProviderP
     // Rung lắc boss
     setShaking(true);
     setTimeout(() => setShaking(false), 500);
-    // Cập nhật HP trong store
-    const newHp = Math.max(0, Math.min(100, 100 - data.progressPercent));
+    // Cập nhật HP trong store. Cộng lại phần sát thương optimistic của lượt đang chơi
+    // (server chưa xác nhận) để BOSS_HP_UPDATE từ người khác không làm "boss hồi máu".
+    // KHÔNG round để các đòn nhỏ (<1%) vẫn làm thanh máu nhích.
+    const { optimisticDamagePercent } = useBossBattleStore.getState();
+    const displayedProgress = Math.min(100, data.progressPercent + optimisticDamagePercent);
+    const newHp = Math.max(0, Math.min(100, 100 - displayedProgress));
     useBossBattleStore.setState({
-      bossHpPercent: Math.round(newHp),
-      bossProgressPercent: data.progressPercent,
+      bossHpPercent: newHp,
+      bossProgressPercent: displayedProgress,
       currentBossStateImg: data.currentBossStateImg || null,
     });
     // Cập nhật boss state nếu bị hạ

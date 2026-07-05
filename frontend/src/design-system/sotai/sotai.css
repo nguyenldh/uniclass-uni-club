@@ -620,11 +620,12 @@
 }
 .st-answer .lbl{ line-height: 1.3; flex: 1;}
 
-/* Per-letter color (Kahoot-style) */
-.st-answer.k-A .letter{ background: linear-gradient(180deg,#ff8a8a,#e23b3b); border-color:#a01b1b;}
-.st-answer.k-B .letter{ background: linear-gradient(180deg,#7fcdfa,#2f8fd6); border-color:#1c5b8a;}
-.st-answer.k-C .letter{ background: linear-gradient(180deg,#ffd266,#e8a210); border-color:#8a610a;}
-.st-answer.k-D .letter{ background: linear-gradient(180deg,#9be38a,#2bb673); border-color:#1f5b35;}
+/* Màu chữ cái trung tính (Tím / Vàng / Xanh lá / Cam) — KHÔNG gợi ý đúng/sai.
+   Chỉ đổi xanh=đúng / đỏ=sai qua .is-correct/.is-wrong sau khi HS trả lời. */
+.st-answer.k-A .letter{ background: linear-gradient(180deg,#c9a9f5,#8b5cf6); border-color:#5b2a9e;}
+.st-answer.k-B .letter{ background: linear-gradient(180deg,#ffe27a,#f0be17); border-color:#8a6a0a;}
+.st-answer.k-C .letter{ background: linear-gradient(180deg,#8ec5fb,#3b82f6); border-color:#1c5b8a;}
+.st-answer.k-D .letter{ background: linear-gradient(180deg,#ffbe7a,#f2810a); border-color:#8a4a0a;}
 
 /* States */
 .st-answer.is-selected{

@@ -154,6 +154,8 @@ const CONN_TEXT: Record<ConnState, { cls: string; label: string }> = {
   disconnected: { cls: 'bad',  label: 'Mất kết nối' },
 };
 export function ConnectionStatus({ state }: ConnectionStatusProps) {
+  // Chỉ hiển thị UI khi có vấn đề kết nối. Khi đã kết nối bình thường thì ẩn hoàn toàn.
+  if (state === 'connected') return null;
   const t = CONN_TEXT[state];
   return (
     <span data-ui="UI-C-005" className={cn('we-conn', t.cls)} role="status" aria-live="polite">
@@ -257,9 +259,6 @@ export function QuestionCard({
             >
               <span className="letter">{opt.key}</span>
               <span className="lbl">{opt.label}</span>
-              {!reveal && opt.key === selected && saved && (
-                <span className="saved">✓</span>
-              )}
             </button>
           );
         })}

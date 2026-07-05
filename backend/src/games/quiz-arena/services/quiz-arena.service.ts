@@ -64,7 +64,10 @@ function makePlayerState(
 
 /**
  * Tính điểm cho một câu trả lời đúng theo công thức decay:
- *   earned = maxPoints * (1 - minRetention * (responseTime / timeLimit))
+ *   earned = maxPoints * (1 - (1 - minRetention) * (responseTime / timeLimit))
+ * minRetention = "sàn điểm giữ lại ở giây cuối" (retention floor):
+ *   - minRetention = 1 (bảo toàn 100%) → luôn nhận full điểm, không tụt.
+ *   - minRetention = 0 (bảo toàn 0%)   → giây cuối còn 0 điểm.
  * Trả lời sai hoặc hết giờ → 0 điểm.
  */
 function calcEarnedPoints(
@@ -80,7 +83,7 @@ function calcEarnedPoints(
   const elapsedSec = Math.floor(responseTimeMs / 1000);
   const timeLimitSec = Math.max(1, Math.round(timeLimitMs / 1000));
   const ratio = Math.min(elapsedSec / timeLimitSec, 1);
-  return Math.round(maxPoints * (1 - minRetention * ratio));
+  return Math.round(maxPoints * (1 - (1 - minRetention) * ratio));
 }
 
 /**

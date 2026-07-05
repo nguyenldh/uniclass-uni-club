@@ -553,7 +553,7 @@
 .timer svg{ width: 100%; height: 100%; transform: rotate(-90deg); }
 .timer .track{ stroke: rgba(110,63,23,.18); fill: none; }
 .timer .fill {
-  stroke: var(--o-500); fill: none;
+  stroke: var(--success); fill: none;
   transition: stroke-dashoffset .3s linear, stroke .3s;
   stroke-linecap: round;
 }

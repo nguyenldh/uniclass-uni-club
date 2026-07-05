@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Weekly Event Panel — Hướng dẫn tích hợp</title>
+  <style>
+    :root {
+      --brand: #F7711D;
+      --cam-50: #FFF7ED;
+      --ink: #0f172a;
+      --panel: #ffffff;
+      --line: #e5e7eb;
+      --muted: #64748b;
+      --code-bg: #0f172a;
+      --code-fg: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, "SF Pro Display", "Segoe UI", Roboto, system-ui, sans-serif;
+      color: var(--ink);
+      background: #f8fafc;
+      line-height: 1.55;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 80px; }
+
+    header.hero {
+      background: linear-gradient(135deg, #fff3ea, #ffffff);
+      border: 1px solid var(--line);
+      border-left: 6px solid var(--brand);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 28px;
+    }
+    header.hero h1 { margin: 0 0 6px; font-size: 26px; }
+    header.hero p { margin: 0; color: var(--muted); }
+    .tag {
+      display: inline-block; font-size: 12px; font-weight: 700; color: var(--brand);
+      background: var(--cam-50); border: 1px solid #fcd9bd; border-radius: 999px;
+      padding: 3px 10px; margin-bottom: 10px;
+    }
+
+    h2 { font-size: 20px; margin: 0 0 12px; }
+    h3 { font-size: 15px; margin: 20px 0 6px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0; padding-left: 22px; }
+    li { margin: 5px 0; }
+    .step { color: var(--brand); font-weight: 700; }
+
+    section.card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; padding: 20px 22px; margin-bottom: 18px;
+    }
+
+    pre {
+      background: var(--code-bg); color: var(--code-fg);
+      border-radius: 10px; padding: 14px 16px; overflow-x: auto;
+      font-size: 13px; line-height: 1.5; margin: 10px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    code.inline {
+      background: #eef2f7; border: 1px solid var(--line); border-radius: 5px;
+      padding: 1px 6px; font-size: 13px;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    .tok-key { color: #7dd3fc; }
+    .tok-str { color: #86efac; }
+    .tok-com { color: #94a3b8; font-style: italic; }
+
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: #f1f5f9; font-weight: 700; }
+    td code, table code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #b45309; }
+
+    /* ---- Playground ---- */
+    .domain-bar {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;
+      background: var(--cam-50); border: 1px solid #fcd9bd; border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 18px;
+    }
+    .domain-bar .field { flex: 1; min-width: 260px; }
+    .domain-bar label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 5px; }
+    .btn {
+      cursor: pointer; border: 1px solid var(--brand); background: var(--brand); color: #fff;
+      border-radius: 9px; padding: 10px 18px; font-size: 14px; font-weight: 600;
+    }
+    .btn.secondary { background: #fff; color: var(--brand); }
+    .status-line { font-size: 13px; margin-top: 8px; }
+    .status-ok { color: #16a34a; }
+    .status-err { color: #dc2626; }
+
+    .pg-grid { display: grid; grid-template-columns: 300px 1fr; gap: 18px; }
+    @media (max-width: 760px) { .pg-grid { grid-template-columns: 1fr; } }
+    .controls { display: flex; flex-direction: column; gap: 14px; }
+    .controls.disabled { opacity: .45; pointer-events: none; }
+    .ctrl label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
+    .ctrl .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+    .seg button {
+      cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink);
+      border-radius: 8px; padding: 7px 11px; font-size: 13px;
+    }
+    .seg button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+    input[type="range"] { width: 100%; }
+    input[type="number"], input[type="text"] {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--line);
+      border-radius: 8px; font-size: 14px;
+    }
+    .row { display: flex; align-items: center; gap: 8px; }
+    #stage {
+      position: relative; aspect-ratio: 16 / 9; width: 100%;
+      border-radius: 14px; overflow: hidden;
+      background: radial-gradient(120% 90% at 50% -10%, #bfe9f7 0%, #7cc6e8 45%, #4a97c9 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.85); font-weight: 600; text-align: center; padding: 12px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+    }
+    .snippet-head { display:flex; align-items:center; justify-content: space-between; }
+    .copy-btn { cursor: pointer; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 10px; font-size: 12px; }
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+      background: var(--ink); color: #fff; padding: 12px 16px; border-radius: 10px;
+      font-size: 13px; max-width: 90vw; white-space: pre-wrap; z-index: 99;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3); opacity: 0; transition: opacity .2s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+    .callout { background: var(--cam-50); border: 1px solid #fcd9bd; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="tag">weekly-event-panel.js</span>
+    <h1>Weekly Event Panel — Hướng dẫn tích hợp</h1>
+    <p>Chèn panel đếm ngược "Sự kiện tuần" vào trang của bạn bằng một thẻ script. Tài liệu này dành cho tích hợp từ bên ngoài.</p>
+  </header>
+
+  <!-- ============ PANEL LÀ GÌ ============ -->
+  <section class="card">
+    <h2>1. Panel này là gì?</h2>
+    <p>Một file JavaScript dựng sẵn. Bạn chỉ cần:</p>
+    <ul>
+      <li>Chèn thẻ <code class="inline">&lt;script&gt;</code> trỏ tới file <code class="inline">weekly-event-panel.js</code>.</li>
+      <li>Đặt một thẻ <code class="inline">&lt;div&gt;</code> làm chỗ gắn — script tự dựng panel vào đó.</li>
+    </ul>
+    <p>Panel sẽ tự gọi API để biết sự kiện tuần có đang mở đăng ký không, rồi hiện đồng hồ đếm ngược. Giao diện panel nằm trong Shadow DOM nên <b>không ảnh hưởng CSS trang của bạn</b> và ngược lại.</p>
+  </section>
+
+  <!-- ============ NHÚNG ============ -->
+  <section class="card">
+    <h2>2. Cách nhúng</h2>
+
+    <h3>Cách 1 — Tự khởi tạo (đơn giản nhất)</h3>
+    <p>Thêm thuộc tính <code class="inline">data-auto</code>. Script tự tìm thẻ div theo <code class="inline">data-target</code> và khởi tạo.</p>
+    <pre>&lt;div id="we-panel"&gt;&lt;/div&gt;
+
+&lt;script
+  src="https://<b>YOUR_DOMAIN</b>/widgets/weekly-event-panel.js"
+  <span class="tok-key">data-auto</span>
+  <span class="tok-key">data-token</span>=<span class="tok-str">"&lt;JWT của học sinh&gt;"</span>
+  <span class="tok-key">data-api-base</span>=<span class="tok-str">"https://<b>YOUR_API</b>/api"</span>
+  <span class="tok-key">data-weekly-event-url</span>=<span class="tok-str">"https://<b>YOUR_APP</b>/weekly-event"</span>
+  <span class="tok-key">data-target</span>=<span class="tok-str">"#we-panel"</span>&gt;&lt;/script&gt;</pre>
+
+    <h3>Cách 2 — Tự gọi hàm khởi tạo (linh hoạt hơn)</h3>
+    <p>Không dùng <code class="inline">data-auto</code>. Sau khi script tải xong, gọi <code class="inline">WeeklyEventPanel.init()</code> khi bạn muốn.</p>
+    <pre>&lt;div id="we-panel"&gt;&lt;/div&gt;
+&lt;script src="https://<b>YOUR_DOMAIN</b>/widgets/weekly-event-panel.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  <span class="tok-key">var</span> panel = WeeklyEventPanel.init(<span class="tok-str">'#we-panel'</span>, {
+    token: <span class="tok-str">'&lt;JWT&gt;'</span>,
+    apiBase: <span class="tok-str">'https://YOUR_API/api'</span>,
+    container: <span class="tok-str">'#game-stage'</span>,   <span class="tok-com">// neo panel trong khung này; bỏ trống = phủ toàn màn hình</span>
+    onJoin: <span class="tok-key">function</span> (ctx) {     <span class="tok-com">// bấm nút vào sự kiện — bạn tự quyết định điều hướng</span>
+      window.location.href = ctx.weeklyEventUrl;
+    }
+  });
+
+  <span class="tok-com">// Khi rời màn hình, gỡ panel:</span>
+  <span class="tok-com">// panel.destroy();</span>
+&lt;/script&gt;</pre>
+    <div class="callout">
+      <b>Token lấy ở đâu?</b> Là JWT của học sinh mà hệ thống của bạn cấp (cùng token dùng để gọi API game).
+      Nếu không truyền token, panel vẫn hiện được nhưng không biết học sinh đã tham gia hay chưa.
+    </div>
+  </section>
+
+  <!-- ============ OPTIONS ============ -->
+  <section class="card">
+    <h2>3. Các tuỳ chọn (options)</h2>
+    <table>
+      <tr><th>Tên</th><th>Mặc định</th><th>Công dụng</th></tr>
+      <tr><td><code>token</code></td><td>—</td><td>JWT học sinh để gọi API. Có thể bỏ trống.</td></tr>
+      <tr><td><code>apiBase</code></td><td>domain hiện tại + <code>/api</code></td><td>Địa chỉ gốc của API.</td></tr>
+      <tr><td><code>weeklyEventUrl</code></td><td>domain hiện tại + <code>/weekly-event</code></td><td>Trang sẽ mở khi bấm "Tham gia ngay".</td></tr>
+      <tr><td><code>container</code></td><td>—</td><td>Chọn khung để đặt panel bên trong (vd <code>'#game-stage'</code>). Bỏ trống thì panel nổi phủ toàn màn hình.</td></tr>
+      <tr><td><code>designWidth</code></td><td><code>640</code></td><td>Bề rộng chuẩn của panel (px). Nếu chỗ hẹp hơn, panel tự thu nhỏ đều.</td></tr>
+      <tr><td><code>minScale</code></td><td><code>0.5</code></td><td>Mức thu nhỏ tối đa (0.5 = nhỏ nhất còn 50%).</td></tr>
+      <tr><td><code>pollInterval</code></td><td><code>0</code></td><td>Số mili-giây tự kiểm tra lại API. Để <code>0</code> là tắt.</td></tr>
+      <tr><td><code>onJoin</code></td><td>—</td><td>Hàm chạy khi bấm nút vào sự kiện (dùng chung cho cả "Tham gia ngay" và "Quay lại phòng chờ"). Nếu có hàm này, panel <b>không tự điều hướng</b> — bạn tự làm.</td></tr>
+    </table>
+
+    <h3>Dữ liệu truyền vào <code class="inline">onJoin(ctx)</code></h3>
+    <table>
+      <tr><th>Trường</th><th>Ý nghĩa</th></tr>
+      <tr><td><code>hasJoined</code></td><td><code>true</code> = học sinh đã ở trong phòng (nút hiện "Quay lại phòng chờ"); <code>false</code> = chưa (nút "Tham gia ngay").</td></tr>
+      <tr><td><code>eventId</code></td><td>Mã sự kiện tuần.</td></tr>
+      <tr><td><code>roomId</code></td><td>Mã phòng đã tham gia (chỉ có khi <code>hasJoined</code>).</td></tr>
+      <tr><td><code>token</code></td><td>JWT đang dùng.</td></tr>
+      <tr><td><code>weeklyEventUrl</code></td><td>Đường dẫn trang sự kiện (đã kèm token) — dùng nếu bạn muốn điều hướng.</td></tr>
+      <tr><td><code>remainingSec</code></td><td>Số giây còn lại lúc bấm.</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ KHI NÀO HIỆN ============ -->
+  <section class="card">
+    <h2>4. Khi nào panel hiện / ẩn?</h2>
+    <ul>
+      <li><b>Đang mở đăng ký</b> → panel hiện, đếm ngược tới lúc hết hạn tham gia. Hết giờ thì tự ẩn.</li>
+      <li><b>Chưa tới giờ mở</b> → panel ẩn, tự canh đúng giờ mở rồi mới hiện.</li>
+      <li><b>Đã vào thi / đã đóng</b> → panel ẩn.</li>
+      <li>Màu đồng hồ: còn <b>&gt; 60 giây</b> xanh, <b>≤ 60 giây</b> cam, <b>≤ 20 giây</b> đỏ.</li>
+      <li>Học sinh có thể <b>Thu gọn</b> panel thành huy hiệu 🏆 nhỏ ở mép trái (kéo lên xuống được), hoặc <b>Tắt</b> (ẩn trong phiên đó).</li>
+    </ul>
+  </section>
+
+  <!-- ============ PLAYGROUND ============ -->
+  <section class="card">
+    <h2>5. Thử nghiệm trực tiếp</h2>
+    <p><span class="step">Bước 1.</span> Nhập domain nơi bạn host file script, rồi bấm <b>Tải script</b>.
+       <span class="step">Bước 2.</span> Chỉnh các tuỳ chọn để xem panel đổi theo (dùng dữ liệu giả, không gọi API thật).</p>
+
+    <div class="domain-bar">
+      <div class="field">
+        <label for="domain">Domain host script</label>
+        <input type="text" id="domain" placeholder="https://your-domain.com" />
+        <div class="hint">Sẽ tải: <span id="srcPreview">https://your-domain.com/widgets/weekly-event-panel.js</span></div>
+      </div>
+      <button class="btn" id="loadBtn">Tải script</button>
+      <div style="flex-basis:100%"><div class="status-line" id="loadStatus">Chưa tải script.</div></div>
+    </div>
+
+    <div class="pg-grid">
+      <div class="controls disabled" id="controls">
+        <div class="ctrl">
+          <label>Trạng thái sự kiện</label>
+          <div class="seg" data-group="status">
+            <button data-val="open" class="on">Đang mở</button>
+            <button data-val="before-open">Chưa tới giờ</button>
+            <button data-val="in-progress">Đang thi</button>
+            <button data-val="closed">Đã đóng</button>
+          </div>
+        </div>
+
+        <div class="ctrl" data-when="open">
+          <label>Còn lại: <b><span id="secLabel">254</span> giây</b></label>
+          <input type="range" id="sec" min="1" max="600" value="254" />
+          <div class="hint">Kéo để xem đồng hồ đổi màu xanh → cam → đỏ.</div>
+        </div>
+
+        <div class="ctrl" data-when="before-open">
+          <label>Mở sau (giây)</label>
+          <input type="number" id="openIn" value="6" min="1" />
+          <div class="hint">Panel ẩn cho tới khi hết số giây này rồi tự hiện.</div>
+        </div>
+
+        <div class="ctrl" data-when="open">
+          <label class="row"><input type="checkbox" id="hasJoined" /> Học sinh đã tham gia</label>
+          <div class="hint">Bật để đổi nút thành "Quay lại phòng chờ".</div>
+        </div>
+
+        <div class="ctrl">
+          <label>Vị trí panel</label>
+          <div class="seg" data-group="anchor">
+            <button data-val="container" class="on">Trong khung</button>
+            <button data-val="viewport">Toàn màn hình</button>
+          </div>
+          <div class="hint">"Toàn màn hình" sẽ phủ lên cả trang (đúng cho app nhúng toàn màn).</div>
+        </div>
+
+        <div class="ctrl">
+          <label>Bề rộng chuẩn: <b><span id="dwLabel">640</span>px</b></label>
+          <input type="range" id="dw" min="360" max="720" value="640" step="10" />
+        </div>
+        <div class="ctrl">
+          <label>Thu nhỏ tối đa: <b><span id="msLabel">0.5</span></b></label>
+          <input type="range" id="ms" min="0.3" max="1" value="0.5" step="0.05" />
+        </div>
+
+        <div class="ctrl">
+          <label>Khi bấm nút vào sự kiện</label>
+          <div class="seg" data-group="join">
+            <button data-val="callback" class="on">Chạy hàm onJoin</button>
+            <button data-val="default">Điều hướng mặc định</button>
+          </div>
+          <div class="hint">"Chạy hàm onJoin" sẽ hiện thông tin thay vì rời trang.</div>
+        </div>
+      </div>
+
+      <div>
+        <div id="stage"><span>Nhập domain và bấm <b>Tải script</b> để bắt đầu.</span></div>
+        <div id="we-panel"></div>
+
+        <div class="snippet-head" style="margin-top:16px">
+          <h3 style="margin:0">Code tương ứng</h3>
+          <button class="copy-btn" id="copyBtn">Copy</button>
+        </div>
+        <pre id="snippet">// Tải script trước để xem code mẫu.</pre>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var $ = function (s) { return document.querySelector(s); };
+
+  var state = {
+    domain: '',
+    status: 'open',
+    sec: 254,
+    openIn: 6,
+    hasJoined: false,
+    anchor: 'container',
+    dw: 640,
+    ms: 0.5,
+    join: 'callback',
+  };
+  var loaded = false;
+  var instance = null;
+
+  // Prefill domain bằng origin hiện tại cho tiện.
+  $('#domain').value = window.location.origin;
+  updateSrcPreview();
+
+  // ---- Toast ----
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 3500);
+  }
+
+  function normDomain(d) { return (d || '').trim().replace(/\/+$/, ''); }
+  function scriptSrc() { return normDomain($('#domain').value) + '/widgets/weekly-event-panel.js'; }
+  function updateSrcPreview() { $('#srcPreview').textContent = scriptSrc(); }
+
+  $('#domain').addEventListener('input', updateSrcPreview);
+
+  // ---- Tải script từ domain ----
+  $('#loadBtn').addEventListener('click', function () {
+    var domain = normDomain($('#domain').value);
+    if (!domain) { setStatus('Nhập domain trước đã.', 'err'); return; }
+    state.domain = domain;
+
+    // Dọn script + instance cũ nếu tải lại.
+    if (instance) { try { instance.destroy(); } catch (e) {} instance = null; }
+    var old = document.querySelector('script[data-we-loaded]');
+    if (old) old.remove();
+    try { delete window.WeeklyEventPanel; } catch (e) { window.WeeklyEventPanel = undefined; }
+    loaded = false;
+
+    setStatus('Đang tải ' + scriptSrc() + ' ...', '');
+    var s = document.createElement('script');
+    s.src = scriptSrc();
+    s.setAttribute('data-we-loaded', '1');
+    s.onload = function () {
+      if (!window.WeeklyEventPanel) {
+        setStatus('Tải được file nhưng không thấy WeeklyEventPanel — sai file?', 'err');
+        return;
+      }
+      loaded = true;
+      $('#controls').classList.remove('disabled');
+      setStatus('Đã tải script. Chỉnh tuỳ chọn để xem panel.', 'ok');
+      render();
+    };
+    s.onerror = function () {
+      setStatus('Không tải được ' + scriptSrc() + ' — kiểm tra domain / đường dẫn / CORS.', 'err');
+    };
+    document.body.appendChild(s);
+  });
+
+  function setStatus(msg, kind) {
+    var el = $('#loadStatus');
+    el.textContent = msg;
+    el.className = 'status-line' + (kind === 'ok' ? ' status-ok' : kind === 'err' ? ' status-err' : '');
+  }
+
+  // ---- Controls ----
+  document.querySelectorAll('.seg').forEach(function (seg) {
+    var group = seg.dataset.group;
+    seg.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        seg.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        state[group] = b.dataset.val;
+        syncVisibility();
+        render();
+      });
+    });
+  });
+  $('#sec').addEventListener('input', function (e) { state.sec = +e.target.value; $('#secLabel').textContent = state.sec; render(); });
+  $('#openIn').addEventListener('input', function (e) { state.openIn = +e.target.value || 1; render(); });
+  $('#hasJoined').addEventListener('change', function (e) { state.hasJoined = e.target.checked; render(); });
+  $('#dw').addEventListener('input', function (e) { state.dw = +e.target.value; $('#dwLabel').textContent = state.dw; render(); });
+  $('#ms').addEventListener('input', function (e) { state.ms = +e.target.value; $('#msLabel').textContent = state.ms; render(); });
+  $('#copyBtn').addEventListener('click', function () {
+    if (navigator.clipboard) navigator.clipboard.writeText($('#snippet').textContent).then(function () { toast('Đã copy code'); });
+  });
+
+  function syncVisibility() {
+    document.querySelectorAll('[data-when]').forEach(function (el) {
+      el.style.display = el.dataset.when === state.status ? '' : 'none';
+    });
+  }
+
+  // ---- Tạo dữ liệu giả theo state ----
+  function buildMock() {
+    var now = Date.now();
+    var iso = function (ms) { return new Date(ms).toISOString(); };
+    if (state.status === 'open') {
+      var waitingMin = 5;
+      var deadline = now + state.sec * 1000;
+      return {
+        event: { _id: 'demo-open', title: 'Sự Kiện Tuần', scheduledStartAt: iso(deadline - waitingMin * 60000), waitingDuration: waitingMin },
+        status: 'open',
+        hasJoined: state.hasJoined,
+        roomId: state.hasJoined ? 'room-demo-1' : undefined
+      };
+    }
+    if (state.status === 'before-open') {
+      return { event: { _id: 'demo-before', title: 'Sự Kiện Tuần', scheduledStartAt: iso(now + state.openIn * 1000), waitingDuration: 5 }, status: 'before-open' };
+    }
+    if (state.status === 'in-progress') {
+      return { event: { _id: 'demo-prog', title: 'Sự Kiện Tuần', scheduledStartAt: iso(now - 600000), waitingDuration: 5 }, status: 'in-progress' };
+    }
+    return { event: null, status: 'closed', nextEventAt: iso(now + 86400000) };
+  }
+
+  function render() {
+    if (!loaded || !window.WeeklyEventPanel) return;
+    if (instance) { try { instance.destroy(); } catch (e) {} instance = null; }
+    try { sessionStorage.removeItem('we_panel_dismissed'); } catch (e) {}
+
+    var opts = { mockCurrent: buildMock(), designWidth: state.dw, minScale: state.ms };
+    if (state.anchor === 'container') opts.container = '#stage';
+
+    if (state.join === 'callback') {
+      opts.onJoin = function (ctx) {
+        toast('onJoin được gọi:\n' +
+          'hasJoined = ' + ctx.hasJoined + '\n' +
+          'remainingSec = ' + ctx.remainingSec + '\n' +
+          'eventId = ' + ctx.eventId + '  roomId = ' + ctx.roomId + '\n' +
+          'weeklyEventUrl = ' + ctx.weeklyEventUrl);
+      };
+    } else {
+      // Điều hướng mặc định: trỏ về hash để không rời trang hướng dẫn khi thử.
+      opts.weeklyEventUrl = window.location.href.split('#')[0] + '#demo-su-kien';
+    }
+
+    instance = WeeklyEventPanel.init('#we-panel', opts);
+    renderSnippet();
+  }
+
+  function renderSnippet() {
+    var d = state.domain || 'https://YOUR_DOMAIN';
+    var lines = [];
+    lines.push('<script src="' + d + '/widgets/weekly-event-panel.js"><\/script>');
+    lines.push('<script>');
+    lines.push('  WeeklyEventPanel.init(\'#we-panel\', {');
+    lines.push('    token: \'<JWT>\',');
+    lines.push('    apiBase: \'' + d + '/api\',');
+    if (state.anchor === 'container') lines.push('    container: \'#game-stage\',');
+    lines.push('    designWidth: ' + state.dw + ', minScale: ' + state.ms + ',');
+    if (state.join === 'callback') {
+      lines.push('    onJoin: function (ctx) {');
+      lines.push('      window.location.href = ctx.weeklyEventUrl;');
+      lines.push('    }');
+    } else {
+      lines.push('    weeklyEventUrl: \'' + d + '/weekly-event\'');
+    }
+    lines.push('  });');
+    lines.push('<\/script>');
+    $('#snippet').textContent = lines.join('\n');
+  }
+
+  syncVisibility();
+</script>
+</body>
+</html>

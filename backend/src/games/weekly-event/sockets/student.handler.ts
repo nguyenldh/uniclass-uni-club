@@ -29,6 +29,20 @@ function studentRoomName(studentId: string): string {
   return `${WEEKLY_EVENT_STUDENT_ROOM_PREFIX}:${studentId}`;
 }
 
+// Broadcast số học sinh online của phòng NGAY LẬP TỨC (không đợi timer định kỳ 5s).
+// Dùng khi join/leave để người mới vào & cả phòng cập nhật tức thì.
+async function emitOnlineCount(socket: Socket, eventId: string, grade: number): Promise<void> {
+  try {
+    const count = await WeeklyEventRoomService.getOnlineCount(eventId, grade);
+    socket.nsp.to(roomName(eventId, grade)).emit(WEEKLY_EVENT_SOCKET_EVENTS.ROOM_ONLINE_COUNT, {
+      grade,
+      count,
+    });
+  } catch (err) {
+    console.error('[WeeklyEvent] Immediate online count broadcast failed:', err);
+  }
+}
+
 export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): void {
   const studentId = socket.data.studentId as string;
   const eventId = socket.data.eventId as string;
@@ -57,6 +71,9 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
     try {
       // Ensure student is added to online set
       await WeeklyEventRoomService.enterRoom(eventId, studentId, grade);
+
+      // Đẩy online-count ngay để người vừa vào (và cả phòng) thấy số cập nhật tức thì
+      await emitOnlineCount(socket, eventId, grade);
 
       ack?.({ ok: true });
     } catch (err: any) {
@@ -282,6 +299,9 @@ export function registerWeeklyEventStudentHandlers(io: Server, socket: Socket): 
 
       // Rời khỏi online set
       await WeeklyEventRoomService.leaveRoom(eventId, studentId, grade);
+
+      // Đẩy online-count ngay cho các thành viên còn lại (không đợi timer 5s)
+      await emitOnlineCount(socket, eventId, grade);
 
       // Tăng disconnectCount trên Redis thay vì MongoDB
       const disconnectKey = `${WEEKLY_EVENT_REDIS_KEYS.DISCONNECT_COUNT(eventId)}:${studentId}`;

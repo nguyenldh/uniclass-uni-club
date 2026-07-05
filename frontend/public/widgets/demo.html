@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Weekly Event Panel — Demo/Test</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #e2e8f0;
+    }
+
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
+
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .panel-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    button.ctl {
+      cursor: pointer;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    button.ctl:hover {
+      background: #334155;
+    }
+
+    .note {
+      margin-top: 24px;
+      padding: 14px;
+      background: #1e293b;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    code {
+      background: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Khung game 16:9 — panel sẽ neo (absolute) BÊN TRONG khung này. */
+    .fake-game {
+      position: relative;
+      /* container cho panel */
+      margin-top: 20px;
+      aspect-ratio: 16 / 9;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      background: repeating-linear-gradient(45deg, #1e293b, #1e293b 12px, #172033 12px, #172033 24px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>🧪 Weekly Event Panel — Màn hình test</h1>
+    <p>
+      Trang này nhúng widget đúng cách thật:
+      <code>&lt;script src="./weekly-event-panel.js"&gt;</code> + <code>&lt;div id="we-panel"&gt;</code>,
+      rồi gọi <code>WeeklyEventPanel.init()</code> với dữ liệu mock để xem UI mà không cần backend.
+    </p>
+
+    <p style="color:#cbd5e1"><b>A. Test UI bằng mock</b> (không cần token):</p>
+    <div class="panel-controls">
+      <button class="ctl" data-demo="open-long">Mở · còn 4:14 (xanh)</button>
+      <button class="ctl" data-demo="open-mid">Mở · còn 0:45 (cam)</button>
+      <button class="ctl" data-demo="open-short">Mở · còn 0:12 (đỏ)</button>
+      <button class="ctl" data-demo="joined">Mở · đã tham gia (CTA "Quay lại")</button>
+      <button class="ctl" data-demo="before">Chưa mở (before-open)</button>
+      <button class="ctl" data-demo="closed">Đóng (không hiện)</button>
+      <button class="ctl" data-demo="destroy">Gỡ panel</button>
+    </div>
+
+    <p style="color:#cbd5e1"><b>B. Test API thật</b> (cần backend chạy + JWT học sinh):</p>
+    <div class="panel-controls" style="align-items:center">
+      <input id="in-token" placeholder="Dán JWT vào đây"
+        style="flex:1;min-width:240px;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e2e8f0" />
+      <input id="in-api" value="http://localhost:3000/api" title="apiBase"
+        style="width:220px;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e2e8f0" />
+      <button class="ctl" id="btn-real">Gọi /current thật</button>
+    </div>
+    <pre id="real-result"
+      style="display:none;white-space:pre-wrap;word-break:break-all;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:12px;font-size:12px;color:#cbd5e1;margin-top:-4px"></pre>
+
+    <div class="note">
+      Panel neo <b>bên trong khung game 16:9</b> phía dưới (truyền <code>container: '#game-stage'</code>).
+      Thử: bấm <b>Thu gọn</b> → pill 🏆 ở cạnh trái khung, <b>kéo dọc</b> đổi vị trí
+      (nhớ qua localStorage), bấm pill để mở lại. Bấm <b>Tắt</b> → ẩn theo phiên. Nút
+      "Tham gia ngay" điều hướng tới <code>/weekly-event</code> cùng origin.
+    </div>
+
+    <!-- Khung game giả lập = container neo panel -->
+    <div class="fake-game" id="game-stage">
+      [ giả lập màn game phía sau ]
+      <!-- Điểm gắn widget (nằm trong khung game) -->
+      <div id="we-panel"></div>
+    </div>
+  </div>
+
+  <script src="./weekly-event-panel.js"></script>
+  <script>
+    const now = Date.now();
+    const iso = (ms) => new Date(ms).toISOString();
+
+    // Dựng mock CurrentEventResponse cho từng kịch bản.
+    // deadline = scheduledStartAt + waitingDuration*60000
+    function mkOpen(remainingSec, hasJoined) {
+      const waitingMin = 5;
+      const deadline = now + remainingSec * 1000;
+      const scheduledStartAt = iso(deadline - waitingMin * 60000);
+      return {
+        event: { _id: 'demo-event-' + remainingSec + (hasJoined ? '-j' : ''), title: 'Sự Kiện Tuần', scheduledStartAt, waitingDuration: waitingMin },
+        status: 'open',
+        hasJoined: !!hasJoined,
+      };
+    }
+
+    const SCENARIOS = {
+      'open-long': () => mkOpen(254, false),  // 4:14
+      'open-mid': () => mkOpen(45, false),   // 0:45
+      'open-short': () => mkOpen(12, false),   // 0:12
+      'joined': () => mkOpen(254, true),
+      'before': () => ({ event: { _id: 'demo-before', title: 'Sự Kiện Tuần', scheduledStartAt: iso(now + 8000), waitingDuration: 5 }, status: 'before-open' }),
+      'closed': () => ({ event: null, status: 'closed', nextEventAt: iso(now + 86400000) }),
+    };
+
+    let instance = null;
+    function mount(key) {
+      if (instance) { instance.destroy(); instance = null; }
+      if (key === 'destroy') return;
+      // Xoá cờ tắt của phiên để test lại được.
+      try { sessionStorage.removeItem('we_panel_dismissed'); } catch (e) { }
+      instance = WeeklyEventPanel.init('#we-panel', {
+        mockCurrent: SCENARIOS[key](),
+        container: '#game-stage',
+        weeklyEventUrl: window.location.origin + '/weekly-event',
+        onJoin: (ctx) => {
+          // Có onJoin => widget KHÔNG tự điều hướng; bạn toàn quyền xử lý.
+          console.log('onJoin ctx =', ctx);
+          alert(
+            'onJoin callback\n' +
+            'hasJoined=' + ctx.hasJoined + '\n' +
+            'eventId=' + ctx.eventId + '\n' +
+            'roomId=' + ctx.roomId + '\n' +
+            'remainingSec=' + ctx.remainingSec + '\n' +
+            'weeklyEventUrl=' + ctx.weeklyEventUrl
+          );
+        },
+      });
+    }
+
+    document.querySelectorAll('.ctl[data-demo]').forEach((b) => {
+      b.addEventListener('click', () => mount(b.dataset.demo));
+    });
+
+    // Gọi API thật với token nhập tay — kèm chẩn đoán hiện ra màn hình.
+    document.getElementById('btn-real').addEventListener('click', async () => {
+      const token = document.getElementById('in-token').value.trim();
+      const apiBase = document.getElementById('in-api').value.trim() || '/api';
+      const out = document.getElementById('real-result');
+      out.style.display = 'block';
+      out.textContent = 'Đang gọi ' + apiBase + '/game/weekly-event/current ...';
+
+      // 1) Fetch trực tiếp để show status/body hoặc lỗi (CORS/network...).
+      //    Token tùy chọn — không có vẫn xem được panel (mất hasJoined).
+      try {
+        const headers = token ? { Authorization: 'Bearer ' + token } : {};
+        const res = await fetch(apiBase + '/game/weekly-event/current', { headers });
+        const body = await res.json().catch(() => ({}));
+        out.textContent =
+          'HTTP ' + res.status + '\nstatus=' + body.status +
+          '\nhasJoined=' + body.hasJoined +
+          '\nevent=' + JSON.stringify(body.event, null, 2);
+        if (body.status !== 'open') {
+          out.textContent += '\n\nℹ️ Panel CHỈ hiện khi status === "open" (phòng chờ đang mở). ' +
+            'Trạng thái hiện tại là "' + body.status + '" nên panel sẽ không hiện — đây là đúng logic, không phải lỗi.';
+        }
+      } catch (err) {
+        out.textContent =
+          '❌ Fetch lỗi: ' + err.message +
+          '\n\nThường do: sai apiBase (dev backend ở http://localhost:3000/api), ' +
+          'backend chưa chạy, hoặc CORS.';
+        return;
+      }
+
+      // 2) Khởi tạo widget thật.
+      if (instance) { instance.destroy(); instance = null; }
+      try { sessionStorage.removeItem('we_panel_dismissed'); } catch (e) { }
+      instance = WeeklyEventPanel.init('#we-panel', {
+        token,
+        apiBase,
+        container: '#game-stage',
+        weeklyEventUrl: window.location.origin + '/weekly-event',
+        onJoin: (ctx) => {
+          console.log('onJoin ctx =', ctx);
+          // ctx.hasJoined, ctx.eventId, ctx.roomId, ctx.token,
+          // ctx.weeklyEventUrl, ctx.deadlineMs, ctx.remainingSec
+          alert(
+            'onJoin\nhasJoined=' + ctx.hasJoined +
+            '\neventId=' + ctx.eventId +
+            '\nroomId=' + ctx.roomId +
+            '\ntoken=' + ctx.token
+          );
+          // ví dụ tự vào game:
+          // window.location.href = ctx.weeklyEventUrl;
+        },
+      });
+    });
+
+    // Mặc định mở kịch bản 4:14.
+    mount('open-long');
+  </script>
+</body>
+
+</html>

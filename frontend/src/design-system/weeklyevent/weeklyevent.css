@@ -803,14 +803,9 @@
   font-size: 17px;
   color: #fff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10), 0 4px 0 rgba(0, 0, 0, .4);
-  transition: transform .12s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
-}
-
-.we-answer:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 0 rgba(0, 0, 0, .4);
-  background: linear-gradient(180deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, .07) 100%);
-  border-color: rgba(255, 255, 255, .28);
+  /* Border KHÔNG transition: xuất hiện/biến mất tức thì khi chọn/đổi đáp án
+     (tránh hiệu ứng border "hiện rồi mờ dần" ở đáp án cũ khi đổi lựa chọn). */
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease;
 }
 
 .we-answer .letter {
@@ -832,40 +827,28 @@
   line-height: 1.3;
 }
 
+/* Màu chữ cái trung tính (Tím / Vàng / Xanh lá / Cam) — KHÔNG gợi ý đúng/sai.
+   Chỉ đổi sang xanh=đúng / đỏ=sai qua .is-correct/.is-wrong sau khi HS trả lời. */
 .we-answer.k-A .letter {
-  background: linear-gradient(180deg, #ff8a8a, #e23b3b);
+  background: linear-gradient(180deg, #c9a9f5, #8b5cf6);
 }
 
 .we-answer.k-B .letter {
-  background: linear-gradient(180deg, #7fcdfa, #2f8fd6);
+  background: linear-gradient(180deg, #ffe27a, #f0be17);
 }
 
 .we-answer.k-C .letter {
-  background: linear-gradient(180deg, #ffd266, #e8a210);
+  background: linear-gradient(180deg, #8ec5fb, #3b82f6);
 }
 
 .we-answer.k-D .letter {
-  background: linear-gradient(180deg, #9be38a, #2bb673);
+  background: linear-gradient(180deg, #ffbe7a, #f2810a);
 }
 
 /* answering states (no correct/wrong reveal on client — anti-cheat) */
+/* Đang chọn: chỉ đổi border xanh dương, không nền màu */
 .we-answer.is-selected {
-  border-color: var(--we-accent);
-  background: linear-gradient(180deg, rgba(232, 83, 14, .32), rgba(232, 83, 14, .16));
-  box-shadow: 0 0 0 4px rgba(232, 83, 14, .30), inset 0 1px 0 rgba(255, 255, 255, .12), 0 4px 0 rgba(0, 0, 0, .4);
-}
-
-.we-answer .saved {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 900;
-  font-size: 12px;
-  color: #6bdca0;
+  border: 2px solid #00BBFF;
 }
 
 .we-answer.is-locked {
@@ -879,17 +862,17 @@
 
 /* reveal states (used on result review only) */
 .we-answer.is-correct {
-  border-color: #2bb673;
-  background: linear-gradient(180deg, rgba(43, 182, 115, .4), rgba(43, 182, 115, .18));
-  box-shadow: 0 0 0 4px rgba(43, 182, 115, .35), 0 4px 0 rgba(0, 0, 0, .4);
-  color: #d6ffe9;
+  border: 2px solid #22C55E;
+  background: linear-gradient(74.05deg, #198214 5.56%, #1F2A1A 116.67%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 4px 0 rgba(0, 0, 0, .4);
+  color: #fff;
 }
 
 .we-answer.is-wrong {
-  border-color: #e23b3b;
-  background: linear-gradient(180deg, rgba(226, 59, 59, .4), rgba(226, 59, 59, .16));
-  box-shadow: 0 0 0 4px rgba(226, 59, 59, .3), 0 4px 0 rgba(0, 0, 0, .4);
-  color: #ffd9d9;
+  border: 2px solid #FF0000;
+  background: linear-gradient(74.05deg, #D21B1B 5.56%, #2A1C1A 116.67%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 4px 0 rgba(0, 0, 0, .4);
+  color: #fff;
 }
 
 .we-answer:disabled {

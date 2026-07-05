@@ -45,10 +45,13 @@ interface BossBattleState {
   lastAnswerResponse: BossAnswerResponse | null;
   pips: QuestionPip[];
   timeRemaining: number;
-  /** HP Boss chốt từ lobby, không đổi trong battle */
+  /** HP Boss (%) hiển thị trên thanh máu — cập nhật realtime khi trả lời đúng + qua socket */
   bossHpPercent: number;
-  /** progressPercent thô từ lobby (0–100, có lẻ) — dùng tính delta chính xác */
+  /** progressPercent hiển thị (0–100, có lẻ) = tiến độ server + phần optimistic của lượt hiện tại */
   bossProgressPercent: number;
+  /** Tổng % sát thương optimistic (chưa được server xác nhận) trong lượt đang chơi.
+   *  Dùng để cộng lại khi có BOSS_HP_UPDATE từ người khác, tránh "boss hồi máu". */
+  optimisticDamagePercent: number;
   /** Ảnh boss state hiện tại (từ API/socket), ưu tiên hơn bossStateFor */
   currentBossStateImg: string | null;
   /** Tên Boss */
@@ -98,6 +101,7 @@ const initialState = {
   timeRemaining: 60,
   bossHpPercent: 100,
   bossProgressPercent: 0,
+  optimisticDamagePercent: 0,
   currentBossStateImg: null as string | null,
   bossName: 'Hắc Long Tri Thức',
   dailyResult: null,
@@ -163,6 +167,7 @@ export const useBossBattleStore = create<BossBattleState>((set, get) => ({
         lastAnswerResponse: null,
         pips,
         timeRemaining: data.questions[currentIdx]?.tMaxSec ?? 60,
+        optimisticDamagePercent: 0,
         loading: false,
       });
     } catch (err: any) {
@@ -180,15 +185,33 @@ export const useBossBattleStore = create<BossBattleState>((set, get) => ({
 
   /** FLW-05: Nhận kết quả từ submitAnswer */
   applyAnswerResponse: (res) => {
-    const { pips, currentQuestionIndex } = get();
+    const { pips, currentQuestionIndex, bossProgressPercent, optimisticDamagePercent, lobby } = get();
     const newPips = [...pips];
     newPips[currentQuestionIndex] = res.isCorrect ? 'correct' : 'wrong';
 
-    set({
+    const patch: Partial<BossBattleState> = {
       lastAnswerResponse: res,
       pips: newPips,
       phase: 'revealing',
-    });
+    };
+
+    // Trừ máu Boss TỨC THỜI khi trả lời đúng để tạo cảm giác realtime.
+    // Server chỉ cộng điểm vào Boss lúc hoàn thành lượt (finalizeAttempt), nên ở client
+    // ta tự trừ theo pointsAwarded / hpMax. Animation trượt do CSS transition width lo.
+    const hpMax = lobby?.boss?.config.hpMax ?? 0;
+    if (res.attemptCompleted) {
+      // Câu cuối: server sẽ phát BOSS_HP_UPDATE với giá trị chuẩn ngay sau đó
+      // → xoá phần optimistic để không bị trừ trùng.
+      patch.optimisticDamagePercent = 0;
+    } else if (res.isCorrect && res.pointsAwarded > 0 && hpMax > 0) {
+      const delta = (res.pointsAwarded / hpMax) * 100;
+      const newProgress = Math.min(100, bossProgressPercent + delta);
+      patch.bossProgressPercent = newProgress;
+      patch.bossHpPercent = Math.max(0, 100 - newProgress);
+      patch.optimisticDamagePercent = optimisticDamagePercent + delta;
+    }
+
+    set(patch);
   },
 
   /** Chuyển sang câu tiếp theo */
@@ -218,6 +241,7 @@ export const useBossBattleStore = create<BossBattleState>((set, get) => ({
       set({
         dailyResult: data,
         phase: 'result',
+        optimisticDamagePercent: 0,
         loading: false,
       });
     } catch (err: any) {

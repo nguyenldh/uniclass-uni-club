@@ -23,7 +23,7 @@ export function SyncTimer({ remaining, total }: SyncTimerProps) {
   const ratio = total > 0 ? Math.max(0, Math.min(1, safe / total)) : 1;
   const offset = c * (1 - ratio);
   const tone = safe <= 3 ? 'danger' : safe <= 7 ? 'warn' : 'normal';
-  const stroke = tone === 'danger' ? 'var(--we-bad)' : tone === 'warn' ? 'var(--we-warn)' : 'var(--we-accent-2)';
+  const stroke = tone === 'danger' ? 'var(--we-bad)' : tone === 'warn' ? 'var(--we-warn)' : 'var(--success)';
   return (
     <span className={cn('we-synctimer', tone !== 'normal' && tone)}>
       <svg viewBox="0 0 46 46" aria-hidden>
@@ -77,8 +77,7 @@ export function ExamScreen({
           <SyncTimer remaining={remaining} total={perQuestionSec} />
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span className="we-syncnote"><span className="pulse" />Đề đồng bộ · cả phòng đang ở câu {index}</span>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <ConnectionStatus state={conn} />
         </div>
 

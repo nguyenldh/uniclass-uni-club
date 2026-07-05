@@ -78,7 +78,7 @@ export function QuestionTimer({ remaining, total }: QuestionTimerProps) {
   const ratio = total > 0 ? Math.max(0, Math.min(1, safe / total)) : 1;
   const offset = c * (1 - ratio);
   const tone = safe <= 5 ? 'danger' : safe <= 10 ? 'warn' : 'normal';
-  const stroke = tone === 'danger' ? 'var(--danger)' : tone === 'warn' ? 'var(--warning)' : 'var(--bb-cyan)';
+  const stroke = tone === 'danger' ? 'var(--danger)' : tone === 'warn' ? 'var(--warning)' : 'var(--success)';
   return (
     <span data-ui="UI-203" className={cn('bb-timer', tone !== 'normal' && tone)}>
       <svg viewBox="0 0 34 34" aria-hidden>

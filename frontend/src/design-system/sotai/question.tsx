@@ -95,9 +95,15 @@ export interface DecayingBarProps {
   showLabel?: boolean;
   /** Hiện con số điểm bên phải. Default true. */
   showValue?: boolean;
+  /** Ép thanh & số điểm về 0 (trả lời sai / không trả lời → không được cộng điểm). */
+  zeroed?: boolean;
 }
 
-/** Tính điểm tiềm năng tại thời điểm hiện tại (đúng theo công thức trong spec). */
+/**
+ * Tính điểm tiềm năng tại thời điểm hiện tại.
+ * minRatio = sàn điểm giữ lại ở giây cuối (bảo toàn): minRatio=1 → luôn full;
+ * minRatio=0 → giây cuối còn 0. Khớp với công thức backend & thanh progress (fillPct).
+ */
 export function decayingScore(
   timeElapsed: number,
   timeLimit: number,
@@ -106,7 +112,7 @@ export function decayingScore(
 ): number {
   if (timeLimit <= 0) return maxScore;
   const ratio = Math.max(0, Math.min(1, timeElapsed / timeLimit));
-  const mult = 1 - minRatio * ratio;
+  const mult = 1 - (1 - minRatio) * ratio;
   return Math.round(maxScore * mult);
 }
 
@@ -117,11 +123,13 @@ export function DecayingBar({
   timeElapsed,
   showLabel = true,
   showValue = true,
+  zeroed = false,
 }: DecayingBarProps) {
   const ratio = Math.max(0, Math.min(1, timeElapsed / Math.max(1, timeLimit)));
-  // Bar goes from 100% → minRatio*100% as time progresses
-  const fillPct = (1 - (1 - minRatio) * ratio) * 100;
-  const score = decayingScore(timeElapsed, timeLimit, maxScore, minRatio);
+  // Bar goes from 100% → minRatio*100% as time progresses.
+  // Khi sai / không trả lời (zeroed) → tụt hẳn về 0 để khớp với điểm nhận được (0đ).
+  const fillPct = zeroed ? 0 : (1 - (1 - minRatio) * ratio) * 100;
+  const score = zeroed ? 0 : decayingScore(timeElapsed, timeLimit, maxScore, minRatio);
 
   return (
     <div className="st-decay">
@@ -155,7 +163,7 @@ export function InlineTimer({ remaining, total }: InlineTimerProps) {
   const tone =
     safe <= 3 ? 'danger' : safe <= 7 ? 'warning' : 'normal';
   const stroke =
-    tone === 'danger' ? 'var(--danger)' : tone === 'warning' ? 'var(--warning)' : 'var(--o-500)';
+    tone === 'danger' ? 'var(--danger)' : tone === 'warning' ? 'var(--warning)' : 'var(--success)';
 
   return (
     <>
@@ -248,6 +256,9 @@ export function QuestionCard({
   const remaining = Math.max(0, timeLimit - timeElapsed);
   const meterTone =
     remaining <= 3 ? 'is-danger' : remaining <= 7 ? 'is-warning' : '';
+  // Khi đã lộ đáp án mà mình trả lời sai hoặc không trả lời (selected !== correct)
+  // → thanh điểm tụt về 0 cho khớp với việc không được cộng điểm.
+  const missed = phase === 'revealing' && correct != null && selected !== correct;
 
   return (
     <div className={cn('st-qcard', className)} {...rest}>
@@ -277,6 +288,7 @@ export function QuestionCard({
           minRatio={minRatio}
           timeLimit={timeLimit}
           timeElapsed={timeElapsed}
+          zeroed={missed}
         />
       </div>
 

@@ -94,7 +94,7 @@ export function RankRow({ entry, qpw }: { entry: RankEntry; qpw?: number }) {
         {entry.meta && <div className="meta">{entry.meta}</div>}
       </div>
       <div className="right">
-        <div className="correct">{entry.correctCount}{qpw ? `/${qpw}` : ''} câu</div>
+        <div className="correct">{entry.correctCount} câu</div>
         <div className="points">{fmtPts(entry.pointsContributed)} đ</div>
         <div className="time">{fmtTime(entry.totalCorrectTimeSec)}</div>
       </div>
@@ -132,7 +132,7 @@ export function MyRankCard({ entry, questionsPerWeek = 35 }: MyRankCardProps) {
           <div className="nm">Chưa xếp hạng</div>
           <div className="meta">Làm bài hôm nay để leo bảng xếp hạng</div>
         </div>
-        <div className="right"><div className="correct">0/{questionsPerWeek} câu</div><div className="points">0 đ</div><div className="time">–</div></div>
+        <div className="right"><div className="correct">0 câu</div><div className="points">0 đ</div><div className="time">–</div></div>
       </div>
     );
   }
@@ -147,7 +147,7 @@ export function MyRankCard({ entry, questionsPerWeek = 35 }: MyRankCardProps) {
         <div className="meta">{entry.meta}</div>
       </div>
       <div className="right">
-        <div className="correct">{entry.correctCount}/{questionsPerWeek} câu</div>
+        <div className="correct">{entry.correctCount} câu</div>
         <div className="points">{fmtPts(entry.pointsContributed)} đ</div>
         <div className="time">{fmtTime(entry.totalCorrectTimeSec)}</div>
       </div>
