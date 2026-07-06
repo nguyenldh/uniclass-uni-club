@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { GameCanvas, MatchmakingPanel, GameButton } from '../../design-system/game';
 import { Lobby } from '../../design-system/sotai';
 import { useUser } from '../../hooks/useUser';
@@ -10,6 +10,7 @@ import { AvatarImage } from '../../components/AvatarImage';
 
 export function QuizArenaLobbyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, error: userError } = useUser();
 
   // Redirect về error page nếu không xác thực được
@@ -80,6 +81,17 @@ export function QuizArenaLobbyPage() {
     checkActiveSession();
     return () => { cancelled = true; };
   }, [userId, navigate]);
+
+  // Vào từ nút "Chơi tiếp" (state.autoFind) → tự động tìm đối thủ ngay (chỉ chạy 1 lần).
+  const autoFindRef = useRef(false);
+  useEffect(() => {
+    const autoFind = (location.state as { autoFind?: boolean } | null)?.autoFind;
+    if (autoFind && !checkingSession && phase === 'idle' && !autoFindRef.current) {
+      autoFindRef.current = true;
+      handleFindMatch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkingSession, phase]);
 
   const displayName = user?.name ?? userId;
   const grade = user?.grade ? `Lớp ${user.grade}` : undefined;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   EventEntry,
@@ -34,10 +34,33 @@ export function WeeklyEventController() {
   const [alreadyJoined, setAlreadyJoined] = useState(false);
   const [loadingEvent, setLoadingEvent] = useState(true);
 
+  // Lấy socket token MỚI khi reconnect (token TTL ngắn nên phải refresh trước mỗi lần
+  // thử kết nối lại, nếu không sẽ kẹt "Đang kết nối lại…" sau khi mất mạng > TTL).
+  // KHÔNG cập nhật store.socketToken ở đây để tránh rebuild lại socket giữa chừng.
+  const refreshSocketToken = useCallback(async (): Promise<string | null> => {
+    const eventId = useWeeklyEventStore.getState().event?._id;
+    if (!eventId) return null;
+    try {
+      const res = await weeklyEventApi.joinEvent(eventId, userGrade);
+      if (res.socketToken) {
+        sessionStorage.setItem(
+          'uniclub_weekly_event_session',
+          JSON.stringify({ eventId, roomId: res.roomId, socketToken: res.socketToken })
+        );
+        return res.socketToken;
+      }
+      return null;
+    } catch (err) {
+      console.error('[WeeklyEventController] refreshSocketToken failed:', err);
+      return null;
+    }
+  }, [userGrade]);
+
   // Socket connection hook
   const socketActions = useWeeklyEventSocket({
     socketToken: store.socketToken,
     enabled: !!store.socketToken,
+    refreshToken: refreshSocketToken,
   });
 
   // Local question timer states

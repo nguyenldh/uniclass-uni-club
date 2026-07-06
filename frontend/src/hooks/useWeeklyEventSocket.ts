@@ -29,14 +29,22 @@ export interface WeeklyEventSocketActions {
 interface UseWeeklyEventSocketOptions {
   socketToken: string | null;
   enabled: boolean;
+  /** Lấy socket token MỚI (gọi lại API join). Dùng khi reconnect vì token TTL ngắn:
+   *  mất mạng lâu → token cũ hết hạn → phải refresh trước mỗi lần thử kết nối lại. */
+  refreshToken?: () => Promise<string | null>;
 }
 
 export function useWeeklyEventSocket({
   socketToken,
   enabled,
+  refreshToken,
 }: UseWeeklyEventSocketOptions): WeeklyEventSocketActions {
   const socketRef = useRef<Socket | null>(null);
   const timeSyncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Giữ refreshToken & token mới nhất trong ref để KHÔNG phải rebuild socket khi chúng đổi.
+  const refreshTokenRef = useRef(refreshToken);
+  refreshTokenRef.current = refreshToken;
+  const latestTokenRef = useRef<string | null>(socketToken);
 
   // Read connState for the isConnected return value.
   // We subscribe to useWeeklyEventStore here so that isConnected updates properly on state change.
@@ -89,17 +97,18 @@ export function useWeeklyEventSocket({
   }, []);
 
   const drainOfflineBuffer = useCallback(() => {
-    const storeState = useWeeklyEventStore.getState();
-    const { offlineBuffer, clearOfflineBuffer } = storeState;
+    const { offlineBuffer } = useWeeklyEventStore.getState();
     if (offlineBuffer.length > 0 && socketRef.current?.connected) {
-      console.log(`[WeeklyEventSocket] Reconnected. Draining ${offlineBuffer.length} buffered answers.`);
+      console.log(`[WeeklyEventSocket] Draining ${offlineBuffer.length} buffered answers.`);
       offlineBuffer.forEach((item) => {
         socketRef.current?.emit('answer:submit', {
           questionId: item.questionId,
           key: item.key,
         });
       });
-      clearOfflineBuffer();
+      // KHÔNG clear cả buffer ở đây: mỗi đáp án chỉ được gỡ khỏi buffer khi server
+      // trả answer:ack (xem ackAnswer). Nhờ vậy nếu emit rơi vào transport chưa chắc
+      // sống, đáp án chưa được xác nhận vẫn còn để gửi lại ở lần kết nối sau.
     }
   }, []);
 
@@ -119,8 +128,31 @@ export function useWeeklyEventSocket({
     const socketUrl = (import.meta.env.VITE_SOCKET_URL || '') + '/we';
     console.log('[WeeklyEventSocket] Connecting to namespace /we at URL:', socketUrl);
 
+    latestTokenRef.current = socketToken;
+    let isInitialAttempt = true;
+
     const socket = io(socketUrl, {
-      auth: { token: socketToken },
+      // auth dạng HÀM: socket.io-client gọi lại trước MỖI lần (re)connect và chờ callback.
+      // Lần đầu dùng token hiện có; các lần reconnect sau lấy token MỚI (token TTL 60s,
+      // mất mạng lâu sẽ hết hạn → nếu không refresh sẽ kẹt "Đang kết nối lại…" mãi).
+      auth: (cb: (data: { token: string | null }) => void) => {
+        if (isInitialAttempt) {
+          isInitialAttempt = false;
+          cb({ token: latestTokenRef.current });
+          return;
+        }
+        const refresh = refreshTokenRef.current;
+        if (!refresh) {
+          cb({ token: latestTokenRef.current });
+          return;
+        }
+        refresh()
+          .then((t) => {
+            if (t) latestTokenRef.current = t;
+            cb({ token: latestTokenRef.current });
+          })
+          .catch(() => cb({ token: latestTokenRef.current }));
+      },
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
@@ -130,6 +162,30 @@ export function useWeeklyEventSocket({
     });
 
     socketRef.current = socket;
+
+    // Phát hiện mất mạng NGAY qua sự kiện offline của trình duyệt/WebView, KHÔNG đợi
+    // socket.io ping-timeout (~20s) — nhờ vậy báo "Mất kết nối" tức thì ở mọi màn.
+    const handleOffline = () => {
+      useWeeklyEventStore.getState().setConnState('disconnected');
+    };
+    const handleOnline = () => {
+      if (socket.connected) {
+        // Socket sống sót qua đợt chớp mạng (không có sự kiện 'connect' để trigger drain)
+        // → tự gửi lại các đáp án đã buffer NGAY.
+        useWeeklyEventStore.getState().setConnState('connected');
+        drainOfflineBuffer();
+      } else {
+        useWeeklyEventStore.getState().setConnState('reconnecting');
+        // Thúc kết nối lại ngay nếu socket đã ngừng tự thử
+        if (!socket.active) socket.connect();
+      }
+    };
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    // Nếu vào màn khi đang offline sẵn → báo ngay
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      useWeeklyEventStore.getState().setConnState('disconnected');
+    }
 
     socket.on('connect', () => {
       console.log('[WeeklyEventSocket] Socket connected successfully');
@@ -284,6 +340,8 @@ export function useWeeklyEventSocket({
 
     return () => {
       console.log('[WeeklyEventSocket] Cleaning up socket connection');
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
       socket.disconnect();
       if (timeSyncIntervalRef.current) {
         clearInterval(timeSyncIntervalRef.current);

@@ -148,6 +148,8 @@ export interface MatchmakingOverlayProps {
   header?: ReactNode;
   /** Callback khi phase thay đổi */
   onPhaseChange?: (phase: 'idle' | 'searching' | 'matched' | 'timeout') => void;
+  /** Tự động bắt đầu tìm trận ngay khi vào (dùng cho nút "Chơi tiếp") — bỏ qua màn hướng dẫn/chọn chế độ. */
+  autoStart?: boolean;
 }
 
 export function MatchmakingOverlay({
@@ -163,6 +165,7 @@ export function MatchmakingOverlay({
   onCancel,
   header,
   onPhaseChange,
+  autoStart = false,
 }: MatchmakingOverlayProps) {
   // Card Flip: chọn chế độ chơi TRƯỚC (bước 1), xong mới hiện luật + nút tìm trận (bước 2).
   const isCardFlip = gameType === 'card_flip';
@@ -190,6 +193,21 @@ export function MatchmakingOverlay({
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
+
+  // Nút "Chơi tiếp": tự động tìm trận NGAY khi vào (bỏ màn hướng dẫn / chọn chế độ).
+  // Đợi user load xong (cần grade để ghép đúng khối).
+  // Cleanup hủy tìm trận đã bắt đầu → an toàn với StrictMode (setup → cleanup → setup):
+  // lần setup sau sẽ khởi động lại socket + đồng hồ, tránh kẹt "đang tìm" với đồng hồ đứng.
+  // Deps dùng userId (primitive ổn định) để không khởi động lại mỗi lần re-render.
+  useEffect(() => {
+    if (!autoStart || !user?.userId) return;
+    if (isCardFlip) setModeConfirmed(true);
+    startMatchmaking();
+    return () => {
+      cancelMatchmaking();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, user?.userId]);
 
   const me: MatchmakingPlayer = { name: playerName };
   me.avatar = user?.avatar;

@@ -554,7 +554,10 @@ export function GomokuPage() {
           stats={overlayStats as GameOverlayStat[]}
           actions={
             <>
-              <GameButton color="orange" onClick={() => navigate("/matchmaking/gomoku")}>
+              <GameButton color="ghost" onClick={() => navigate("/matchmaking/gomoku")}>
+                Về sảnh
+              </GameButton>
+              <GameButton color="orange" onClick={() => navigate("/matchmaking/gomoku?auto=1")}>
                 Chơi tiếp
               </GameButton>
             </>

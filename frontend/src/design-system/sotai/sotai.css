@@ -538,8 +538,10 @@
 }
 .st-qmeter .timer-box svg{ width: 28px; height: 28px;}
 .st-qmeter .timer-box .num{ font-variant-numeric: tabular-nums; min-width: 28px; text-align:center;}
-.st-qmeter.is-warning .timer-box{ color: var(--warning); animation: st-pip-pulse 1s ease-in-out infinite;}
-.st-qmeter.is-danger .timer-box{ color: var(--danger); animation: st-pip-pulse .6s ease-in-out infinite;}
+/* Màu số giây trong timer-box đồng bộ với vòng ring, thanh điểm & số điểm (theo % fill) */
+.st-qmeter.is-fresh .timer-box{ color: #129843; }
+.st-qmeter.is-mid   .timer-box{ color: #E08A00; }
+.st-qmeter.is-low   .timer-box{ color: #D91818; animation: st-pip-pulse .6s ease-in-out infinite;}
 
 /* Decaying score bar */
 .st-decay{
@@ -559,8 +561,6 @@
   height: 12px; border-radius: 999px;
   background: linear-gradient(90deg,
     rgba(232,83,14,.12) 0%,
-    rgba(232,83,14,.12) 50%,
-    rgba(110,63,23,.18) 50%,
     rgba(110,63,23,.18) 100%);
   border: 2px solid var(--g-wood-3);
   overflow: hidden;
@@ -568,14 +568,23 @@
 .st-decay .fill{
   position: absolute; top: 0; left: 0; bottom: 0;
   background: linear-gradient(90deg, #ffd25a, var(--o-500));
-  transition: width .4s cubic-bezier(.4,.0,.2,1);
+  transition: width .4s cubic-bezier(.4,.0,.2,1), background .3s ease;
 }
+/* Màu thanh theo % thời gian còn lại: >66% xanh, >33% vàng, <33% đỏ */
+.st-decay .fill.is-fresh{ background: linear-gradient(90deg, #54EA8B 0%, #129843 100%); }
+.st-decay .fill.is-mid{   background: linear-gradient(90deg, #FFDE58 0%, #F59E0B 100%); }
+.st-decay .fill.is-low{   background: linear-gradient(90deg, #FF6D6D 0%, #D91818 100%); }
 .st-decay .num{
   font-weight: 900; font-size: 16px;
   color: var(--o-600);
   font-variant-numeric: tabular-nums;
   min-width: 56px; text-align: right;
+  transition: color .3s ease;
 }
+/* Số điểm đổi màu đồng bộ với thanh theo % thời gian còn lại */
+.st-decay .num.is-fresh{ color: #129843; }
+.st-decay .num.is-mid{   color: #E08A00; }
+.st-decay .num.is-low{   color: #D91818; }
 
 /* Answer grid 2x2 */
 .st-answers{
@@ -620,12 +629,12 @@
 }
 .st-answer .lbl{ line-height: 1.3; flex: 1;}
 
-/* Màu chữ cái trung tính (Tím / Vàng / Xanh lá / Cam) — KHÔNG gợi ý đúng/sai.
+/* Màu chữ cái trung tính (Tím / Xanh dương / Vàng / Cam) — KHÔNG gợi ý đúng/sai.
    Chỉ đổi xanh=đúng / đỏ=sai qua .is-correct/.is-wrong sau khi HS trả lời. */
-.st-answer.k-A .letter{ background: linear-gradient(180deg,#c9a9f5,#8b5cf6); border-color:#5b2a9e;}
-.st-answer.k-B .letter{ background: linear-gradient(180deg,#ffe27a,#f0be17); border-color:#8a6a0a;}
-.st-answer.k-C .letter{ background: linear-gradient(180deg,#8ec5fb,#3b82f6); border-color:#1c5b8a;}
-.st-answer.k-D .letter{ background: linear-gradient(180deg,#ffbe7a,#f2810a); border-color:#8a4a0a;}
+.st-answer.k-A .letter{ background: linear-gradient(66.8deg, #D97AF8 10%, #B02BDC 110%); border-color:#B02BDC;}
+.st-answer.k-B .letter{ background: linear-gradient(66.8deg, #7DACFB 10%, #1D5FE0 110%); border-color:#1D5FE0;}
+.st-answer.k-C .letter{ background: linear-gradient(66.8deg, #FAD053 10%, #C48F02 110%); border-color:#C48F02;}
+.st-answer.k-D .letter{ background: linear-gradient(55.96deg, #FFAE42 6.54%, #FF5C35 93.46%); border-color:#FF5C35;}
 
 /* States */
 .st-answer.is-selected{
@@ -782,6 +791,9 @@
   gap: 22px;
   padding: 32px 32px 28px;
   min-height: 600px;
+}
+@media (max-width: 768px) {
+  .st-result{gap: 42px}
 }
 .st-result > .st-compare{ width: 100%; }
 

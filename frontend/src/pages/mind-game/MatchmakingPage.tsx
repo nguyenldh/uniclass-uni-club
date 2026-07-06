@@ -51,6 +51,8 @@ export function MatchmakingPage() {
   const [searchParams] = useSearchParams();
   // Card Flip: chế độ chơi người dùng chọn ở lobby (mặc định 'basic')
   const cardFlipMode = searchParams.get("mode") === "advanced" ? "advanced" : "basic";
+  // Vào từ nút "Chơi tiếp" → tự động tìm trận ngay
+  const autoStart = searchParams.get("auto") === "1";
   const { user, error: userError } = useUser();
 
   // Redirect về error page nếu không xác thực được
@@ -234,6 +236,7 @@ export function MatchmakingPage() {
         onEnterGame={handleEnterGame}
         onCancel={handleCancel}
         onPhaseChange={setMatchmakingPhase}
+        autoStart={autoStart}
       />
     </GameCanvas>
   );

@@ -2214,9 +2214,12 @@ h3 {
 /* Stage row: ME | center | OPPONENT */
 .mm-stage {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* minmax(0,1fr) để 2 cột hai bên LUÔN bằng nhau (không nở theo độ dài tên) → vòng đếm
+     ở giữa được căn chính giữa, bố cục chia đều. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 64px;
   align-items: center;
+  justify-items: center;
   padding: 8px 4px 12px;
 }
 .mm-slot {
@@ -2225,6 +2228,8 @@ h3 {
   align-items: center;
   gap: 10px;
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 .mm-name {
   font-weight: 900;

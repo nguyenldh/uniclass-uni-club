@@ -440,14 +440,14 @@ export function QuizArenaGamePage() {
             <GameButton
               color="ghost"
               size="md"
-              onClick={() => exitWebView("/quiz-arena/game")}
+              onClick={() => navigate("/quiz-arena")}
             >
-              Thoát
+              Về sảnh
             </GameButton>
             <GameButton
               color="orange"
               size="md"
-              onClick={() => navigate("/quiz-arena")}
+              onClick={() => navigate("/quiz-arena", { state: { autoFind: true } })}
             >
               Chơi tiếp
             </GameButton>

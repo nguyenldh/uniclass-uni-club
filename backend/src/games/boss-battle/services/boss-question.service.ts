@@ -242,15 +242,21 @@ export class BossQuestionService {
     return docs.map(toDto);
   }
 
-  /** Đếm tổng câu active theo grade */
+  /** Đếm câu active CHƯA được gán set nào theo grade (dùng để check đủ câu khởi tạo tuần) */
   static async countActiveByGrade(grade: number): Promise<number> {
-    return BossQuestionModel.countDocuments({ grade, isActive: true });
+    const assignedIds = await BossQuestionSetModel.distinct('questionIds');
+    return BossQuestionModel.countDocuments({
+      grade,
+      isActive: true,
+      _id: { $nin: assignedIds },
+    });
   }
 
-  /** Đếm câu active gom nhóm theo grade → { [grade]: count } */
+  /** Đếm câu active CHƯA được gán gom nhóm theo grade → { [grade]: count } */
   static async countActiveGroupedByGrade(): Promise<Record<number, number>> {
+    const assignedIds = await BossQuestionSetModel.distinct('questionIds');
     const rows = await BossQuestionModel.aggregate<{ _id: number; count: number }>([
-      { $match: { isActive: true } },
+      { $match: { isActive: true, _id: { $nin: assignedIds } } },
       { $group: { _id: '$grade', count: { $sum: 1 } } },
     ]);
     const out: Record<number, number> = {};

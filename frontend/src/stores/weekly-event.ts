@@ -171,6 +171,8 @@ export const useWeeklyEventStore = create<WeeklyEventState>((set, get) => ({
 
       return {
         answers: newAnswers,
+        // Server đã xác nhận → gỡ đáp án này khỏi offline buffer (nếu có)
+        offlineBuffer: state.offlineBuffer.filter((b) => b.questionId !== questionId),
         // Sync answered count with server ack value to be safe
         answeredCount: Math.max(state.answeredCount, answeredCount),
       };
@@ -186,7 +188,11 @@ export const useWeeklyEventStore = create<WeeklyEventState>((set, get) => ({
 
   pushOfflineBuffer: (questionId, key) =>
     set((state) => ({
-      offlineBuffer: [...state.offlineBuffer, { questionId, key }],
+      // Mỗi câu chỉ giữ ĐÁP ÁN MỚI NHẤT (đổi đáp án khi offline → ghi đè, không gửi lại bản cũ)
+      offlineBuffer: [
+        ...state.offlineBuffer.filter((b) => b.questionId !== questionId),
+        { questionId, key },
+      ],
     })),
 
   clearOfflineBuffer: () => set({ offlineBuffer: [] }),

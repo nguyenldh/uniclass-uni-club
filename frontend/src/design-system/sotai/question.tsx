@@ -97,6 +97,8 @@ export interface DecayingBarProps {
   showValue?: boolean;
   /** Ép thanh & số điểm về 0 (trả lời sai / không trả lời → không được cộng điểm). */
   zeroed?: boolean;
+  /** Tông màu dùng chung ('is-fresh'|'is-mid'|'is-low'). Bỏ trống → tự tính theo % fill. */
+  tone?: 'is-fresh' | 'is-mid' | 'is-low';
 }
 
 /**
@@ -124,6 +126,7 @@ export function DecayingBar({
   showLabel = true,
   showValue = true,
   zeroed = false,
+  tone,
 }: DecayingBarProps) {
   const ratio = Math.max(0, Math.min(1, timeElapsed / Math.max(1, timeLimit)));
   // Bar goes from 100% → minRatio*100% as time progresses.
@@ -131,13 +134,17 @@ export function DecayingBar({
   const fillPct = zeroed ? 0 : (1 - (1 - minRatio) * ratio) * 100;
   const score = zeroed ? 0 : decayingScore(timeElapsed, timeLimit, maxScore, minRatio);
 
+  // Màu theo ĐÚNG % fill hiển thị của thanh (khớp độ dài nhìn thấy): >66% xanh, >33% vàng, còn lại đỏ.
+  // Ưu tiên tone truyền vào để đồng bộ với vòng ring timer.
+  const barTone = tone ?? (fillPct > 66 ? 'is-fresh' : fillPct > 33 ? 'is-mid' : 'is-low');
+
   return (
     <div className="st-decay">
       {showLabel && <span className="lab">Điểm</span>}
       <div className="track">
-        <div className="fill" style={{ width: `${fillPct}%` }} />
+        <div className={cn('fill', barTone)} style={{ width: `${fillPct}%` }} />
       </div>
-      {showValue && <span className="num">{score.toLocaleString('vi-VN')}</span>}
+      {showValue && <span className={cn('num', barTone)}>{score.toLocaleString('vi-VN')}</span>}
     </div>
   );
 }
@@ -152,18 +159,22 @@ export interface InlineTimerProps {
   remaining: number;
   /** Tổng giây — vẽ progress ring. */
   total: number;
+  /** Tông màu ĐỒNG BỘ với thanh điểm & số ('is-fresh'|'is-mid'|'is-low').
+   *  Bỏ trống → tự tính theo số giây còn lại. */
+  tone?: 'is-fresh' | 'is-mid' | 'is-low';
 }
 
-export function InlineTimer({ remaining, total }: InlineTimerProps) {
+export function InlineTimer({ remaining, total, tone }: InlineTimerProps) {
   const safe = Math.max(0, remaining);
   const r = 11;
   const c = 2 * Math.PI * r;
   const ratio = total > 0 ? Math.max(0, Math.min(1, safe / total)) : 1;
   const offset = c * (1 - ratio);
-  const tone =
-    safe <= 3 ? 'danger' : safe <= 7 ? 'warning' : 'normal';
-  const stroke =
-    tone === 'danger' ? 'var(--danger)' : tone === 'warning' ? 'var(--warning)' : 'var(--success)';
+  // Màu vòng ring đồng bộ với thanh điểm & số (tone theo % fill, truyền từ QuestionCard).
+  const RING_COLOR: Record<string, string> = { 'is-fresh': '#129843', 'is-mid': '#E08A00', 'is-low': '#D91818' };
+  const stroke = tone
+    ? RING_COLOR[tone]
+    : (safe <= 3 ? 'var(--danger)' : safe <= 7 ? 'var(--warning)' : 'var(--success)');
 
   return (
     <>
@@ -254,11 +265,14 @@ export function QuestionCard({
   ...rest
 }: QuestionCardProps) {
   const remaining = Math.max(0, timeLimit - timeElapsed);
-  const meterTone =
-    remaining <= 3 ? 'is-danger' : remaining <= 7 ? 'is-warning' : '';
   // Khi đã lộ đáp án mà mình trả lời sai hoặc không trả lời (selected !== correct)
   // → thanh điểm tụt về 0 cho khớp với việc không được cộng điểm.
   const missed = phase === 'revealing' && correct != null && selected !== correct;
+  // Tone màu CHUNG cho vòng ring + thanh điểm + số — theo % fill hiển thị của thanh
+  // (cùng công thức với DecayingBar) để cả 3 đồng bộ, đổi màu cùng lúc.
+  const barRatio = Math.max(0, Math.min(1, timeElapsed / Math.max(1, timeLimit)));
+  const barFillPct = missed ? 0 : (1 - (1 - minRatio) * barRatio) * 100;
+  const barTone = barFillPct > 66 ? 'is-fresh' : barFillPct > 33 ? 'is-mid' : 'is-low';
 
   return (
     <div className={cn('st-qcard', className)} {...rest}>
@@ -279,9 +293,9 @@ export function QuestionCard({
 
       <p className="qtext">{question}</p>
 
-      <div className={cn('st-qmeter', meterTone)}>
+      <div className={cn('st-qmeter', barTone)}>
         <div className="timer-box">
-          <InlineTimer remaining={remaining} total={timeLimit} />
+          <InlineTimer remaining={remaining} total={timeLimit} tone={barTone} />
         </div>
         <DecayingBar
           maxScore={maxScore}
@@ -289,6 +303,7 @@ export function QuestionCard({
           timeLimit={timeLimit}
           timeElapsed={timeElapsed}
           zeroed={missed}
+          tone={barTone}
         />
       </div>
 

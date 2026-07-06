@@ -338,6 +338,32 @@
   overflow-x: auto;
 }
 
+/* ============================================================
+   CARD-FLIP — vừa khít chiều cao màn hình (không phải cuộn)
+   Thẻ mặc định tính theo BỀ NGANG + aspect 3:4, không quan tâm chiều cao → ở màn
+   desktop thấp/vừa (1280x720, 1280x1024...) bàn thẻ tràn xuống, phải cuộn mới lật
+   được thẻ hàng dưới. Với các màn cao ≤ 1100px (loại trừ phần đã xử lý ở
+   max-height ≤ 500px), ép cả trang bằng đúng viewport và cho bàn thẻ lấp đầy chiều
+   cao còn lại (sau HUD + nút Thoát), chia đều các hàng để thẻ tự co vừa khít.
+   ============================================================ */
+@media (min-width: 561px) and (min-height: 501px) and (max-height: 1100px){
+  .card-flip-page{
+    height: 100vh;
+    overflow-y: hidden;          /* không cuộn dọc */
+  }
+  .card-flip-page .memory-board{
+    flex: 1 1 auto;              /* lấp đầy chiều cao còn lại sau HUD + nút Thoát */
+    min-height: 0;              /* cho phép co trong flex */
+    height: auto;
+    grid-auto-rows: 1fr;         /* chia đều các hàng theo chiều cao bàn thẻ */
+    overflow: hidden;
+  }
+  .card-flip-page .memory-card-wrap{
+    aspect-ratio: auto;          /* bỏ 3:4 để thẻ vừa ô grid theo cả cao lẫn rộng */
+    height: 100%;
+  }
+}
+
 /* Nút "Thoát" ở màn matchmaking — pill chữ, giống các game khác */
 .mm-exit-btn{
   position: absolute;

@@ -400,7 +400,7 @@ export function DisconnectWarningModal({
     <div data-ui="UI-C-010" className="we-disc" role="alert">
       <span className="ic" aria-hidden>📡</span>
       <span className="txt">
-        <span className="ti">{title}</span>
+        <span className="ti">{title}</span> <br />
         <span className="ds">{description}</span>
       </span>
       <svg className="spin" viewBox="0 0 24 24" fill="none" aria-hidden>

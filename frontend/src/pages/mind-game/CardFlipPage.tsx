@@ -454,7 +454,7 @@ export function CardFlipPage() {
   }
 
   return (
-    <GameCanvas className="mind-game-page">
+    <GameCanvas className="mind-game-page card-flip-page">
       {/* HUD */}
       <CardFlipHUD
         playerAName="Bạn"
@@ -501,9 +501,12 @@ export function CardFlipPage() {
           stats={overlayStats as GameOverlayStat[]}
           actions={
             <>
+              <GameButton color="ghost" onClick={() => navigate("/matchmaking/card_flip")}>
+                Về sảnh
+              </GameButton>
               <GameButton
                 color="orange"
-                onClick={() => navigate("/matchmaking/card_flip")}
+                onClick={() => navigate(`/matchmaking/card_flip?auto=1&mode=${mode === "advanced" ? "advanced" : "basic"}`)}
               >
                 Chơi tiếp
               </GameButton>
