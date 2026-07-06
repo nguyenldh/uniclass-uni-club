@@ -21,6 +21,12 @@ const fmtTime = (s: number) => {
   return `${s.toFixed(1)}s`;
 };
 
+/** Format % máu nhỏ (< 1%) — hiện đủ chữ số để không bị làm tròn về 0. */
+const fmtSmallPct = (v: number) => {
+  if (v <= 0) return '0';
+  return Number(v >= 0.01 ? v.toFixed(2) : v.toFixed(4)).toString();
+};
+
 /* ---------- Stat block (UI-301/302/303) ---------- */
 export interface ResultStatProps extends HTMLAttributes<HTMLDivElement> {
   label: ReactNode;
@@ -53,13 +59,13 @@ export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states =
   const after = Math.max(0, Math.min(100, hpAfter));
   const delta = Math.max(0, before - after);
   const st = bossStateFor(after, states);
-  // Khi % quá nhỏ (< 1%), hiển thị điểm thay vì % — có ý nghĩa hơn
+  // Khi % quá nhỏ (< 1%), hiển thị điểm KÈM % tính theo điểm — có ý nghĩa hơn
   const deltaStr = delta >= 1
     ? `−${Number(delta.toFixed(1))}% máu`
     : pointsContributed != null
-      ? `−${pointsContributed.toLocaleString('vi-VN')} điểm máu`
+      ? `−${pointsContributed.toLocaleString('vi-VN')} điểm máu (−${fmtSmallPct(delta)}% máu)`
       : delta > 0
-        ? `−${delta.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}% máu`
+        ? `−${fmtSmallPct(delta)}% máu`
         : '−0 điểm máu';
   return (
     <div data-ui="UI-304" className="bb-recap">

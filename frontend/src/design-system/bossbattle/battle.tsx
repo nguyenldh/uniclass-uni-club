@@ -19,12 +19,16 @@ export interface BossStripProps extends HTMLAttributes<HTMLDivElement> {
   lastDamage?: number | null;
   /** Cờ rung mặt boss. */
   hit?: boolean;
+  /** 'hp' = thanh máu (sảnh/kết quả); 'damage' = ẩn máu, hiện HP đã đánh trong lượt (khi chơi). */
+  mode?: 'hp' | 'damage';
+  /** Tổng HP (điểm) đã đánh trong lượt — dùng khi mode='damage'. */
+  damageDealt?: number;
 }
-export function BossStrip({ name, hpPercent, states = DEFAULT_BOSS_STATES, lastDamage, hit, className, ...rest }: BossStripProps) {
+export function BossStrip({ name, hpPercent, states = DEFAULT_BOSS_STATES, lastDamage, hit, mode = 'hp', damageDealt = 0, className, ...rest }: BossStripProps) {
   const hp = Math.max(0, Math.min(100, hpPercent));
   const st = bossStateFor(hp, states);
   return (
-    <div className={cn('bb-bossbar', className)} {...rest}>
+    <div className={cn('bb-bossbar', mode === 'damage' && 'is-damage', className)} {...rest}>
       <div className={cn('face', hit && 'hit')}>
         <span aria-hidden>{st.glyph ?? '🐉'}</span>
         {lastDamage != null && lastDamage > 0 && (
@@ -33,11 +37,17 @@ export function BossStrip({ name, hpPercent, states = DEFAULT_BOSS_STATES, lastD
       </div>
       <div className="bbar-info">
         <div className="bbar-name">{name}</div>
-        <div className="bbar-track">
-          <div className="bbar-fill" style={{ width: `${hp}%` }} />
-        </div>
+        {mode === 'hp'
+          ? (
+            <div className="bbar-track">
+              <div className="bbar-fill" style={{ width: `${hp}%` }} />
+            </div>
+          )
+          : <div className="bbar-dmg-label">Sát thương bạn đã gây</div>}
       </div>
-      <div className="bbar-hp">{hp.toFixed(2)}%</div>
+      {mode === 'hp'
+        ? <div className="bbar-hp">{hp.toFixed(2)}%</div>
+        : <div className="bbar-dmg">-{damageDealt.toLocaleString('vi-VN')}<small>HP</small></div>}
     </div>
   );
 }
@@ -183,18 +193,20 @@ export interface BossBattleProps extends Omit<HTMLAttributes<HTMLDivElement>, 'o
   onSelect?: (key: AnswerOption['key']) => void;
   lastDamage?: number | null;
   bossHit?: boolean;
+  /** Tổng HP đã đánh trong lượt (hiển thị thay thanh máu khi chơi). */
+  damageDealt?: number;
 }
 export function BossBattle({
   bossName, bossHpPercent, states = DEFAULT_BOSS_STATES,
   index, total, pips, remaining, timeLimit,
   question, image, options, phase = 'answering', selected = null, correct = null, onSelect,
-  lastDamage, bossHit, className, ...rest
+  lastDamage, bossHit, damageDealt = 0, className, ...rest
 }: BossBattleProps) {
   return (
     <div data-scr="SCR-02" className={cn('bb-stage', className)} {...rest}>
       <div className="bb-embers" aria-hidden><i /><i /><i /><i /><i /><i /><i /></div>
       <div className="bb-battle">
-        <BossStrip name={bossName} hpPercent={bossHpPercent} states={states} lastDamage={lastDamage} hit={bossHit} />
+        <BossStrip name={bossName} hpPercent={bossHpPercent} states={states} lastDamage={lastDamage} hit={bossHit} mode="damage" damageDealt={damageDealt} />
         <div className="bb-qmeta">
           <QuestionIndex index={index} total={total} pips={pips} />
           <QuestionTimer remaining={remaining} total={timeLimit} />

@@ -419,6 +419,18 @@
   color:#ffb6a6; text-shadow:0 2px 0 rgba(0,0,0,.4); white-space:nowrap;
 }
 
+/* mode='damage' — khi đang chơi: ẩn thanh máu, chỉ hiện HP đã đánh trong lượt */
+.bb-bossbar .bbar-dmg-label{
+  margin-top:4px; font-size:12px; font-weight:700;
+  color:rgba(255,255,255,.6); white-space:nowrap;
+}
+.bb-bossbar .bbar-dmg{
+  display:flex; align-items:baseline; gap:3px;
+  font-weight:900; font-size:20px; font-variant-numeric:tabular-nums;
+  color:#ff5a4a; text-shadow:0 2px 0 rgba(0,0,0,.4); white-space:nowrap;
+}
+.bb-bossbar .bbar-dmg small{ font-size:11px; color:rgba(255,255,255,.6); font-weight:800; }
+
 /* question index + timer row (UI-204 + UI-203) */
 .bb-qmeta{
   display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center;

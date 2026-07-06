@@ -19,8 +19,6 @@ export function BossResultPage() {
   const {
     dailyResult,
     attemptId,
-    bossHpPercent,
-    bossProgressPercent,
     bossName,
     loading,
     error,
@@ -69,9 +67,14 @@ export function BossResultPage() {
   }
 
   const { attempt, boss, myProgress } = dailyResult;
-  // Dùng giá trị thập phân chính xác để tránh làm tròn mất delta nhỏ
-  const hpBefore = Math.max(0, Math.min(100, 100 - bossProgressPercent));
+  // Máu Boss cuối lượt = máu THẬT từ server (100 − progressPercent).
+  // "Trước" = máu thật + % HP người chơi vừa đánh (suy từ điểm / hpMax) → delta hiển thị đúng
+  // bằng sát thương của người chơi, và thanh máu dừng ở đúng máu thật. Không phụ thuộc state
+  // client nên an toàn cả khi F5 màn kết quả.
+  const hpMax = boss.config?.hpMax ?? 0;
+  const myDamagePct = hpMax > 0 ? Math.min(100, (attempt.pointsEarned / hpMax) * 100) : 0;
   const hpAfter = Math.max(0, Math.min(100, 100 - boss.progressPercent));
+  const hpBefore = Math.max(0, Math.min(100, hpAfter + myDamagePct));
   const bossDefeated = boss.status === 'DEFEATED';
 
   // ─── Gửi game:ended khi result data available (1 lần duy nhất) ───
@@ -100,7 +103,7 @@ export function BossResultPage() {
       totalQuestions={myProgress ? undefined : 5}
       totalTime={attempt.totalResponseTime}
       pointsContributed={attempt.pointsEarned}
-      hpBefore={bossHpPercent}
+      hpBefore={hpBefore}
       hpAfter={hpAfter}
       states={DEFAULT_BOSS_STATES}
       bossName={bossName}

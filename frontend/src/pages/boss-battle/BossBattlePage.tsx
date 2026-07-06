@@ -26,6 +26,7 @@ export function BossBattlePage() {
     pips,
     timeRemaining,
     bossHpPercent,
+    damageDealtThisTurn,
     bossName,
     error,
     selectAnswer,
@@ -224,6 +225,7 @@ export function BossBattlePage() {
           : null
       }
       bossHit={phase === 'revealing' && lastAnswerResponse?.isCorrect}
+      damageDealt={damageDealtThisTurn}
     />
   );
 }
