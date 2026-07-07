@@ -776,6 +776,8 @@
   line-height: 1.35;
   color: #fff;
   text-wrap: pretty;
+  /* Giữ xuống dòng thủ công (\n) của câu hỏi dạng thơ; vẫn tự wrap dòng dài */
+  white-space: pre-line;
   text-shadow: 0 1px 0 rgba(0, 0, 0, .3);
 }
 

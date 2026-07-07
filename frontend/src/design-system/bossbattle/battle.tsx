@@ -10,6 +10,11 @@ import { bossStateFor, type BossState, DEFAULT_BOSS_STATES } from './lobby';
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
 
+/** Đổi ký tự "\n" dạng literal (từ import Excel/JSON) thành xuống dòng thật;
+ *  kết hợp CSS `white-space: pre-line` để câu hỏi dạng thơ hiển thị đúng dòng. */
+const multiline = (node: ReactNode): ReactNode =>
+  typeof node === 'string' ? node.replace(/\\r\\n|\\r|\\n/g, '\n') : node;
+
 /* ---------- BossStrip — máu boss + mặt boss nhận đòn ---------- */
 export interface BossStripProps extends HTMLAttributes<HTMLDivElement> {
   name: ReactNode;
@@ -168,7 +173,7 @@ export function BattleQuestionCard({
   return (
     <div data-ui="UI-201" className={cn('bb-qcard', className)} {...rest}>
       {image && <img className="bb-qimg" src={image} alt="" />}
-      <p className="bb-qtext">{question}</p>
+      <p className="bb-qtext">{multiline(question)}</p>
       <AnswerGrid options={options} phase={phase} selected={selected} correct={correct} onSelect={onSelect} />
     </div>
   );

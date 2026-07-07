@@ -483,7 +483,8 @@
 }
 .bb-qtext{
   margin:0; font-weight:800; font-size:22px; line-height:1.35;
-  color:#fff; text-wrap:pretty; text-shadow:0 2px 0 rgba(0,0,0,.4);
+  /* Giữ xuống dòng thủ công (\n) của câu hỏi dạng thơ; vẫn tự wrap dòng dài */
+  color:#fff; text-wrap:pretty; white-space:pre-line; text-shadow:0 2px 0 rgba(0,0,0,.4);
 }
 .bb-answers{
   display:grid; grid-template-columns:1fr 1fr; gap:13px;

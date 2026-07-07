@@ -158,6 +158,8 @@ export function MemoryBoard({
   // Auto columns: square-ish layout
   const auto = Math.max(2, Math.ceil(Math.sqrt(cards.length)));
   const cols = columns ?? auto;
+  // Số hàng thực tế — để CSS (landscape) suy bề rộng bàn giữ thẻ đúng tỉ lệ dọc 3:4.
+  const rows = Math.max(1, Math.ceil(cards.length / cols));
 
   return (
     <div
@@ -168,6 +170,8 @@ export function MemoryBoard({
       )}
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        ['--cf-cols' as string]: cols,
+        ['--cf-rows' as string]: rows,
         ...style,
       }}
       {...rest}

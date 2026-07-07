@@ -517,6 +517,8 @@
   font-weight: 800; font-size: 22px;
   line-height: 1.35; color: var(--g-wood-4);
   text-wrap: pretty;
+  /* Giữ xuống dòng thủ công (\n) của câu hỏi dạng thơ; vẫn tự wrap dòng dài */
+  white-space: pre-line;
   margin: 0;
 }
 
