@@ -39,6 +39,9 @@ export function CardFlipBoard({
 }: CardFlipBoardProps) {
   const auto = Math.max(2, Math.ceil(Math.sqrt(cards.length)));
   const cols = columns ?? auto;
+  // Số hàng thực tế — để CSS suy ra bề rộng bàn thẻ vừa chiều cao viewport mà vẫn
+  // giữ mỗi thẻ đúng tỉ lệ dọc 3:4 (không kéo giãn / xoay ngang ảnh).
+  const rows = Math.max(1, Math.ceil(cards.length / cols));
 
   return (
     <div
@@ -49,6 +52,8 @@ export function CardFlipBoard({
       )}
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        ['--cf-cols' as string]: cols,
+        ['--cf-rows' as string]: rows,
         ...style,
       }}
       {...rest}

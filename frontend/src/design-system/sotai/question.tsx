@@ -14,6 +14,11 @@ import React, {
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
 
+/** Đổi ký tự "\n" dạng literal (từ import Excel/JSON) thành xuống dòng thật;
+ *  kết hợp CSS `white-space: pre-line` để câu hỏi dạng thơ hiển thị đúng dòng. */
+const multiline = (node: ReactNode): ReactNode =>
+  typeof node === 'string' ? node.replace(/\\r\\n|\\r|\\n/g, '\n') : node;
+
 /* ============================================================
    Types
    ============================================================ */
@@ -291,7 +296,7 @@ export function QuestionCard({
         </span> */}
       </div>
 
-      <p className="qtext">{question}</p>
+      <p className="qtext">{multiline(question)}</p>
 
       <div className={cn('st-qmeter', barTone)}>
         <div className="timer-box">

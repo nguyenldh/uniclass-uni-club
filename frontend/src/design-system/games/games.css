@@ -342,9 +342,13 @@
    CARD-FLIP — vừa khít chiều cao màn hình (không phải cuộn)
    Thẻ mặc định tính theo BỀ NGANG + aspect 3:4, không quan tâm chiều cao → ở màn
    desktop thấp/vừa (1280x720, 1280x1024...) bàn thẻ tràn xuống, phải cuộn mới lật
-   được thẻ hàng dưới. Với các màn cao ≤ 1100px (loại trừ phần đã xử lý ở
-   max-height ≤ 500px), ép cả trang bằng đúng viewport và cho bàn thẻ lấp đầy chiều
-   cao còn lại (sau HUD + nút Thoát), chia đều các hàng để thẻ tự co vừa khít.
+   được thẻ hàng dưới.
+
+   Cách xử lý ĐÚNG: giữ nguyên tỉ lệ dọc 3:4 của từng thẻ (ảnh không bị xoay/kéo
+   ngang), thay vào đó THU NHỎ cả bàn thẻ để nằm gọn viewport. Bề rộng bàn được suy
+   ra từ chiều cao còn lại (sau HUD + nút Thoát + padding) và số hàng/cột do JS truyền
+   qua --cf-rows / --cf-cols, sao cho mỗi ô thẻ luôn đúng 3:4. Nhờ dùng biến --mem-pad
+   / --mem-gap (khác nhau theo mật độ) nên phép tính khớp chính xác từng dense class.
    ============================================================ */
 @media (min-width: 561px) and (min-height: 501px) and (max-height: 1100px){
   .card-flip-page{
@@ -352,16 +356,24 @@
     overflow-y: hidden;          /* không cuộn dọc */
   }
   .card-flip-page .memory-board{
-    flex: 1 1 auto;              /* lấp đầy chiều cao còn lại sau HUD + nút Thoát */
-    min-height: 0;              /* cho phép co trong flex */
-    height: auto;
-    grid-auto-rows: 1fr;         /* chia đều các hàng theo chiều cao bàn thẻ */
-    overflow: hidden;
+    /* Chiều cao dành cho bàn thẻ = viewport trừ HUD + 2 nút Thoát/gaps + padding.
+       240px là mức dự trữ an toàn cho cả chế độ Nâng cao (HUD cao hơn vì có chip giờ). */
+    --cf-avail-h: calc(100vh - 240px);
+    /* Chiều cao 1 thẻ = (chiều cao bàn - padding trên/dưới - gap giữa các hàng) / số hàng */
+    --cf-card-h: calc(
+      (var(--cf-avail-h) - 2 * var(--mem-pad) - (var(--cf-rows) - 1) * var(--mem-gap))
+      / var(--cf-rows)
+    );
+    /* Bề rộng 1 thẻ giữ đúng tỉ lệ dọc 3:4 */
+    --cf-card-w: calc(var(--cf-card-h) * 3 / 4);
+    /* Giới hạn bề rộng bàn theo chiều cao (không vượt bề rộng thiết kế gốc) */
+    max-width: min(
+      var(--mem-max-width),
+      calc(var(--cf-card-w) * var(--cf-cols) + 2 * var(--mem-pad) + (var(--cf-cols) - 1) * var(--mem-gap))
+    );
+    width: 100%;
   }
-  .card-flip-page .memory-card-wrap{
-    aspect-ratio: auto;          /* bỏ 3:4 để thẻ vừa ô grid theo cả cao lẫn rộng */
-    height: 100%;
-  }
+  /* Giữ nguyên tỉ lệ dọc 3:4 của thẻ (KHÔNG override aspect-ratio → không xoay ngang ảnh) */
 }
 
 /* Nút "Thoát" ở màn matchmaking — pill chữ, giống các game khác */
@@ -897,11 +909,19 @@
     --mem-card-border: 2px;
     --mem-font-min: 14px;
     --mem-font-max: 28px;
-    max-width: none;
-    /* Chiều cao cố định vừa viewport */
-    height: calc(100vh - 24px);
-    /* Grid row chia đều trong chiều cao có sẵn */
-    grid-auto-rows: 1fr;
+    /* Giữ thẻ dọc 3:4: suy bề rộng bàn từ chiều cao viewport + số hàng/cột.
+       HUD nằm CẠNH bàn (row layout) nên chỉ trừ padding dọc (~24px). */
+    --cf-avail-h: calc(100vh - 24px);
+    --cf-card-h: calc(
+      (var(--cf-avail-h) - 2 * var(--mem-pad) - (var(--cf-rows) - 1) * var(--mem-gap))
+      / var(--cf-rows)
+    );
+    --cf-card-w: calc(var(--cf-card-h) * 3 / 4);
+    max-height: calc(100vh - 24px);
+    max-width: calc(
+      var(--cf-card-w) * var(--cf-cols) + 2 * var(--mem-pad) + (var(--cf-cols) - 1) * var(--mem-gap)
+    );
+    width: auto;
     overflow: hidden;
   }
   .memory-board.dense-5,
@@ -912,11 +932,7 @@
     --mem-card-radius: 7px;
     --mem-font-max: 22px;
   }
-  /* Thẻ lật: bỏ aspect-ratio, lấp đầy ô grid */
-  .memory-card-wrap{
-    aspect-ratio: auto;
-    height: 100%;
-  }
+  /* Giữ nguyên tỉ lệ dọc 3:4 của thẻ (không override aspect-ratio → ảnh không bị xoay ngang) */
 
   /* Nút thoát: ẩn nút dưới cùng, hiện nút trong HUD */
   .exit-in-hud{
