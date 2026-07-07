@@ -235,6 +235,7 @@ export class BossBattleService {
       questions: publicQuestions,
       serverStartedAt,
       currentQuestionIndex: attempt.currentQuestionIndex,
+      pointsEarned: attempt.pointsEarned,
     };
   }
 

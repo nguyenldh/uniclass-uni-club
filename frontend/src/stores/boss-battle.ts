@@ -167,7 +167,8 @@ export const useBossBattleStore = create<BossBattleState>((set, get) => ({
         lastAnswerResponse: null,
         pips,
         timeRemaining: data.questions[currentIdx]?.tMaxSec ?? 60,
-        damageDealtThisTurn: 0,
+        // Khôi phục HP đã đánh trong lượt (server là nguồn sự thật) để không bị reset về 0 khi F5.
+        damageDealtThisTurn: data.pointsEarned ?? 0,
         loading: false,
       });
     } catch (err: any) {

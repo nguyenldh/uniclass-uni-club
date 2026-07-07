@@ -179,11 +179,66 @@ export function BattleQuestionCard({
   );
 }
 
+/* ---------- BossArena — ảnh boss lớn ở giữa + hiệu ứng trúng đòn ---------- */
+export interface BossArenaProps {
+  bossName: ReactNode;
+  hpPercent: number;
+  states?: BossState[];
+  /** Ảnh boss state hiện tại (API/socket) — ưu tiên hơn ảnh theo mốc HP. */
+  currentImg?: string | null;
+  /** Đang trả lời đúng → bật hiệu ứng trúng đòn. */
+  hit?: boolean;
+  /** Sát thương của đòn vừa rồi (hiện số bay lớn). */
+  lastDamage?: number | null;
+  /** Tổng HP đã đánh trong lượt. */
+  damageDealt?: number;
+  /** Khoá để replay animation mỗi câu (thường = index câu hỏi). */
+  fxKey?: number | string;
+}
+export function BossArena({
+  bossName, hpPercent, states = DEFAULT_BOSS_STATES,
+  currentImg, hit, lastDamage, damageDealt = 0, fxKey,
+}: BossArenaProps) {
+  const hp = Math.max(0, Math.min(100, hpPercent));
+  const st = bossStateFor(hp, states);
+  const bossImg = currentImg || st.img;
+  return (
+    <div className={cn('bb-arena', hit && 'is-hit', st.tone === 'rage' && 'is-rage')}>
+      <div className="bb-arena-name">
+        <span className="lab">Boss tuần này</span>
+        <span className="nm">{bossName}</span>
+      </div>
+      <div className="bb-arena-stage">
+        {bossImg
+          ? <img className="bb-arena-art" src={bossImg} alt="" />
+          : <span className="bb-arena-glyph" aria-hidden>{st.glyph ?? '🐉'}</span>}
+        {hit && (
+          <div className="bb-arena-fx" key={fxKey} aria-hidden>
+            <span className="bb-arena-flash" />
+            <span className="bb-arena-shock" />
+            <span className="bb-arena-slash a" />
+            <span className="bb-arena-slash b" />
+            {lastDamage != null && lastDamage > 0 && (
+              <span className="bb-arena-dmg">-{lastDamage.toLocaleString('vi-VN')}<small>HP</small></span>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="bb-arena-dealt">
+        <span className="lab">Sát thương bạn đã gây</span>
+        <span className="val">-{damageDealt.toLocaleString('vi-VN')}<small>HP</small></span>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- SCR-02 · BossBattle (composed) ---------- */
 export interface BossBattleProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   bossName: ReactNode;
   bossHpPercent: number;
   states?: BossState[];
+  /** Ảnh boss state hiện tại (API/socket). */
+  currentImg?: string | null;
   index: number;
   total: number;
   pips?: ReadonlyArray<QuestionPip>;
@@ -202,7 +257,7 @@ export interface BossBattleProps extends Omit<HTMLAttributes<HTMLDivElement>, 'o
   damageDealt?: number;
 }
 export function BossBattle({
-  bossName, bossHpPercent, states = DEFAULT_BOSS_STATES,
+  bossName, bossHpPercent, states = DEFAULT_BOSS_STATES, currentImg,
   index, total, pips, remaining, timeLimit,
   question, image, options, phase = 'answering', selected = null, correct = null, onSelect,
   lastDamage, bossHit, damageDealt = 0, className, ...rest
@@ -211,7 +266,16 @@ export function BossBattle({
     <div data-scr="SCR-02" className={cn('bb-stage', className)} {...rest}>
       <div className="bb-embers" aria-hidden><i /><i /><i /><i /><i /><i /><i /></div>
       <div className="bb-battle">
-        <BossStrip name={bossName} hpPercent={bossHpPercent} states={states} lastDamage={lastDamage} hit={bossHit} mode="damage" damageDealt={damageDealt} />
+        <BossArena
+          bossName={bossName}
+          hpPercent={bossHpPercent}
+          states={states}
+          currentImg={currentImg}
+          hit={bossHit}
+          lastDamage={lastDamage}
+          damageDealt={damageDealt}
+          fxKey={index}
+        />
         <div className="bb-qmeta">
           <QuestionIndex index={index} total={total} pips={pips} />
           <QuestionTimer remaining={remaining} total={timeLimit} />

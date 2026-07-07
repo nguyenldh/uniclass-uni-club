@@ -77,6 +77,16 @@ export function BossResultPage() {
   const hpBefore = Math.max(0, Math.min(100, hpAfter + myDamagePct));
   const bossDefeated = boss.status === 'DEFEATED';
 
+  // States từ config để suy nhãn/ảnh theo mốc HP (giống màn chiến đấu). Ảnh cuối lượt
+  // ưu tiên currentBossStateImg do server chốt lúc finalize.
+  const bossStates = boss.config?.bossStates?.map((s) => ({
+    min: s.minPercent,
+    max: s.maxPercent,
+    label: s.minPercent >= 71 ? 'BÌNH THƯỜNG' : s.minPercent >= 31 ? 'BỊ THƯƠNG' : s.minPercent >= 1 ? 'HUNG HÃN' : 'BỊ HẠ GỤC',
+    tone: (s.minPercent >= 71 ? 'normal' : s.minPercent >= 31 ? 'injured' : s.minPercent >= 1 ? 'rage' : 'defeated') as any,
+    img: s.img,
+  }));
+
   // ─── Gửi game:ended khi result data available (1 lần duy nhất) ───
   if (!gameEndedSentRef.current) {
     gameEndedSentRef.current = true;
@@ -105,7 +115,8 @@ export function BossResultPage() {
       pointsContributed={attempt.pointsEarned}
       hpBefore={hpBefore}
       hpAfter={hpAfter}
-      states={DEFAULT_BOSS_STATES}
+      states={bossStates ?? DEFAULT_BOSS_STATES}
+      bossImg={boss.currentBossStateImg}
       bossName={bossName}
       bossDefeated={bossDefeated}
       onViewLeaderboard={() => navigate('/boss-battle/leaderboard')}

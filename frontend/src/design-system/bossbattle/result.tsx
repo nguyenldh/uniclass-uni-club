@@ -53,12 +53,15 @@ export interface BossDamageRecapProps {
   pointsContributed?: number;
   states?: BossState[];
   bossName?: ReactNode;
+  /** Ảnh boss state hiện tại (API/socket) — ưu tiên hơn ảnh theo mốc HP. */
+  bossImg?: string | null;
 }
-export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states = DEFAULT_BOSS_STATES, bossName = 'Boss' }: BossDamageRecapProps) {
+export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states = DEFAULT_BOSS_STATES, bossName = 'Boss', bossImg }: BossDamageRecapProps) {
   const before = Math.max(0, Math.min(100, hpBefore));
   const after = Math.max(0, Math.min(100, hpAfter));
   const delta = Math.max(0, before - after);
   const st = bossStateFor(after, states);
+  const img = bossImg || st.img;
   // Khi % quá nhỏ (< 1%), hiển thị điểm KÈM % tính theo điểm — có ý nghĩa hơn
   const deltaStr = delta >= 1
     ? `−${Number(delta.toFixed(1))}% máu`
@@ -73,14 +76,14 @@ export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states =
         <span><span className="you">Lượt của bạn</span> vừa giáng đòn vào {bossName}</span>
         <span className="delta">{deltaStr}</span>
       </div>
-      <div className="bb-bossbar" style={{ background: 'transparent', border: 'none', padding: 0 }}>
-        <div className="face"><span aria-hidden>{st.glyph ?? '🐉'}</span></div>
-        <div className="bbar-info">
-          <div className="bbar-track">
-            <div className="bbar-fill" style={{ width: `${after}%` }} />
-          </div>
-        </div>
-        <div className="bbar-hp">{after.toFixed(2)}%</div>
+      <div className="bb-recap-portrait">
+        {img
+          ? <img className="bb-recap-face-img" src={img} alt="" />
+          : <span className="glyph" aria-hidden>{st.glyph ?? '🐉'}</span>}
+      </div>
+      <div className="bb-recap-hpbar">
+        <div className="track"><div className="fill" style={{ width: `${after}%` }} /></div>
+        <div className="hp">{after.toFixed(2)}% <span>máu Boss còn lại</span></div>
       </div>
     </div>
   );
@@ -101,6 +104,8 @@ export interface BossResultProps extends HTMLAttributes<HTMLDivElement> {
   hpAfter: number;
   states?: BossState[];
   bossName?: ReactNode;
+  /** Ảnh boss state hiện tại (API/socket) cho recap. */
+  bossImg?: string | null;
   /** Boss bị hạ gục bởi (ai đó trong) lượt này → màn hình ăn mừng. */
   bossDefeated?: boolean;
   onViewLeaderboard?: () => void;
@@ -109,7 +114,7 @@ export interface BossResultProps extends HTMLAttributes<HTMLDivElement> {
 }
 export function BossResult({
   correctCount, totalQuestions = 5, totalTime, pointsContributed,
-  hpBefore, hpAfter, states = DEFAULT_BOSS_STATES, bossName = 'Boss',
+  hpBefore, hpAfter, states = DEFAULT_BOSS_STATES, bossName = 'Boss', bossImg,
   bossDefeated = false, onViewLeaderboard, extraActions, className, ...rest
 }: BossResultProps) {
   return (
@@ -131,7 +136,7 @@ export function BossResult({
           <ResultStat data-ui="UI-303" label="Điểm đóng góp" value={`+${pointsContributed.toLocaleString('vi-VN')}`} hero />
         </div>
 
-        <BossDamageRecap hpBefore={hpBefore} hpAfter={hpAfter} pointsContributed={pointsContributed} states={states} bossName={bossName} />
+        <BossDamageRecap hpBefore={hpBefore} hpAfter={hpAfter} pointsContributed={pointsContributed} states={states} bossName={bossName} bossImg={bossImg} />
 
         <div className="bb-result-actions" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <GameButton data-ui="UI-305" color="orange" onClick={onViewLeaderboard}>Xem bảng xếp hạng</GameButton>

@@ -298,6 +298,8 @@ export interface BossBattleStartResponse {
   serverStartedAt: number;
   /** Vị trí câu hỏi hiện tại (dùng khi resume sau reload) */
   currentQuestionIndex: number;
+  /** Tổng điểm (HP) đã đánh trong lượt hôm nay — dùng khôi phục "Sát thương bạn đã gây" sau F5 */
+  pointsEarned: number;
 }
 
 /** POST /api/game/boss-battle/battle/answer — FLW-05 */

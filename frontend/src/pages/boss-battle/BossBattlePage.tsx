@@ -27,6 +27,7 @@ export function BossBattlePage() {
     timeRemaining,
     bossHpPercent,
     damageDealtThisTurn,
+    currentBossStateImg,
     bossName,
     error,
     selectAnswer,
@@ -206,6 +207,7 @@ export function BossBattlePage() {
     <BossBattle
       bossName={bossName}
       bossHpPercent={bossHpPercent}
+      currentImg={currentBossStateImg}
       states={bossStates}
       index={currentQuestionIndex + 1}
       total={questions.length}

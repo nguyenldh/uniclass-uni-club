@@ -431,6 +431,129 @@
 }
 .bb-bossbar .bbar-dmg small{ font-size:11px; color:rgba(255,255,255,.6); font-weight:800; }
 
+/* ============================================================
+   BossArena — ảnh boss lớn ở giữa màn chiến đấu + hiệu ứng trúng đòn
+   ============================================================ */
+.bb-arena{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding-top:2px;
+}
+.bb-arena-name{ display:flex; flex-direction:column; align-items:center; gap:1px; }
+.bb-arena-name .lab{
+  font-weight:800; font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+  color: var(--bb-cyan); text-shadow:0 0 10px var(--bb-cyan-glow);
+}
+.bb-arena-name .nm{
+  font-weight:900; font-size:20px; line-height:1.05; text-align:center;
+  color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4), 0 0 22px var(--bb-arcane-glow);
+}
+
+.bb-arena-stage{
+  position:relative; width:min(190px, 46%); aspect-ratio:1/1;
+  display:grid; place-items:center;
+  animation: bb-boss-bob 4.5s ease-in-out infinite;
+}
+/* vầng hào quang sau boss */
+.bb-arena-stage::before{
+  content:""; position:absolute; inset:-8% -8% 6%; border-radius:50%;
+  background: radial-gradient(circle at 50% 45%, var(--bb-arcane-glow) 0%, transparent 62%);
+  filter: blur(8px); z-index:0;
+  animation: bb-aura 3.6s ease-in-out infinite;
+}
+/* bóng đổ dưới chân */
+.bb-arena-stage::after{
+  content:""; position:absolute; left:50%; bottom:-3%;
+  width:56%; height:16px; transform:translateX(-50%);
+  background: radial-gradient(ellipse, rgba(0,0,0,.55), transparent 70%);
+  filter: blur(3px); z-index:0;
+}
+.bb-arena.is-rage .bb-arena-stage::before{ background: radial-gradient(circle at 50% 45%, var(--bb-ember-glow) 0%, transparent 60%); }
+.bb-arena-art{
+  position:relative; z-index:1; width:100%; height:100%;
+  border-radius:22px; object-fit:cover;
+  filter: drop-shadow(0 14px 20px rgba(0,0,0,.5));
+}
+.bb-arena-glyph{ position:relative; z-index:1; font-size:96px; filter: drop-shadow(0 8px 12px rgba(0,0,0,.5)); }
+
+/* HP đã đánh trong lượt */
+.bb-arena-dealt{
+  display:flex; align-items:center; gap:8px;
+  padding:5px 14px; border-radius:999px;
+  background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.24));
+  border:2px solid rgba(255,90,74,.35);
+}
+.bb-arena-dealt .lab{ font-size:12px; font-weight:700; color:rgba(255,255,255,.65); }
+.bb-arena-dealt .val{
+  display:flex; align-items:baseline; gap:2px;
+  font-weight:900; font-size:20px; font-variant-numeric:tabular-nums;
+  color:#ff5a4a; text-shadow:0 2px 0 rgba(0,0,0,.4);
+}
+.bb-arena-dealt .val small{ font-size:11px; color:rgba(255,255,255,.6); font-weight:800; }
+
+/* ---- Hiệu ứng TRÚNG ĐÒN (khi trả lời đúng) ---- */
+.bb-arena.is-hit .bb-arena-art,
+.bb-arena.is-hit .bb-arena-glyph{ animation: bb-arena-hit .55s cubic-bezier(.36,.07,.19,.97); }
+@keyframes bb-arena-hit{
+  0%  { transform: translate(0,0) rotate(0) scale(1); filter:none; }
+  8%  { transform: translate(-11px,5px) rotate(-7deg) scale(1.07);
+        filter: brightness(2.6) saturate(.35) drop-shadow(0 0 26px #ff5a4a); }
+  22% { transform: translate(13px,-4px) rotate(6deg) scale(1.03); filter: brightness(1.5); }
+  38% { transform: translate(-9px,3px) rotate(-4deg); }
+  55% { transform: translate(6px,-1px) rotate(3deg); }
+  72% { transform: translate(-3px,0) rotate(-1.5deg); }
+  100%{ transform: translate(0,0) rotate(0) scale(1); filter:none; }
+}
+
+.bb-arena-fx{ position:absolute; inset:0; z-index:3; pointer-events:none; }
+/* chớp sáng */
+.bb-arena-flash{
+  position:absolute; inset:-6%; border-radius:50%;
+  background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.95), rgba(255,120,74,.55) 42%, transparent 70%);
+  mix-blend-mode: screen; opacity:0;
+  animation: bb-arena-flash .45s ease-out forwards;
+}
+@keyframes bb-arena-flash{ 0%{opacity:0; transform:scale(.55);} 15%{opacity:1;} 100%{opacity:0; transform:scale(1.2);} }
+/* sóng xung kích */
+.bb-arena-shock{
+  position:absolute; left:50%; top:46%; width:44px; height:44px; margin:-22px 0 0 -22px;
+  border-radius:50%; border:4px solid rgba(255,209,102,.95); box-shadow:0 0 16px rgba(255,209,102,.7);
+  opacity:0; animation: bb-arena-shock .6s ease-out forwards;
+}
+@keyframes bb-arena-shock{ 0%{opacity:.95; transform:scale(.3);} 100%{opacity:0; transform:scale(3.6);} }
+/* hai vệt chém chéo */
+.bb-arena-slash{
+  position:absolute; left:50%; top:46%; width:150%; height:7px; margin:-4px 0 0 -75%;
+  background: linear-gradient(90deg, transparent, #fff 45%, #ffd7c2 55%, transparent);
+  filter: drop-shadow(0 0 7px #ff9a5c); border-radius:999px; opacity:0;
+}
+.bb-arena-slash.a{ animation: bb-arena-slash-a .42s ease-out forwards; }
+.bb-arena-slash.b{ animation: bb-arena-slash-b .42s ease-out .09s forwards; }
+@keyframes bb-arena-slash-a{
+  0%  { opacity:0; transform: rotate(-32deg) scaleX(0); }
+  35% { opacity:1; transform: rotate(-32deg) scaleX(1); }
+  100%{ opacity:0; transform: rotate(-32deg) scaleX(1); }
+}
+@keyframes bb-arena-slash-b{
+  0%  { opacity:0; transform: rotate(29deg) scaleX(0); }
+  35% { opacity:1; transform: rotate(29deg) scaleX(1); }
+  100%{ opacity:0; transform: rotate(29deg) scaleX(1); }
+}
+/* số sát thương bay lớn */
+.bb-arena-dmg{
+  position:absolute; left:50%; top:32%; transform:translate(-50%,-50%);
+  display:flex; align-items:baseline; gap:2px; white-space:nowrap;
+  font-weight:900; font-size:44px; color:#ffe08a;
+  text-shadow:0 0 18px #ff5a4a, 0 3px 0 rgba(0,0,0,.55);
+  animation: bb-arena-dmg-float 1s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.bb-arena-dmg small{ font-size:18px; }
+@keyframes bb-arena-dmg-float{
+  0%  { opacity:0; transform:translate(-50%,-25%) scale(.4); }
+  22% { opacity:1; transform:translate(-50%,-58%) scale(1.28); }
+  42% { transform:translate(-50%,-68%) scale(1); }
+  100%{ opacity:0; transform:translate(-50%,-140%) scale(1); }
+}
+
 /* question index + timer row (UI-204 + UI-203) */
 .bb-qmeta{
   display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center;
@@ -593,6 +716,33 @@
 }
 .bb-recap .recap-top .you{ color:#ff9a7a; }
 .bb-recap .recap-top .delta{ color:#ff5a4a; font-weight:900; }
+/* chân dung boss trong recap — ảnh boss lớn, căn giữa */
+.bb-recap-portrait{
+  width:min(150px, 46%); aspect-ratio:1/1; margin:2px auto 0;
+  display:grid; place-items:center; overflow:hidden; border-radius:20px;
+  background: radial-gradient(circle at 50% 40%, rgba(138,99,255,.25), rgba(0,0,0,.35) 70%);
+  border:2px solid rgba(255,255,255,.16); box-shadow:0 10px 22px rgba(0,0,0,.5);
+}
+.bb-recap-portrait .bb-recap-face-img{ width:100%; height:100%; object-fit:cover; display:block; }
+.bb-recap-portrait .glyph{ font-size:74px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+
+/* thanh máu boss còn lại — full width dưới ảnh */
+.bb-recap-hpbar{ display:flex; flex-direction:column; gap:6px; }
+.bb-recap-hpbar .track{
+  position:relative; height:16px; border-radius:999px; overflow:hidden;
+  background: rgba(0,0,0,.5); border:1.5px solid rgba(0,0,0,.6);
+}
+.bb-recap-hpbar .fill{
+  position:absolute; inset:0 auto 0 0; border-radius:999px;
+  background: linear-gradient(90deg, var(--bb-hp-2), var(--bb-hp-1));
+  box-shadow:0 0 10px rgba(224,39,24,.5);
+  transition: width .8s cubic-bezier(.4,0,.2,1);
+}
+.bb-recap-hpbar .hp{
+  text-align:center; font-weight:900; font-size:15px; font-variant-numeric:tabular-nums;
+  color:#ffb6a6; text-shadow:0 2px 0 rgba(0,0,0,.4);
+}
+.bb-recap-hpbar .hp span{ font-weight:700; font-size:12px; color:rgba(255,255,255,.6); }
 
 /* =====================================================================
    SCR-04 · LEADERBOARD
