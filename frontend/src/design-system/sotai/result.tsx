@@ -34,6 +34,8 @@ export interface ResultCompareProps extends Omit<HTMLAttributes<HTMLDivElement>,
   totalQuestions?: number;
   /** UniPoints đồng bộ về UniClass (= correct * UniPoint/câu). */
   uniPointsEarned: number;
+  /** Hiện panel "Cúp nhận được". Default true. Ẩn với guest (không tính điểm). */
+  showReward?: boolean;
   /** Title override — default theo outcome. */
   title?: ReactNode;
   /** Subtitle override — default theo outcome. */
@@ -146,6 +148,7 @@ export function ResultCompare({
   opponent,
   totalQuestions = 10,
   uniPointsEarned,
+  showReward = true,
   title,
   subtitle,
   actions,
@@ -200,10 +203,12 @@ export function ResultCompare({
           />
         </div>
 
-        <div className="st-reward">
-          <div className="lab">Cúp nhận được</div>
-          <div className="pts">+{uniPointsEarned.toLocaleString('vi-VN')}</div>
-        </div>
+        {showReward && (
+          <div className="st-reward">
+            <div className="lab">Cúp nhận được</div>
+            <div className="pts">+{uniPointsEarned.toLocaleString('vi-VN')}</div>
+          </div>
+        )}
 
         {actions && <div className="st-result-actions">{actions}</div>}
       </div>

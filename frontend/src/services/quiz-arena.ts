@@ -1,7 +1,8 @@
-import type { QuizArenaSession } from '@uniclub/shared';
+import type { QuizArenaSession, QuizArenaConfig } from '@uniclub/shared';
 import { apiRequest } from './auth';
 
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL || '/api'}/game/quiz-arena`;
+const CONFIG_BASE = `${import.meta.env.VITE_API_BASE_URL || '/api'}/game/config`;
 
 export interface ActiveSessionResponse {
   success: boolean;
@@ -28,4 +29,8 @@ export const quizArenaApi = {
    */
   hasQuestions: (grade: number) =>
     apiRequest<{ success: boolean; hasQuestions: boolean }>(API_BASE, `/has-questions/${grade}`),
+
+  /** Lấy config public của So Tài (dùng để hiển thị hệ số nhân điểm mời bạn, v.v.) */
+  getConfig: () =>
+    apiRequest<{ success: boolean; config: QuizArenaConfig }>(CONFIG_BASE, `/quiz-arena`),
 };

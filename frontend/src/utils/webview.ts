@@ -13,6 +13,9 @@ import type {
   WebViewMessageType,
   WebViewExitPayload,
   WebViewGameEndedPayload,
+  WebViewInvitePayload,
+  WebViewGuestRewardPayload,
+  WebViewUserRewardPayload,
 } from '@uniclub/shared';
 import type { GameType } from '@uniclub/shared';
 
@@ -117,6 +120,39 @@ export function notifyGameEnded(
  */
 export function notifyAppReady(): void {
   postWebViewMessage(WEBVIEW_MESSAGE_TYPES['app:ready']);
+}
+
+/**
+ * Shortcut — bắn lời mời vào phòng ra parent app (mgm:invite).
+ * Parent app (UniClass) xử lý chia sẻ link (share sheet / sao chép...).
+ */
+export function notifyInvite(payload: WebViewInvitePayload): void {
+  postWebViewMessage<WebViewInvitePayload>(
+    WEBVIEW_MESSAGE_TYPES['mgm:invite'],
+    payload,
+  );
+}
+
+/**
+ * Shortcut — guest bấm "Đổi quà" sau khi chơi xong (mgm:guest-reward).
+ * Cung cấp thông tin guest để parent app xử lý trao quà.
+ */
+export function notifyGuestReward(payload: WebViewGuestRewardPayload): void {
+  postWebViewMessage<WebViewGuestRewardPayload>(
+    WEBVIEW_MESSAGE_TYPES['mgm:guest-reward'],
+    payload,
+  );
+}
+
+/**
+ * Shortcut — user bấm nút "Thưởng" ở sảnh (mgm:user-reward).
+ * Cung cấp thông tin user để parent app xử lý trao quà.
+ */
+export function notifyUserReward(payload: WebViewUserRewardPayload): void {
+  postWebViewMessage<WebViewUserRewardPayload>(
+    WEBVIEW_MESSAGE_TYPES['mgm:user-reward'],
+    payload,
+  );
 }
 
 // ============================================================

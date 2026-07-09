@@ -131,6 +131,30 @@ export class TimerQueueService {
             }
             break;
           }
+          case 'invite-room-expiry': {
+            const { InviteRoomService } = await import('./invite-room.service');
+            const { INVITE_ROOM_SOCKET_EVENTS, INVITE_ROOM_CLOSE_REASONS } = await import('@uniclub/shared');
+            const { roomId } = data;
+            const room = await InviteRoomService.getRoom(roomId);
+            if (!room || room.status === 'closed') break;
+
+            const now = Date.now();
+            // Đang chơi hoặc chưa tới hạn (hoạt động đã gia hạn) → dời lịch, chưa đóng
+            if (room.status === 'in_game' || now < room.expiresAt) {
+              await TimerQueueService.scheduleInviteRoomExpiry(
+                roomId,
+                Math.max(1000, room.expiresAt - now),
+              );
+              break;
+            }
+
+            // Hết hạn thật — đóng phòng và báo cho các client còn trong phòng
+            io.to(roomId).emit(INVITE_ROOM_SOCKET_EVENTS.CLOSED, {
+              reason: INVITE_ROOM_CLOSE_REASONS.EXPIRED,
+            });
+            await InviteRoomService.deleteRoom(roomId);
+            break;
+          }
           case 'mind-game-player-clock-timeout': {
             // Chỉ Card Flip mode 'advanced' dùng — quỹ giờ cờ vua của một người chơi cạn
             const { sessionId, userId } = data;
@@ -250,6 +274,23 @@ export class TimerQueueService {
       jobId,
       delay: delayMs,
     });
+  }
+
+  // ============================================================
+  // Invite Room Expiry Helper
+  // ============================================================
+
+  static async scheduleInviteRoomExpiry(roomId: string, delayMs: number): Promise<void> {
+    const jobId = `invite-room-expiry-${roomId}`;
+    await queue.remove(jobId);
+    await queue.add('invite-room-expiry', { roomId }, {
+      jobId,
+      delay: delayMs,
+    });
+  }
+
+  static async cancelInviteRoomExpiry(roomId: string): Promise<void> {
+    await queue.remove(`invite-room-expiry-${roomId}`);
   }
 
   // ============================================================

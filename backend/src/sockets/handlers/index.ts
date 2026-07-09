@@ -1,6 +1,7 @@
 import type { Socket, Server } from 'socket.io';
 import { registerMindGameHandlers } from '../../games/mind-game/sockets/index';
 import { registerMatchmakingHandlers } from './matchmaking.handler';
+import { registerInviteRoomHandlers } from './invite-room.handler';
 import { registerQuizArenaHandlers } from '../../games/quiz-arena/sockets/index';
 import { registerBossBattleHandlers } from '../../games/boss-battle/sockets/index';
 
@@ -11,6 +12,9 @@ import { registerBossBattleHandlers } from '../../games/boss-battle/sockets/inde
 export function registerGameHandlers(io: Server, socket: Socket): void {
   // Matchmaking — game-agnostic, dùng chung cho mọi game PvP
   registerMatchmakingHandlers(io, socket);
+
+  // Invite Room — phòng chờ "Mời bạn" + Tái đấu, game-agnostic
+  registerInviteRoomHandlers(io, socket);
 
   // Nhóm Mind Game (Đấu trí) — Gomoku & Card Flip
   registerMindGameHandlers(io, socket);

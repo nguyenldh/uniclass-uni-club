@@ -25,6 +25,7 @@ export class UserService {
       name: doc.name,
       grade: doc.grade,
       avatar: doc.avatar,
+      type: doc.type ?? 'user',
     };
 
     await redis.set(cacheKey(userId), JSON.stringify(profile), 'EX', USER_PROFILE_CACHE_TTL);
@@ -38,14 +39,15 @@ export class UserService {
    */
   static async upsertUser(user: AuthUser): Promise<AuthUser> {
     const { userId, name, grade, avatar } = user;
+    const type = user.type ?? 'user';
 
     await UserModel.findOneAndUpdate(
       { userId },
-      { $set: { name, grade, avatar, lastSeenAt: new Date() } },
+      { $set: { name, grade, avatar, type, lastSeenAt: new Date() } },
       { upsert: true, new: true },
     );
 
-    const profile: AuthUser = { userId, name, grade, avatar };
+    const profile: AuthUser = { userId, name, grade, avatar, type };
     await redis.set(cacheKey(userId), JSON.stringify(profile), 'EX', USER_PROFILE_CACHE_TTL);
     return profile;
   }

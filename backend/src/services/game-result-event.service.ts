@@ -32,9 +32,14 @@ export class GameResultEventService {
     const playTime = calculatePlayTime(session.startedAt, session.endedAt);
     const totalQuestions = session.questions.length;
 
+    // Loại tài khoản mỗi người (guest/user) — lấy từ profile đã hydrate
+    const typeA: 'user' | 'guest' = session.playerAData?.type ?? 'user';
+    const typeB: 'user' | 'guest' = session.playerBData?.type ?? 'user';
+
     // Emit cho playerA (luôn là người thật)
     const playerAResult: ClubGameResultDto = {
       profileId: session.playerA,
+      type: typeA,
       gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
       point: result.playerA.uniPointsEarned,
       playTime: playTime,
@@ -57,10 +62,13 @@ export class GameResultEventService {
       playedAt: new Date(),
     }).catch((err: Error) => console.error('[Analytics] Failed to log quiz_arena match:', err.message));
 
-    // Emit cho playerB nếu không phải bot
+    // Emit cho playerB nếu không phải bot.
+    // Trận mời: guest VẪN bắn kafka (point=0) nhưng payload gắn type='guest'
+    // để UniClass phân biệt và xử lý riêng.
     if (!session.isBot && session.playerB !== 'BOT') {
       const playerBResult: ClubGameResultDto = {
         profileId: session.playerB,
+        type: typeB,
         gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
         point: result.playerB.uniPointsEarned,
         playTime: playTime,

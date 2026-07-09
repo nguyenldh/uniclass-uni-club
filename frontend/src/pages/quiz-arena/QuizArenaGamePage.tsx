@@ -3,7 +3,7 @@
 // Flow: VersusScreen (3s) → join-session → câu hỏi × 10 → kết quả
 // ============================================================
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GameButton, GameCanvas } from "../../design-system/game";
 import { ExitButton } from "../../components";
@@ -22,8 +22,9 @@ import { useQuizArenaStore } from "../../stores/quiz-arena";
 import { quizArenaApi } from "../../services/quiz-arena";
 import { useUser } from "../../hooks/useUser";
 import { useQuizArenaSocket } from "../../hooks/useQuizArenaSocket";
+import { useInviteRoom, type InviteRoomStartPayload } from "../../hooks/useInviteRoom";
 import { notifyGameEnded } from "../../utils";
-import { exitWebView } from "../../utils/webview";
+import { exitWebView, notifyGuestReward } from "../../utils/webview";
 import type { QuizPlayerAnswer } from "@uniclub/shared";
 
 // ============================================================
@@ -32,6 +33,16 @@ import type { QuizPlayerAnswer } from "@uniclub/shared";
 
 const KEYS: AnswerKey[] = ["A", "B", "C", "D"];
 const KEY_TO_IDX: Record<AnswerKey, number> = { A: 0, B: 1, C: 2, D: 3 };
+
+/** Thông báo khi phòng mời đóng (hiển thị ở màn kết quả) */
+const REMATCH_CLOSE_MESSAGES: Record<string, string> = {
+  limit_reached: "Đã hết lượt tái đấu",
+  // Guest chỉ rời qua nút "Đổi quà" → thông điệp trung tính
+  guest_left: "Đối thủ đã kết thúc trận đấu",
+  host_left: "Đối thủ đã rời phòng",
+  not_found: "Đối thủ đã rời trận đấu",
+  expired: "Phòng đã hết hạn",
+};
 
 function computePips(
   answers: QuizPlayerAnswer[] | undefined,
@@ -59,6 +70,11 @@ interface NavState {
   role: "first" | "second";
   /** Khối lớp chưa có câu hỏi (đã check ở lobby trước khi ghép trận) → vào thẳng màn no-questions. */
   noQuestions?: boolean;
+  /** Trận qua phòng mời (friendly) — mang theo roomId để hỗ trợ tái đấu. */
+  isInvite?: boolean;
+  roomId?: string;
+  /** Số lượt tái đấu còn lại sau ván hiện tại. */
+  rematchRemaining?: number;
 }
 
 // ============================================================
@@ -111,6 +127,13 @@ export function QuizArenaGamePage() {
   const submittedRef = useRef(false); // tránh double-submit khi timeout
   const gameEndedSentRef = useRef(false);
 
+  // ---- Tái đấu (phòng mời) ----
+  const isInvite = !!navState?.roomId;
+  const isGuest = user?.type === 'guest';
+  const rematchRemaining = navState?.rematchRemaining ?? 0;
+  const [waitingRematch, setWaitingRematch] = useState(false);
+  const [rematchClosed, setRematchClosed] = useState<string | null>(null);
+
   // Xác định mình là playerA hay playerB
   const amIPlayerA = session?.playerA === userId;
   const myState = amIPlayerA ? playerAState : playerBState;
@@ -152,8 +175,59 @@ export function QuizArenaGamePage() {
     onNoQuestions: useCallback(() => setNoQuestions(), [setNoQuestions]),
   });
 
+  // ---- Phòng mời: giữ kết nối phòng xuyên suốt ván để hỗ trợ Tái đấu ----
+  const handleRematchStart = useCallback(
+    (p: InviteRoomStartPayload) => {
+      navigate("/quiz-arena/game", {
+        state: {
+          sessionId: p.sessionId,
+          opponentId: null,
+          isAI: false,
+          role: p.role,
+          roomId: p.roomId,
+          rematchRemaining: p.rematchRemaining,
+          isInvite: true,
+        },
+        replace: true,
+      });
+    },
+    [navigate],
+  );
+
+  const invite = useInviteRoom({
+    userId,
+    displayName: user?.name,
+    grade: user?.grade,
+    avatar: user?.avatar,
+    gameType: "quiz",
+    enabled: isInvite,
+    onStart: handleRematchStart,
+    onClosed: useCallback((reason: string) => setRematchClosed(reason), []),
+  });
+
+  // Join lại phòng (reconnect) để socket nằm trong room khi ván kết thúc
+  const roomId = navState?.roomId;
+  useEffect(() => {
+    if (roomId) invite.join(roomId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
+
+  // Reconnect (vd F5) mà phòng đã bị đóng/không còn (đối thủ đã thoát) → join trả
+  // lỗi ROOM_NOT_FOUND/ROOM_EXPIRED (không phải event CLOSED). Coi như phòng đã đóng
+  // để ẩn nút Tái đấu.
+  useEffect(() => {
+    const code = invite.error?.code;
+    if (code === "ROOM_NOT_FOUND" || code === "ROOM_EXPIRED") {
+      setRematchClosed(code === "ROOM_EXPIRED" ? "expired" : "not_found");
+    }
+  }, [invite.error]);
+
   // ---- Load session & join immediately ----
   useEffect(() => {
+    // Ván mới (kể cả tái đấu) → reset trạng thái chờ tái đấu của ván trước
+    setWaitingRematch(false);
+    setRematchClosed(null);
+
     // Khối lớp chưa có câu hỏi (check ở lobby) → hiển thị màn no-questions ngay,
     // không cần session, không ghép trận.
     if (navState?.noQuestions) {
@@ -386,6 +460,8 @@ export function QuizArenaGamePage() {
         gameType: 'quiz_arena',
         kafkaGameType: 'SO_TAI',
         sessionId: result.sessionId,
+        type: user?.type ?? 'user',
+        roomId: navState?.roomId,
         point: mySummary.uniPointsEarned,
         playTime: Math.round(mySummary.totalCorrectTimeMs / 1000),
         sessionCompleted: true,
@@ -409,6 +485,11 @@ export function QuizArenaGamePage() {
       result.playerA.userId === userId ? result.playerB : result.playerA;
     const totalQ = session.config.questionsPerMatch;
 
+    // Đối thủ đã bấm "Tái đấu" (ready) trong phòng chưa — để thông báo cho mình
+    const opponentWantsRematch = !!invite.room?.members.find(
+      (m) => m.userId !== userId,
+    )?.ready;
+
     return (
       <ResultCompare
         outcome={amIWinner ? "win" : "lose"}
@@ -428,29 +509,113 @@ export function QuizArenaGamePage() {
         }}
         totalQuestions={totalQ}
         uniPointsEarned={mySummary.uniPointsEarned}
+        showReward={!isGuest}
         actions={
           <div
             style={{
               display: "flex",
-              gap: 12,
-              justifyContent: "center",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
               marginTop: 8,
             }}
           >
-            <GameButton
-              color="ghost"
-              size="md"
-              onClick={() => navigate("/quiz-arena")}
+            {isInvite &&
+              !rematchClosed &&
+              rematchRemaining > 0 &&
+              opponentWantsRematch &&
+              !waitingRematch && (
+                <div style={{ color: "#fbbf24", fontWeight: 800 }}>
+                  🔥 Đối thủ muốn tái đấu!
+                </div>
+              )}
+
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                justifyContent: "center",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
             >
-              Về sảnh
-            </GameButton>
-            <GameButton
-              color="orange"
-              size="md"
-              onClick={() => navigate("/quiz-arena", { state: { autoFind: true } })}
-            >
-              Chơi tiếp
-            </GameButton>
+              {isGuest ? (
+                <GameButton
+                  color="green"
+                  size="md"
+                  className="st-reward-btn"
+                  onClick={() => {
+                    // Guest Đổi quà = kết thúc trận → rời phòng để host biết đối thủ đã
+                    // xong (host hiện thông điệp trung tính, và F5 không còn nút Tái đấu).
+                    if (isInvite) invite.leave();
+                    notifyGuestReward({
+                      profileId: String(user?.profileId ?? userId),
+                      name: user?.name,
+                      type: "guest",
+                      roomId: navState?.roomId,
+                      gameType: "quiz_arena",
+                      sessionId: result.sessionId,
+                      correctCount: mySummary.correctCount,
+                      totalQuestions: totalQ,
+                      isWin: amIWinner,
+                    });
+                  }}
+                >
+                  🎁 Đổi quà
+                </GameButton>
+              ) : (
+                <GameButton
+                  color="ghost"
+                  size="md"
+                  onClick={() => {
+                    if (isInvite) invite.leave();
+                    navigate("/quiz-arena");
+                  }}
+                >
+                  Về sảnh
+                </GameButton>
+              )}
+
+              {isInvite ? (
+                rematchClosed ? (
+                  <div style={{ color: "#fca5a5", fontWeight: 700 }}>
+                    {REMATCH_CLOSE_MESSAGES[rematchClosed] ?? "Phòng đã đóng"}
+                  </div>
+                ) : rematchRemaining > 0 ? (
+                  <span className="st-btn-ribbon">
+                    <GameButton
+                      color="orange"
+                      size="md"
+                      disabled={waitingRematch}
+                      title={`Còn ${rematchRemaining} lượt tái đấu`}
+                      onClick={() => {
+                        setWaitingRematch(true);
+                        invite.setReady(true);
+                      }}
+                    >
+                      {waitingRematch
+                        ? "Đang chờ đối thủ…"
+                        : opponentWantsRematch
+                          ? "Tái đấu ngay"
+                          : "Tái đấu"}
+                    </GameButton>
+                    <span className="st-ribbon">Còn {rematchRemaining} lượt</span>
+                  </span>
+                ) : (
+                  <div style={{ color: "#94a3b8", fontWeight: 700 }}>
+                    Đã hết lượt tái đấu
+                  </div>
+                )
+              ) : (
+                <GameButton
+                  color="orange"
+                  size="md"
+                  onClick={() => navigate("/quiz-arena", { state: { autoFind: true } })}
+                >
+                  Chơi tiếp
+                </GameButton>
+              )}
+            </div>
           </div>
         }
       />

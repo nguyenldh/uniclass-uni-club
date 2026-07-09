@@ -91,6 +91,8 @@ export const DEFAULT_QUIZ_ARENA_CONFIG: QuizArenaConfig = {
   recentMatchesForAbility: 5,
   afkConsecutiveMisses: 3,
   nextQuestionDelayMs: 3000,
+  maxGamesPerRoom: 3,
+  inviteHostWinMultiplier: 2,
 };
 
 // ---- Bot profiles ----

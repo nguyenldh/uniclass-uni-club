@@ -57,6 +57,12 @@ export interface AuthUser {
   grade?: number;
   /** Có thể mở rộng thêm: avatar, role, ... */
   avatar?: string;
+  /**
+   * Loại tài khoản: `user` (học sinh thường) hoặc `guest` (khách được mời).
+   * Lấy từ payload JWT (`payload.user.type`). Mặc định `user` nếu token không có.
+   * Dùng cho các cơ chế hiển thị/logic phân biệt guest ở FE.
+   */
+  type?: 'user' | 'guest';
 }
 
 // ---- Bot Profile (AI Bot Identity Pool) ----

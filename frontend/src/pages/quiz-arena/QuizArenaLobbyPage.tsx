@@ -7,6 +7,8 @@ import { ExitButton } from '../../components';
 import { useMatchmaking } from '../../hooks/useMatchmaking';
 import { quizArenaApi } from '../../services/quiz-arena';
 import { AvatarImage } from '../../components/AvatarImage';
+import { notifyUserReward } from '../../utils/webview';
+import { RoomNotFound } from './RoomNotFound';
 
 export function QuizArenaLobbyPage() {
   const navigate = useNavigate();
@@ -23,6 +25,21 @@ export function QuizArenaLobbyPage() {
   const userId = user?.userId ?? 'user-1';
   const [checkingSession, setCheckingSession] = useState(true);
   const [checkingQuestions, setCheckingQuestions] = useState(false);
+  const [inviteMultiplier, setInviteMultiplier] = useState<number | null>(null);
+
+  // Lấy hệ số nhân điểm mời bạn (config) để hiển thị trên nút "Mời bạn bè"
+  useEffect(() => {
+    let cancelled = false;
+    quizArenaApi
+      .getConfig()
+      .then((res) => {
+        if (!cancelled) setInviteMultiplier(res.config?.inviteHostWinMultiplier ?? null);
+      })
+      .catch(() => {
+        /* Không có config → nút hiển thị nhãn mặc định */
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const { phase, secondsRemaining, totalSeconds, result, startMatchmaking, cancelMatchmaking } =
     useMatchmaking({ userId, gameType: 'quiz', grade: user?.grade, displayName: user?.name });
@@ -115,6 +132,12 @@ export function QuizArenaLobbyPage() {
     }
   }, [phase, result?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Guest KHÔNG được vào sảnh ----
+  // (guest chỉ tham gia qua lời mời; nếu lỡ vào sảnh → màn không tìm thấy phòng + Thoát)
+  if (user?.type === 'guest') {
+    return <RoomNotFound message="Bạn chỉ có thể tham gia qua lời mời của bạn bè." />;
+  }
+
   // ---- Đang kiểm tra session ----
   if (checkingSession) {
     return (
@@ -131,9 +154,38 @@ export function QuizArenaLobbyPage() {
   if (phase === 'idle') {
     return (
       <Lobby
+        ctaLabel="Ghép trận ngẫu nhiên"
         player={{ name: displayName, grade, avatar: user?.avatar }}
         onFindMatch={handleFindMatch}
+        onInvite={() => navigate('/quiz-arena/room')}
+        inviteLabel={
+          inviteMultiplier && inviteMultiplier > 1 ? (
+            <span className="st-invite-label">
+              👥 Mời bạn bè
+              <span className="st-cup-badge">🏆 ×{inviteMultiplier} CÚP</span>
+            </span>
+          ) : (
+            '👥 Mời bạn bè'
+          )
+        }
         findMatchLoading={checkingQuestions}
+        inviteExtra={
+          <GameButton
+            color="green"
+            size="md"
+            onClick={() =>
+              notifyUserReward({
+                profileId: String(user?.profileId ?? userId),
+                name: user?.name,
+                type: 'user',
+                grade: user?.grade,
+                avatar: user?.avatar,
+              })
+            }
+          >
+            🎁 Thưởng
+          </GameButton>
+        }
         topRight={<ExitButton from="/quiz-arena" className="st-exit-btn">Thoát</ExitButton>}
       />
     );

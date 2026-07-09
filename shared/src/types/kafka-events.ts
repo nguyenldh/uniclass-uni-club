@@ -15,6 +15,8 @@ export type KafkaGameType = 'SO_TAI' | 'CARO' | 'LAT_MANH_GHEP' | 'SAN_BOSS' | '
 export interface ClubGameResultDto {
   /** Profile ID của user (từ UniClass) */
   profileId: string;
+  /** Loại tài khoản: `user` (học sinh thường) hoặc `guest` (khách được mời) */
+  type?: 'user' | 'guest';
   /** Loại game */
   gameType: KafkaGameType;
   /** Số UniPoint được cộng trực tiếp từ kết quả game */

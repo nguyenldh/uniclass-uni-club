@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { MindGameLobby, MatchmakingPage, GomokuPage, CardFlipPage } from './pages/mind-game';
-import { QuizArenaLobbyPage, QuizArenaGamePage } from './pages/quiz-arena';
+import { QuizArenaLobbyPage, QuizArenaGamePage, InviteRoomPage } from './pages/quiz-arena';
 import { BossLobbyPage, BossBattlePage, BossResultPage, BossLeaderboardPage, BossHonorPage } from './pages/boss-battle';
 import { ErrorPage } from './pages/ErrorPage';
 import { BossBattleSocketProvider } from './hooks/useBossBattleSocketProvider';
@@ -28,6 +28,9 @@ export function App() {
         <Route path="/quiz-arena" element={<WeeklyEventPanelLayout />}>
           <Route index element={<QuizArenaLobbyPage />} />
           <Route path="game" element={<QuizArenaGamePage />} />
+          {/* Phòng mời bạn — host (không param) & guest (kèm roomId) */}
+          <Route path="room" element={<InviteRoomPage />} />
+          <Route path="room/:roomId" element={<InviteRoomPage />} />
         </Route>
 
         {/* Săn Boss — Boss Battle (socket provider giữ kết nối xuyên suốt) */}

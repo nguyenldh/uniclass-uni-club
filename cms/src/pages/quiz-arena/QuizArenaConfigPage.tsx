@@ -145,6 +145,27 @@ export function QuizArenaConfigPage() {
             <InputNumber min={1000} max={10000} step={500} style={{ width: '100%' }} />
           </Form.Item>
 
+          {/* Section: Mời bạn / Tái đấu */}
+          <Divider orientation="left">Mời bạn / Tái đấu</Divider>
+
+          <Form.Item
+            name="maxGamesPerRoom"
+            label="Số ván tối đa mỗi phòng mời"
+            rules={[{ required: true, message: 'Bắt buộc' }]}
+            tooltip="Tổng số ván tối đa trong một phòng mời bạn (tính cả ván đầu). VD 3 → tái đấu được 2 lần. Đặt 1 để tắt tái đấu."
+          >
+            <InputNumber min={1} max={20} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="inviteHostWinMultiplier"
+            label="Hệ số nhân điểm cho người mời khi thắng"
+            rules={[{ required: true, message: 'Bắt buộc' }]}
+            tooltip="Người tạo phòng (mời bạn) khi THẮNG sẽ nhận điểm × hệ số này. VD 2 → ×2 điểm. Đặt 1 để không nhân. Chỉ áp dụng cho người mời, không áp dụng cho người được mời."
+          >
+            <InputNumber min={1} max={10} step={0.5} style={{ width: '100%' }} />
+          </Form.Item>
+
           {/* Section: Matchmaking */}
           <Divider orientation="left">Matchmaking</Divider>
 

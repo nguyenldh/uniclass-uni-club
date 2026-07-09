@@ -5,6 +5,7 @@
 export * from './common';
 export * from './mind-game';
 export * from './matchmaking';
+export * from './invite-room';
 export * from './quiz-arena';
 export * from './boss-battle';
 export * from './weekly-event';

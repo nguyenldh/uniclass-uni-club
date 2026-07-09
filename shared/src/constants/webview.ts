@@ -16,6 +16,9 @@ export const WEBVIEW_MESSAGE_TYPES: Record<WebViewMessageType, WebViewMessageTyp
   'game:ended': 'game:ended',
   'game:score': 'game:score',
   'game:error': 'game:error',
+  'mgm:invite': 'mgm:invite',
+  'mgm:guest-reward': 'mgm:guest-reward',
+  'mgm:user-reward': 'mgm:user-reward',
 } as const;
 
 /** Phiên bản hiện tại của WebView message format */

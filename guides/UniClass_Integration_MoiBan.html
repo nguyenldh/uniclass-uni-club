@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UniClass Integration — Mời bạn & Tái đấu (So Tài)</title>
+<style>
+  :root{
+    --bg:#0f1420; --card:#171e2e; --card2:#111827; --ink:#e8eef7; --mut:#94a3bd;
+    --acc:#ff8a3d; --acc2:#4dd0e1; --line:#2a3550;
+    --new:#2ecc71; --new-bg:#123024; --upd:#ffcf5c; --upd-bg:#332a12; --old:#8aa0c0;
+    --code:#ffd9b0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:32px;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  h1{font-size:27px;margin:0 0 4px;}
+  h2{font-size:21px;margin:36px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line);color:var(--acc);}
+  h3{font-size:16px;margin:20px 0 8px;color:var(--acc2);}
+  p,li{color:var(--ink);}
+  .sub{color:var(--mut);margin:0 0 18px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:14px 0;}
+  code{background:#0b0f18;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--code);}
+  pre{background:#0b0f18;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:#cfe3ff;}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--acc2);font-weight:600;}
+  td code{white-space:nowrap;}
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;padding:2px 9px;border-radius:999px;vertical-align:middle;}
+  .tag.new{background:var(--new-bg);color:var(--new);border:1px solid var(--new);}
+  .tag.upd{background:var(--upd-bg);color:var(--upd);border:1px solid var(--upd);}
+  .tag.old{background:#1a2233;color:var(--old);border:1px solid var(--line);}
+  .tag.dir{background:#1a2233;color:var(--acc2);border:1px solid var(--line);}
+  .touch{border-radius:12px;border:1px solid var(--line);margin:16px 0;overflow:hidden;}
+  .touch>.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;background:#1b2333;}
+  .touch>.head .t{font-size:16px;font-weight:800;}
+  .touch>.body{padding:8px 16px 4px;}
+  .touch.is-new{border-color:var(--new);}
+  .touch.is-upd{border-color:var(--upd);}
+  .touch.is-upd>.head{background:#2a2412;}
+  .touch.is-new>.head{background:#122a1f;}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--acc);color:#301500;font-weight:900;font-size:13px;}
+  .hl{background:var(--upd-bg);color:#ffe6a8;border-radius:4px;padding:0 4px;font-weight:700;}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;}
+  .legend div{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--mut);}
+  .flow{background:#0b0f18;border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:#cfe3ff;white-space:pre;overflow:auto;}
+  /* Timeline kịch bản */
+  .fl{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px 4px;margin:12px 0;}
+  .fl-step{display:flex;gap:14px;align-items:stretch;}
+  .fl-rail{display:flex;flex-direction:column;align-items:center;flex:none;}
+  .fl-num{width:30px;height:30px;border-radius:50%;background:var(--acc);color:#301500;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;}
+  .fl-line{flex:1;width:2px;background:var(--line);margin:3px 0;}
+  .fl-step:last-child .fl-line{display:none;}
+  .fl-body{flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:3px 0 20px;}
+  .fl-actor{flex:none;font-size:11px;font-weight:800;letter-spacing:.03em;padding:3px 9px;border-radius:6px;}
+  .fl-actor.host{background:#12233b;color:#8fc0ff;border:1px solid #244a72;}
+  .fl-actor.guest{background:#241b3b;color:#c4a5ff;border:1px solid #3d2d63;}
+  .fl-actor.sys{background:#0e2a2e;color:#6fdbe0;border:1px solid #1c4a50;}
+  .fl-act{font-size:14px;color:var(--ink);}
+  .fl-arrow{color:var(--mut);font-weight:700;}
+  .fl-touch{flex:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap;}
+  .fl-touch.new{background:var(--new-bg);color:var(--new);border:1px solid var(--new);}
+  .fl-touch.upd{background:var(--upd-bg);color:var(--upd);border:1px solid var(--upd);}
+  .fl-touch.old{background:#1a2233;color:var(--old);border:1px solid var(--line);}
+  .note{margin-top:14px;padding:12px 14px;background:#0e2233;border:1px solid #1c4a63;border-radius:8px;font-size:13.5px;color:#bfe6f5;}
+  .warn{background:#33210f;border-color:#6b4415;color:#ffdca8;}
+  .pill-row td:first-child{font-weight:600;}
+  ul{margin:6px 0;padding-left:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>UniClass Integration — Mời bạn &amp; Tái đấu (So Tài)</h1>
+  <p class="sub">Tài liệu điểm chạm tích hợp cho UniClass. Cập nhật 2026-07-09. Áp dụng cho game So Tài (Quiz Arena) — tính năng phòng mời bạn, tái đấu, và cơ chế thưởng cho user/guest.</p>
+
+  <div class="card">
+    <div class="legend">
+      <div><span class="tag new">MỚI</span> Sự kiện / điểm chạm mới cần triển khai</div>
+      <div><span class="tag upd">CẬP NHẬT</span> Sự kiện cũ, có thay đổi payload — cần chú ý</div>
+      <div><span class="tag old">GIỮ NGUYÊN</span> Đã có sẵn, không đổi</div>
+      <div><span class="tag dir">WebView → App</span> / <span class="tag dir">Backend → Kafka</span> hướng dữ liệu</div>
+    </div>
+  </div>
+
+  <h2>0. Khung chung của postMessage</h2>
+  <p>Mọi <code>postMessage</code> từ game WebView ra parent app đều bọc trong một envelope thống nhất, gửi qua <code>window.ReactNativeWebView.postMessage(JSON.stringify(msg))</code> (React Native) hoặc <code>window.parent.postMessage(msg, '*')</code> (iframe).</p>
+  <pre>{
+  "type": "&lt;message-type&gt;",   // vd: "mgm:invite"
+  "payload": { ... },          // tuỳ loại (bảng bên dưới)
+  "timestamp": 1720000000000,
+  "version": 1
+}</pre>
+  <div class="note">Lưu ý: nếu <code>payload</code> có <code>userId</code>, hệ thống tự sao chép thành <code>profileId</code> (payload sẽ có cả 2, giá trị bằng nhau). Áp dụng cho <code>game:ended</code>.</div>
+
+  <h2>1. Kịch bản &amp; điểm chạm theo thứ tự</h2>
+
+  <div class="fl">
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">1</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor host">HOST</span>
+        <span class="fl-act">Mở So Tài — ở sảnh có nút <b>“🎁 Thưởng”</b>.</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">2</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor host">HOST</span>
+        <span class="fl-act">Bấm <b>“Mời bạn bè”</b> → hệ thống tạo phòng chờ.</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch new">(A) mgm:invite · MỚI</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">3</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor host">HOST</span>
+        <span class="fl-act">Bấm <b>“Chia sẻ”</b> trong phòng (mỗi lần bấm bắn lại).</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch new">(A) mgm:invite · MỚI</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">4</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor sys">UNICLASS</span>
+        <span class="fl-act">Mở link mời cho người được mời trong WebView — token phải có <code>user.type="guest"</code>.</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch new">(B) TOKEN guest · MỚI</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">5</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor guest">GUEST</span>
+        <span class="fl-act">Mở link → vào thẳng phòng chờ (guest không vào sảnh).</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">6</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor host">HOST</span>
+        <span class="fl-actor guest">GUEST</span>
+        <span class="fl-act">Cả 2 bấm <b>“Sẵn sàng”</b> → vào trận (có thể tái đấu nhiều ván trong cùng phòng).</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">7</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor host">HOST</span>
+        <span class="fl-actor guest">GUEST</span>
+        <span class="fl-act">Hết trận: mỗi người bắn <code>game:ended</code> cho chính mình.</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch upd">(C) game:ended · CẬP NHẬT</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">8</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor sys">BACKEND</span>
+        <span class="fl-act">Bắn Kafka kết quả cho <b>cả 2</b> (host: điểm ×hệ số; guest: <code>point 0, type "guest"</code>).</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch upd">(D) club-game-result · CẬP NHẬT</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">9</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor host">HOST</span>
+        <span class="fl-act">Ở sảnh, bấm <b>“🎁 Thưởng”</b> để nhận quà.</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch new">(E) mgm:user-reward · MỚI</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">10</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor guest">GUEST</span>
+        <span class="fl-act">Màn kết thúc, bấm <b>“🎁 Đổi quà”</b> (guest không có “Về sảnh”).</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch new">(F) mgm:guest-reward · MỚI</span>
+      </div>
+    </div>
+
+    <div class="fl-step">
+      <div class="fl-rail"><div class="fl-num">11</div><div class="fl-line"></div></div>
+      <div class="fl-body">
+        <span class="fl-actor guest">GUEST</span>
+        <span class="fl-act">Phòng lỗi/hết hạn hoặc vào nhầm sảnh → màn “Không tìm thấy phòng” → bấm <b>Thoát</b>.</span>
+        <span class="fl-arrow">▶</span>
+        <span class="fl-touch old">(G) app:exit · GIỮ NGUYÊN</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="sub" style="margin:6px 0 0">Bước 9 / 10 / 11 là các nhánh cuối luồng (nhận quà hoặc gặp dead-end), không bắt buộc tuần tự sau bước 8.</p>
+
+  <!-- (A) mgm:invite -->
+  <div class="touch is-new">
+    <div class="head">
+      <span class="step">A</span>
+      <span class="t">postMessage <code>mgm:invite</code></span>
+      <span class="tag new">MỚI</span>
+      <span class="tag dir">WebView → App</span>
+    </div>
+    <div class="body">
+      <p><b>Khi nào:</b> (1) ngay khi host tạo/vào phòng thành công, (2) mỗi lần host bấm nút <b>"Chia sẻ"</b> trong phòng chờ.</p>
+      <p><b>UniClass xử lý:</b> ghép <code>joinUrl</code> (đường dẫn tương đối) với domain frontend + <span class="hl">gắn token của người được mời</span> (xem điểm chạm B) để tạo link chia sẻ, rồi mở share-sheet / sao chép.</p>
+      <table>
+        <tr><th>Field</th><th>Kiểu</th><th>Mô tả</th></tr>
+        <tr><td><code>profileId</code></td><td>string</td><td>profileId của người mời (host)</td></tr>
+        <tr><td><code>roomId</code></td><td>string</td><td>ID phòng chờ</td></tr>
+        <tr><td><code>gameType</code></td><td>string</td><td>Loại game của phòng — giá trị hiện tại: <code>"quiz"</code></td></tr>
+        <tr><td><code>joinUrl</code></td><td>string</td><td>Đường dẫn <b>tương đối</b> để vào phòng: <code>/quiz-arena/room/&lt;roomId&gt;</code></td></tr>
+      </table>
+      <pre>{ "type":"mgm:invite", "payload":{
+    "profileId":"12345", "roomId":"a1b2-...", "gameType":"quiz",
+    "joinUrl":"/quiz-arena/room/a1b2-..." }, "timestamp":..., "version":1 }</pre>
+    </div>
+  </div>
+
+  <!-- (B) token guest -->
+  <div class="touch is-new">
+    <div class="head">
+      <span class="step">B</span>
+      <span class="t">Token cho khách (guest) mở WebView</span>
+      <span class="tag new">MỚI</span>
+      <span class="tag dir">App → WebView (URL + JWT)</span>
+    </div>
+    <div class="body">
+      <p><b>Khi nào:</b> khi người được mời mở link chia sẻ. UniClass mở WebView game với URL đầy đủ kèm token của chính người được mời.</p>
+      <p><b>URL đầy đủ cần tạo:</b></p>
+      <pre>&lt;FRONTEND_ORIGIN&gt; + joinUrl + "?token=" + &lt;JWT_CỦA_GUEST&gt;
+vd: https://game.uniclass.vn/quiz-arena/room/a1b2-...?token=eyJhbGci...</pre>
+      <p><b>Yêu cầu MỚI trên token:</b> payload JWT phải có thêm <span class="hl">trường <code>type: "guest"</code> bên trong object <code>user</code></span> để hệ thống nhận diện là khách (không tính điểm/BXH, không được vào sảnh, được đổi quà riêng).</p>
+      <table>
+        <tr><th>Loại người</th><th>JWT payload.user</th></tr>
+        <tr><td>Khách được mời</td><td><code>{ profileId, name, grade?, avatar?, </code><span class="hl">type: "guest"</span><code> }</code></td></tr>
+        <tr><td>Học sinh thường</td><td><code>{ profileId, name, grade?, avatar? }</code> — không có <code>type</code> (mặc định hiểu là <code>"user"</code>)</td></tr>
+      </table>
+      <pre>// JWT payload (guest)
+{
+  "user": { "profileId": 67890, "name": "Khách A", "grade": 10, "type": "guest" },
+  "iat": 1720000000, "exp": 1720600000
+}</pre>
+      <div class="note">Backend đọc token qua <code>normalizeAuthUser</code>: chấp nhận cả format cũ (flat) lẫn format <code>{ user: {...} }</code>. <code>type</code> mặc định <code>"user"</code> nếu không có, nên token học sinh cũ KHÔNG cần đổi.</div>
+    </div>
+  </div>
+
+  <!-- (C) game:ended -->
+  <div class="touch is-upd">
+    <div class="head">
+      <span class="step">C</span>
+      <span class="t">postMessage <code>game:ended</code></span>
+      <span class="tag upd">CẬP NHẬT</span>
+      <span class="tag dir">WebView → App</span>
+    </div>
+    <div class="body">
+      <p><b>Khi nào:</b> khi màn kết quả hiện ra (mỗi người chơi bắn 1 lần cho chính mình) — sự kiện đã có sẵn, nay <span class="hl">bổ sung 2 trường</span>.</p>
+      <table>
+        <tr><th>Field</th><th>Kiểu</th><th>Mô tả</th></tr>
+        <tr><td><code>type</code></td><td>'user' | 'guest'</td><td><span class="tag upd">MỚI THÊM</span> Loại tài khoản người chơi</td></tr>
+        <tr><td><code>roomId</code></td><td>string?</td><td><span class="tag upd">MỚI THÊM</span> ID phòng mời (chỉ có khi trận đến từ phòng mời)</td></tr>
+        <tr><td><code>userId</code> / <code>profileId</code></td><td>string</td><td>ID người chơi (profileId được tự sao chép từ userId)</td></tr>
+        <tr><td><code>gameType</code></td><td>string</td><td><code>"quiz_arena"</code></td></tr>
+        <tr><td><code>kafkaGameType</code></td><td>string</td><td><code>"SO_TAI"</code></td></tr>
+        <tr><td><code>sessionId</code></td><td>string?</td><td>ID phiên chơi</td></tr>
+        <tr><td><code>point</code></td><td>number</td><td>Điểm đạt được (host trận mời đã ×hệ số; guest = 0)</td></tr>
+        <tr><td><code>playTime</code></td><td>number</td><td>Thời gian chơi (giây)</td></tr>
+        <tr><td><code>sessionCompleted</code></td><td>boolean</td><td>Hoàn thành phiên hay bỏ dở</td></tr>
+        <tr><td><code>isWin</code></td><td>boolean</td><td>Thắng hay thua</td></tr>
+        <tr><td><code>correctCount</code>, <code>totalQuestions</code></td><td>number?</td><td>Số câu đúng / tổng câu</td></tr>
+      </table>
+      <pre>{ "type":"game:ended", "payload":{
+    "userId":"12345", "profileId":"12345",
+    "type":"user", "roomId":"a1b2-...",
+    "gameType":"quiz_arena", "kafkaGameType":"SO_TAI", "sessionId":"quiz-...",
+    "point":180, "playTime":95, "sessionCompleted":true, "isWin":true,
+    "correctCount":9, "totalQuestions":10 }, "timestamp":..., "version":1 }</pre>
+    </div>
+  </div>
+
+  <!-- (D) Kafka -->
+  <div class="touch is-upd">
+    <div class="head">
+      <span class="step">D</span>
+      <span class="t">Kafka topic <code>club-game-result</code></span>
+      <span class="tag upd">CẬP NHẬT</span>
+      <span class="tag dir">Backend → Kafka</span>
+    </div>
+    <div class="body">
+      <p><b>Khi nào:</b> backend tự bắn khi trận kết thúc, cho <b>cả 2</b> người chơi (trước đây trận mời KHÔNG bắn cho guest — <span class="hl">nay guest CŨNG được bắn</span>, kèm <code>type</code>).</p>
+      <table>
+        <tr><th>Field</th><th>Kiểu</th><th>Mô tả</th></tr>
+        <tr><td><code>type</code></td><td>'user' | 'guest'</td><td><span class="tag upd">MỚI THÊM</span> Loại tài khoản — UniClass dùng để phân biệt (vd không cộng điểm/BXH cho guest)</td></tr>
+        <tr><td><code>profileId</code></td><td>string</td><td>Profile người chơi</td></tr>
+        <tr><td><code>gameType</code></td><td>KafkaGameType</td><td><code>"SO_TAI"</code></td></tr>
+        <tr><td><code>point</code></td><td>number</td><td>Host trận mời: <b>đã nhân hệ số</b> (config CMS <code>inviteHostWinMultiplier</code>) khi thắng. Guest: <b>0</b>.</td></tr>
+        <tr><td><code>playTime</code></td><td>number</td><td>Giây</td></tr>
+        <tr><td><code>sessionCompleted</code>, <code>isWin</code></td><td>boolean</td><td>Trạng thái trận</td></tr>
+        <tr><td><code>correctCount</code>, <code>totalQuestions</code></td><td>number?</td><td>Kết quả làm bài</td></tr>
+      </table>
+      <pre>// Guest kết thúc trận mời
+{ "profileId":"67890", "type":"guest", "gameType":"SO_TAI",
+  "point":0, "playTime":95, "sessionCompleted":true, "isWin":false,
+  "correctCount":6, "totalQuestions":10 }</pre>
+      <div class="note warn">Trận mời là <b>giao hữu</b>: chỉ người mời (host) được cộng điểm (×hệ số khi thắng). Guest luôn <code>point = 0</code> và <code>type:"guest"</code> — UniClass nên bỏ qua cộng Cúp/BXH cho các bản ghi <code>type:"guest"</code>, chỉ dùng cho thống kê/đổi quà.</div>
+    </div>
+  </div>
+
+  <!-- (E) mgm:user-reward -->
+  <div class="touch is-new">
+    <div class="head">
+      <span class="step">E</span>
+      <span class="t">postMessage <code>mgm:user-reward</code></span>
+      <span class="tag new">MỚI</span>
+      <span class="tag dir">WebView → App</span>
+    </div>
+    <div class="body">
+      <p><b>Khi nào:</b> học sinh (user) bấm nút <b>"🎁 Thưởng"</b> ở sảnh So Tài. UniClass mở luồng trao/đổi quà cho user.</p>
+      <table>
+        <tr><th>Field</th><th>Kiểu</th><th>Mô tả</th></tr>
+        <tr><td><code>profileId</code></td><td>string</td><td>Profile user</td></tr>
+        <tr><td><code>name</code></td><td>string?</td><td>Tên hiển thị</td></tr>
+        <tr><td><code>type</code></td><td>'user'</td><td>Luôn là <code>"user"</code></td></tr>
+        <tr><td><code>grade</code></td><td>number?</td><td>Khối lớp</td></tr>
+        <tr><td><code>avatar</code></td><td>string?</td><td>Avatar URL</td></tr>
+      </table>
+      <pre>{ "type":"mgm:user-reward", "payload":{
+    "profileId":"12345", "name":"Học sinh A", "type":"user",
+    "grade":10, "avatar":"https://..." }, "timestamp":..., "version":1 }</pre>
+    </div>
+  </div>
+
+  <!-- (F) mgm:guest-reward -->
+  <div class="touch is-new">
+    <div class="head">
+      <span class="step">F</span>
+      <span class="t">postMessage <code>mgm:guest-reward</code></span>
+      <span class="tag new">MỚI</span>
+      <span class="tag dir">WebView → App</span>
+    </div>
+    <div class="body">
+      <p><b>Khi nào:</b> guest bấm nút <b>"🎁 Đổi quà"</b> ở màn kết thúc (guest không có nút "Về sảnh"). Payload chứa đủ thông tin của guest để UniClass xử lý trao quà cho khách.</p>
+      <table>
+        <tr><th>Field</th><th>Kiểu</th><th>Mô tả</th></tr>
+        <tr><td><code>profileId</code></td><td>string</td><td>Profile guest</td></tr>
+        <tr><td><code>name</code></td><td>string?</td><td>Tên guest</td></tr>
+        <tr><td><code>type</code></td><td>'guest'</td><td>Luôn là <code>"guest"</code></td></tr>
+        <tr><td><code>roomId</code></td><td>string?</td><td>ID phòng mời</td></tr>
+        <tr><td><code>gameType</code></td><td>string?</td><td><code>"quiz_arena"</code></td></tr>
+        <tr><td><code>sessionId</code></td><td>string?</td><td>Phiên chơi vừa kết thúc</td></tr>
+        <tr><td><code>correctCount</code>, <code>totalQuestions</code></td><td>number?</td><td>Kết quả làm bài của guest</td></tr>
+        <tr><td><code>isWin</code></td><td>boolean?</td><td>Guest có thắng không</td></tr>
+      </table>
+      <pre>{ "type":"mgm:guest-reward", "payload":{
+    "profileId":"67890", "name":"Khách A", "type":"guest",
+    "roomId":"a1b2-...", "gameType":"quiz_arena", "sessionId":"quiz-...",
+    "correctCount":6, "totalQuestions":10, "isWin":false }, "timestamp":..., "version":1 }</pre>
+    </div>
+  </div>
+
+  <!-- (G) app:exit -->
+  <div class="touch">
+    <div class="head">
+      <span class="step">G</span>
+      <span class="t">postMessage <code>app:exit</code></span>
+      <span class="tag old">GIỮ NGUYÊN</span>
+      <span class="tag dir">WebView → App</span>
+    </div>
+    <div class="body">
+      <p><b>Khi nào:</b> guest bấm <b>"Thoát"</b> ở màn "Không tìm thấy phòng" (phòng không tồn tại / hết hạn, hoặc guest vào nhầm sảnh). Sự kiện cũ, không đổi — UniClass đóng WebView như bình thường.</p>
+      <table>
+        <tr><th>Field</th><th>Kiểu</th><th>Mô tả</th></tr>
+        <tr><td><code>from</code></td><td>string?</td><td>Route hiện tại, vd <code>/quiz-arena</code></td></tr>
+        <tr><td><code>reason</code></td><td>string?</td><td>Mặc định <code>"user_action"</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2>2. Quy tắc dành cho guest (tóm tắt)</h2>
+  <div class="card">
+    <ul>
+      <li>Guest nhận diện qua <code>user.type = "guest"</code> trong JWT (điểm chạm B).</li>
+      <li>Guest <b>không được vào sảnh</b>: nếu lọt vào sảnh, hoặc phòng không tồn tại/hết hạn → màn "Không tìm thấy phòng" chỉ có nút <b>Thoát</b> (điểm chạm G).</li>
+      <li>Guest <b>không tính điểm/BXH nội bộ</b>; Kafka vẫn bắn với <code>point:0, type:"guest"</code> (điểm chạm D) để UniClass thống kê/đổi quà.</li>
+      <li>Guest nhận quà qua nút <b>"Đổi quà"</b> ⇒ <code>mgm:guest-reward</code> (F). User nhận quà qua nút <b>"Thưởng"</b> ở sảnh ⇒ <code>mgm:user-reward</code> (E).</li>
+    </ul>
+  </div>
+
+  <h2>3. Cấu hình liên quan (CMS)</h2>
+  <div class="card">
+    <table>
+      <tr><th>Config (So Tài)</th><th>Ý nghĩa</th></tr>
+      <tr class="pill-row"><td><code>inviteHostWinMultiplier</code></td><td>Hệ số nhân điểm cho người mời khi THẮNG trận mời (mặc định 2). Ảnh hưởng <code>point</code> ở <code>game:ended</code> &amp; Kafka của host.</td></tr>
+      <tr class="pill-row"><td><code>maxGamesPerRoom</code></td><td>Tổng số ván tối đa mỗi phòng (tính cả ván đầu, mặc định 3) → quyết định số lượt tái đấu.</td></tr>
+    </table>
+    <p class="sub" style="margin:8px 0 0">Các config này thuộc phần admin, không phải điểm chạm UniClass — liệt kê để hiểu vì sao <code>point</code> của host có thể lớn hơn số câu đúng × điểm/câu.</p>
+  </div>
+
+  <h2>4. Checklist tích hợp phía UniClass</h2>
+  <div class="card">
+    <ul>
+      <li>☐ Thêm <code>type:"guest"</code> vào JWT khi sinh token cho người được mời (B).</li>
+      <li>☐ Lắng nghe <code>mgm:invite</code> → tạo link đầy đủ (origin + <code>joinUrl</code> + token guest) và chia sẻ (A).</li>
+      <li>☐ Cập nhật consumer <code>game:ended</code> để đọc thêm <code>type</code>, <code>roomId</code> (C).</li>
+      <li>☐ Cập nhật consumer Kafka <code>club-game-result</code>: xử lý bản ghi <code>type:"guest"</code> (không cộng BXH), đọc <code>type</code> (D).</li>
+      <li>☐ Xử lý <code>mgm:user-reward</code> (E) và <code>mgm:guest-reward</code> (F) → luồng trao quà tương ứng.</li>
+      <li>☐ Giữ nguyên xử lý <code>app:exit</code> (G).</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

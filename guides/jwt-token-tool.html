@@ -285,6 +285,14 @@
                     <input type="text" id="userName" value="Người chơi test" placeholder="Nhập tên">
                 </div>
 
+                <div class="form-group">
+                    <label>Loại tài khoản</label>
+                    <select id="userType">
+                        <option value="user" selected>User (học sinh)</option>
+                        <option value="guest">Guest (khách được mời)</option>
+                    </select>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Khối lớp</label>
@@ -411,6 +419,7 @@
         function generateToken() {
             const profileId = document.getElementById('profileId').value.trim();
             const name = document.getElementById('userName').value.trim();
+            const userType = document.getElementById('userType').value;
             const grade = document.getElementById('grade').value;
             const avatar = document.getElementById('avatar').value.trim();
             const expiresIn = document.getElementById('expiresIn').value;
@@ -433,6 +442,11 @@
                 profileId: parseInt(profileId),
                 name: name,
             };
+
+            // Chỉ gắn type='guest' cho khách được mời; user thường giữ nguyên payload cũ
+            if (userType === 'guest') {
+                user.type = 'guest';
+            }
 
             if (grade) {
                 user.grade = parseInt(grade);

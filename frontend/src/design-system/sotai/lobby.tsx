@@ -28,6 +28,12 @@ export interface LobbyProps extends HTMLAttributes<HTMLDivElement> {
   player: LobbyPlayer;
   /** Called when user taps the big "Tìm Đối Thủ" CTA. */
   onFindMatch?: () => void;
+  /** Called when user taps the "Mời bạn bè" secondary CTA. Nút chỉ hiện khi có prop này. */
+  onInvite?: () => void;
+  /** Override nhãn nút "Mời bạn bè" (vd kèm hệ số nhân điểm). */
+  inviteLabel?: ReactNode;
+  /** Nội dung phụ hiển thị NGAY BÊN PHẢI nút "Mời bạn bè", cùng hàng (vd nút Thưởng). */
+  inviteExtra?: ReactNode;
   /** Đang xử lý trước khi ghép trận (vd: kiểm tra câu hỏi) → khoá CTA. */
   findMatchLoading?: boolean;
   /** Override CTA label. */
@@ -42,6 +48,9 @@ export interface LobbyProps extends HTMLAttributes<HTMLDivElement> {
 export function Lobby({
   player,
   onFindMatch,
+  onInvite,
+  inviteLabel = '👥 Mời bạn bè',
+  inviteExtra,
   findMatchLoading = false,
   ctaLabel = 'Tìm Đối Thủ',
   topRight,
@@ -102,6 +111,28 @@ export function Lobby({
             >
               {findMatchLoading ? 'Đang kiểm tra…' : ctaLabel}
             </GameButton>
+            {onInvite && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  marginTop: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <GameButton
+                  color="ghost"
+                  size="md"
+                  onClick={onInvite}
+                  disabled={findMatchLoading}
+                >
+                  {inviteLabel}
+                </GameButton>
+                {inviteExtra}
+              </div>
+            )}
           </div>
         </div>
 

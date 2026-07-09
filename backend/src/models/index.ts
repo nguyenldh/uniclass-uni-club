@@ -80,6 +80,8 @@ const QuizArenaConfigSchema = new Schema<QuizArenaConfig>(
     recentMatchesForAbility: { type: Number, required: true, default: 5 },
     afkConsecutiveMisses: { type: Number, required: true, default: 3 },
     nextQuestionDelayMs: { type: Number, required: true, default: 3000 },
+    maxGamesPerRoom: { type: Number, required: true, default: 3, min: 1 },
+    inviteHostWinMultiplier: { type: Number, required: true, default: 2, min: 1 },
   },
   { _id: false },
 );
@@ -275,6 +277,7 @@ export interface IUser extends Document {
   name: string;
   grade?: number;
   avatar?: string;
+  type?: 'user' | 'guest';
   lastSeenAt: Date;
 }
 
@@ -284,6 +287,7 @@ const UserSchema = new Schema<IUser>(
     name: { type: String, required: true, trim: true },
     grade: { type: Number, min: 1, max: 12 },
     avatar: { type: String, trim: true },
+    type: { type: String, enum: ['user', 'guest'], default: 'user' },
     lastSeenAt: { type: Date, required: true, default: Date.now },
   },
   { timestamps: true },

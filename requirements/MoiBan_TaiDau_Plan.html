@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kế hoạch: Mời bạn (Invite Room) + Tái đấu — Quiz Arena</title>
+<style>
+  :root { --bg:#0f1420; --card:#1a2233; --ink:#e6ecf5; --mut:#93a3bd; --acc:#ff8a3d; --acc2:#4dd0e1; --line:#2a3550; --ok:#4caf7d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 -apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:32px; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  h2 { font-size:20px; margin:34px 0 12px; padding-bottom:6px; border-bottom:2px solid var(--line); color:var(--acc); }
+  h3 { font-size:16px; margin:20px 0 8px; color:var(--acc2); }
+  p, li { color:var(--ink); }
+  .sub { color:var(--mut); margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin:12px 0; }
+  code { background:#0c1018; border:1px solid var(--line); border-radius:5px; padding:1px 6px; font-family:ui-monospace,Consolas,monospace; font-size:13px; color:#ffd9b0; }
+  pre { background:#0c1018; border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow:auto; font-family:ui-monospace,Consolas,monospace; font-size:13px; color:#cfe3ff; }
+  table { width:100%; border-collapse:collapse; margin:10px 0; font-size:14px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--acc2); font-weight:600; }
+  td code { white-space:nowrap; }
+  .tag { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; background:#26324a; color:var(--acc2); margin-left:6px; }
+  .new { background:#1e3a2a; color:var(--ok); }
+  .edit { background:#3a3320; color:#ffd97a; }
+  ul { margin:6px 0; padding-left:22px; }
+  .q { border-left:3px solid var(--acc); padding-left:12px; margin:8px 0; }
+  .kpi { display:flex; gap:10px; flex-wrap:wrap; margin:8px 0; }
+  .kpi div { background:#0c1018; border:1px solid var(--line); border-radius:10px; padding:10px 14px; flex:1; min-width:180px; }
+  .kpi b { display:block; color:var(--acc); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mời bạn (Invite Room) + Tái đấu</h1>
+  <p class="sub">Cơ chế ghép trận theo phòng chờ cho Quiz Arena (So Tài), thiết kế generic để tái dùng cho Mind Game. Cập nhật 2026-07-08.</p>
+
+  <div class="card">
+    <h3 style="margin-top:0">Tóm tắt yêu cầu</h3>
+    <ul>
+      <li>Sảnh chơi có nút <b>"Mời bạn bè"</b> → tạo <b>phòng chờ</b> (hết hạn sau <b>30 phút</b> nếu không ai vào).</li>
+      <li>Người tạo tự động vào phòng và đợi. Người được mời vào bằng <b>URL kèm roomId</b>.</li>
+      <li>Cả 2 bấm <b>"Sẵn sàng"</b> (ready-check) mới vào chơi.</li>
+      <li>Trận qua phòng mời là <b>giao hữu — KHÔNG tính điểm/BXH/UniClass sync</b>.</li>
+      <li><b>Tái đấu</b>: chơi lại với đúng đối thủ đó; tổng số ván tối đa mỗi phòng lấy từ config CMS.</li>
+    </ul>
+  </div>
+
+  <h2>Quyết định đã chốt</h2>
+  <div class="card">
+    <div class="q"><b>Người được mời:</b> vẫn dùng JWT như user thường (payload có thể <code>type=guest</code>), không cần mint guest-auth riêng.</div>
+    <div class="q"><b>Xác nhận:</b> ready-check tường minh — cả host &amp; guest bấm "Sẵn sàng".</div>
+    <div class="q"><b>Điểm số:</b> friendly, KHÔNG tính điểm/BXH/sync.</div>
+    <div class="q"><b>Khác khối:</b> câu hỏi theo khối của <b>host</b>.</div>
+    <div class="q"><b>Config tái đấu:</b> <code>maxGamesPerRoom</code> = TỔNG số ván tối đa mỗi phòng (tính cả ván đầu). VD 3 ⇒ tái đấu 2 lần.</div>
+    <div class="q"><b>Phạm vi tái đấu:</b> chỉ trận qua phòng mời (không áp dụng ghép random).</div>
+  </div>
+
+  <h2>Kiến trúc</h2>
+  <p>Module phòng chờ <b>generic</b> (<code>InviteRoom</code>) tách khỏi gameplay. Khi 2 người sẵn sàng → gọi thẳng <code>factory.createPVPSession(host, guest, {friendly, inviteRoomId, players})</code> qua <b>registry sẵn có</b> của <code>MatchmakingService</code> (không đi qua hàng đợi random), rồi tái dùng nguyên si luồng gameplay hiện tại. Phòng <b>sống xuyên nhiều ván</b> để phục vụ tái đấu.</p>
+
+  <h3>Máy trạng thái của phòng</h3>
+  <pre>waiting        (chỉ host — chờ guest qua link)
+  └─ guest join ─► ready_check   (2 người — chờ cả 2 "Sẵn sàng")
+        └─ cả 2 ready & gamesPlayed &lt; maxGames
+              ─► [createPVPSession friendly, gamesPlayed++, status=in_game]
+                 ─► in_game ─► (ván end) ─► onGameEnded()
+                       ─► reset ready, status=ready_check (rematch)
+                           ├─ cả 2 ready & còn lượt ─► ván mới
+                           └─ hết lượt / có người "Về sảnh" / 30' ─► closed</pre>
+
+  <h3>Luồng đầy đủ</h3>
+  <pre>Lobby "Mời bạn bè" ─► invite-room:create ─► host join, copy link /quiz-arena/room/:roomId
+Guest mở link ─► invite-room:join
+Cả 2 "Sẵn sàng" ─► (lock) start ─► invite-room:start {sessionId,roomId,role,rematchRemaining}
+  ─► /quiz-arena/game ─► reuse: join-session → countdown → chơi → quiz-arena:end
+Màn result (có roomId): "Về sảnh" | "Tái đấu" (nếu rematchRemaining>0)
+  "Tái đấu" ─► invite-room:ready lại ─► cả 2 sẵn sàng ─► invite-room:start (ván mới) ─► lặp</pre>
+
+  <div class="kpi">
+    <div><b>Redis key</b> <code>invite-room:room:&lt;roomId&gt;</code> TTL 1800s</div>
+    <div><b>Lock</b> <code>lock:invite-room:room:&lt;roomId&gt;</code></div>
+    <div><b>Timer hết hạn</b> BullMQ job <code>invite-room-expiry</code></div>
+    <div><b>Thành viên</b> định danh theo <code>userId</code> (chịu được reconnect)</div>
+  </div>
+
+  <h2>Contract Socket (mới, game-agnostic)</h2>
+  <table>
+    <tr><th>Hướng</th><th>Event</th><th>Payload</th></tr>
+    <tr><td>C→S</td><td><code>invite-room:create</code></td><td>{ userId, displayName, grade, avatar?, gameType }</td></tr>
+    <tr><td>C→S</td><td><code>invite-room:join</code></td><td>{ roomId, userId, displayName, grade, avatar? }</td></tr>
+    <tr><td>C→S</td><td><code>invite-room:ready</code></td><td>{ roomId, userId, ready }</td></tr>
+    <tr><td>C→S</td><td><code>invite-room:leave</code></td><td>{ roomId, userId }</td></tr>
+    <tr><td>S→C</td><td><code>invite-room:state</code></td><td>{ room: InviteRoom }</td></tr>
+    <tr><td>S→C</td><td><code>invite-room:start</code></td><td>{ sessionId, gameType, roomId, role, rematchRemaining }</td></tr>
+    <tr><td>S→C</td><td><code>invite-room:closed</code></td><td>{ reason }</td></tr>
+    <tr><td>S→C</td><td><code>invite-room:error</code></td><td>{ message, code }</td></tr>
+  </table>
+
+  <h2>Bảng file theo pha</h2>
+
+  <h3>P1 — Shared contract + Room service</h3>
+  <table>
+    <tr><th>File</th><th>Trạng thái</th><th>Việc</th></tr>
+    <tr><td><code>shared/src/types/invite-room.ts</code></td><td><span class="tag new">mới</span></td><td>InviteRoom, InviteRoomStatus, InviteRoomMember, PVPSessionOptions</td></tr>
+    <tr><td><code>shared/src/constants/invite-room.ts</code></td><td><span class="tag new">mới</span></td><td>INVITE_ROOM_SOCKET_EVENTS, INVITE_ROOM_REDIS_KEYS, INVITE_ROOM_CONFIG</td></tr>
+    <tr><td><code>shared/src/types|constants/index.ts</code></td><td><span class="tag edit">sửa</span></td><td>export barrel</td></tr>
+    <tr><td><code>shared/src/types/matchmaking.ts</code></td><td><span class="tag edit">sửa</span></td><td>createPVPSession nhận opts: PVPSessionOptions</td></tr>
+    <tr><td><code>backend/src/services/invite-room.service.ts</code></td><td><span class="tag new">mới</span></td><td>create/join/setReady/leave/onGameEnded/expire (generic)</td></tr>
+    <tr><td><code>backend/src/sockets/handlers/invite-room.handler.ts</code></td><td><span class="tag new">mới</span></td><td>xử lý event, broadcast state</td></tr>
+    <tr><td><code>backend/src/sockets/handlers/index.ts</code></td><td><span class="tag edit">sửa</span></td><td>đăng ký handler</td></tr>
+    <tr><td><code>backend/src/services/matchmaking.service.ts</code></td><td><span class="tag edit">sửa</span></td><td>createDirectPVPSession(gameType, host, guest, opts)</td></tr>
+    <tr><td><code>backend/src/services/index.ts</code></td><td><span class="tag edit">sửa</span></td><td>export InviteRoomService</td></tr>
+  </table>
+
+  <h3>P2 — Friendly + config CMS</h3>
+  <table>
+    <tr><th>File</th><th>Trạng thái</th><th>Việc</th></tr>
+    <tr><td><code>shared/src/types/quiz-arena.ts</code></td><td><span class="tag edit">sửa</span></td><td>+ maxGamesPerRoom trong config; + friendly?, inviteRoomId? trong session</td></tr>
+    <tr><td><code>shared/src/constants/quiz-arena.ts</code></td><td><span class="tag edit">sửa</span></td><td>DEFAULT + maxGamesPerRoom: 3</td></tr>
+    <tr><td><code>backend/src/models/index.ts</code></td><td><span class="tag edit">sửa</span></td><td>QuizArenaConfigSchema + maxGamesPerRoom</td></tr>
+    <tr><td><code>.../quiz-matchmaking.factory.ts</code></td><td><span class="tag edit">sửa</span></td><td>createPVPSession dùng opts.players (invite) / pendingContext (random); thread friendly + inviteRoomId</td></tr>
+    <tr><td><code>.../quiz-arena.service.ts</code></td><td><span class="tag edit">sửa</span></td><td>createPVPSession nhận opts; endMatch gate side-effect theo friendly; gọi onGameEnded</td></tr>
+    <tr><td><code>cms/.../QuizArenaConfigPage.tsx</code></td><td><span class="tag edit">sửa</span></td><td>form field maxGamesPerRoom</td></tr>
+  </table>
+
+  <h3>P3 — Frontend phòng mời</h3>
+  <table>
+    <tr><th>File</th><th>Trạng thái</th><th>Việc</th></tr>
+    <tr><td><code>frontend/src/hooks/useInviteRoom.ts</code></td><td><span class="tag new">mới</span></td><td>socket phòng, state, create/join/ready/leave, onStart callback</td></tr>
+    <tr><td><code>frontend/src/pages/quiz-arena/InviteRoomPage.tsx</code></td><td><span class="tag new">mới</span></td><td>UI phòng chờ (host/guest), copy link, ready, đếm ngược</td></tr>
+    <tr><td><code>frontend/src/App.tsx</code></td><td><span class="tag edit">sửa</span></td><td>route /quiz-arena/room/:roomId?</td></tr>
+    <tr><td><code>frontend/.../QuizArenaLobbyPage.tsx</code></td><td><span class="tag edit">sửa</span></td><td>nút "Mời bạn bè"</td></tr>
+    <tr><td><code>frontend/src/design-system/sotai/lobby.tsx</code></td><td><span class="tag edit">sửa</span></td><td>slot nút mời bạn</td></tr>
+  </table>
+
+  <h3>P4 — Tái đấu</h3>
+  <table>
+    <tr><th>File</th><th>Trạng thái</th><th>Việc</th></tr>
+    <tr><td><code>frontend/.../QuizArenaGamePage.tsx</code></td><td><span class="tag edit">sửa</span></td><td>nhận roomId/rematchRemaining; mount useInviteRoom reconnect; nút "Tái đấu" ở result; navigate ván mới khi invite-room:start</td></tr>
+    <tr><td><code>frontend/src/design-system/sotai/result.tsx</code></td><td><span class="tag edit">sửa</span></td><td>hỗ trợ nút Tái đấu (qua prop actions — có sẵn)</td></tr>
+  </table>
+
+  <h3>P5 — Hết hạn + edge case + nghiệm thu</h3>
+  <table>
+    <tr><th>File</th><th>Trạng thái</th><th>Việc</th></tr>
+    <tr><td><code>backend/src/services/timer-queue.service.ts</code></td><td><span class="tag edit">sửa</span></td><td>job invite-room-expiry (schedule/cancel + case)</td></tr>
+    <tr><td>—</td><td>—</td><td>host/guest thoát khi chờ, tự-mời, phòng đầy, khối chưa có câu hỏi, hết lượt tái đấu; typecheck 3 package</td></tr>
+  </table>
+
+  <h2>Mở rộng Mind Game (sau này)</h2>
+  <p>Core InviteRoom (service/handler/contract/hook) dùng chung. Mỗi game mới chỉ cần: (1) entry "Mời bạn" ở lobby + điều hướng route game đó; (2) thread <code>friendly</code> nếu game tính điểm; (3) thêm <code>maxGamesPerRoom</code> vào config game đó. Không đụng core.</p>
+</div>
+</body>
+</html>

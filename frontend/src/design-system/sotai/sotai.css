@@ -1103,3 +1103,87 @@
     display: none;
   }
 }
+
+/* ===== Badge "×N CÚP" trên nút Mời bạn bè — vàng gradient, glow, pulse ===== */
+@keyframes stCupPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 8px rgba(255, 193, 74, 0.55); }
+  50% { transform: scale(1.07); box-shadow: 0 0 18px rgba(255, 193, 74, 0.95); }
+}
+
+.st-invite-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.st-cup-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(90deg, #ffe082 0%, #ffb300 55%, #ff8f1f 100%);
+  color: #5b2b00;
+  font-weight: 900;
+  font-size: 0.82em;
+  letter-spacing: 0.03em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  animation: stCupPulse 1.4s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-cup-badge { animation: none; }
+}
+
+/* ===== Nút "Đổi quà" — glow vàng nhấp nháy thu hút ===== */
+@keyframes stRewardGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 214, 120, 0.5)); }
+  50% { filter: drop-shadow(0 0 11px rgba(255, 200, 80, 0.95)); }
+}
+
+.st-reward-btn {
+  animation: stRewardGlow 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-reward-btn { animation: none; }
+}
+
+/* ===== Ribbon gắn góc button (vd: số lượt tái đấu còn lại) ===== */
+@keyframes stRibbonBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.st-btn-ribbon {
+  position: relative;
+  display: inline-flex;
+}
+
+.st-btn-ribbon > .st-ribbon {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  z-index: 5;
+  background: linear-gradient(90deg, #ffca28 0%, #ff8f1f 100%);
+  color: #4a2100;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 2px solid #fff3d6;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: stRibbonBob 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-btn-ribbon > .st-ribbon { animation: none; }
+}

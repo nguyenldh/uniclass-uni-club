@@ -198,8 +198,9 @@ export class QuizArenaService {
     playerBGrade: number,
     abilityBucket: QuizDifficulty,
     config: QuizArenaConfig,
+    opts?: { friendly?: boolean; inviteRoomId?: string },
   ): Promise<QuizArenaSession> {
-    const grade = playerAGrade; // cả 2 cùng khối (matchmaking đảm bảo)
+    const grade = playerAGrade; // cả 2 cùng khối (matchmaking / host quyết định)
     const recentIdsA =
       await QuestionService.getRecentQuestionIdsForUser(playerA);
     const recentIdsB =
@@ -222,6 +223,8 @@ export class QuizArenaService {
       grade,
       abilityBucket,
       isBot: false,
+      friendly: opts?.friendly ?? false,
+      inviteRoomId: opts?.inviteRoomId,
       questions,
       currentQuestionIndex: 0,
       currentQuestionStartedAt: null,
@@ -649,14 +652,26 @@ export class QuizArenaService {
 
     const { config } = session;
 
-    // Tính UniPoints (dựa trên số câu đúng, cả 2 đều nhận)
-    const uniA = session.playerAState.correctCount * config.uniPointsPerCorrect;
-    const uniB = session.playerBState.correctCount * config.uniPointsPerCorrect;
-
-    // Cập nhật score nội bộ (chỉ cho user thật, không lưu score của Bot)
     const isPlayerAWinner = winner === session.playerA;
 
-    if (!session.isBot) {
+    // Trận mời (friendly): CHỈ người mời (host = playerA) được tính điểm; guest (playerB)
+    // hoàn toàn không tính. Người mời được xử lý đầy đủ như trận thường nhưng điểm thắng
+    // được NHÂN theo hệ số config (chỉ khi thắng).
+    const isFriendly = !!session.friendly;
+    const hostMultiplier =
+      isFriendly && isPlayerAWinner ? Math.max(1, config.inviteHostWinMultiplier ?? 1) : 1;
+
+    // UniPoints mỗi người (dùng cho Cúp thắng, sync UniClass và hiển thị kết quả).
+    // - Trận thường: cả 2 theo correctCount.
+    // - Trận mời: chỉ host (playerA) — ×hệ số khi thắng; guest (playerB) = 0.
+    const uniA =
+      session.playerAState.correctCount * config.uniPointsPerCorrect * hostMultiplier;
+    const uniB = isFriendly ? 0 : session.playerBState.correctCount * config.uniPointsPerCorrect;
+
+    // Cập nhật Cúp nội bộ + thắng/thua.
+    // - PvP thật (không bot, không mời): cả 2.
+    // - Bot HOẶC trận mời: chỉ tính cho người thật/host = playerA.
+    if (!session.isBot && !isFriendly) {
       await Promise.all([
         ScoreService.addWinPoints(
           isPlayerAWinner ? session.playerA : session.playerB,
@@ -669,7 +684,7 @@ export class QuizArenaService {
         ),
       ]);
     } else {
-      // Bot match: chỉ lưu score cho user thật (playerA luôn là user thật)
+      // playerA luôn là user thật (bot) hoặc host (mời)
       if (isPlayerAWinner) {
         await ScoreService.addWinPoints(session.playerA, uniA, "quiz_arena");
       } else {
@@ -679,7 +694,7 @@ export class QuizArenaService {
 
     // Enqueue sync về UniClass
     const now = new Date().toISOString();
-    if (!session.isBot) {
+    if (!session.isBot && !isFriendly) {
       await UniClassSyncService.enqueueSync({
         userId: session.playerA,
         sessionId,
@@ -695,6 +710,7 @@ export class QuizArenaService {
         playedAt: now,
       });
     } else {
+      // Bot: user thật; Mời: chỉ host (playerA). Guest không sync.
       await UniClassSyncService.enqueueSync({
         userId: session.playerA,
         sessionId,
@@ -704,7 +720,7 @@ export class QuizArenaService {
       });
     }
 
-    // Ghi lịch sử ability cho user thật
+    // Ghi lịch sử ability cho user thật (bỏ qua bot; trận mời chỉ ghi cho host)
     const recordAbility = async (
       userId: string,
       state: typeof session.playerAState,
@@ -718,10 +734,14 @@ export class QuizArenaService {
       );
     };
 
-    await Promise.all([
-      recordAbility(session.playerA, session.playerAState),
-      recordAbility(session.playerB, session.playerBState),
-    ]);
+    if (isFriendly) {
+      await recordAbility(session.playerA, session.playerAState);
+    } else {
+      await Promise.all([
+        recordAbility(session.playerA, session.playerAState),
+        recordAbility(session.playerB, session.playerBState),
+      ]);
+    }
 
     // Ghi lịch sử câu hỏi đã làm
     await Promise.all([
@@ -757,8 +777,26 @@ export class QuizArenaService {
 
     io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.END, result);
 
-    // Emit Kafka event for UniClass integration
+    // Emit Kafka event for UniClass integration.
+    // Với trận mời, service tự bỏ qua guest (chỉ emit cho host = playerA).
     await GameResultEventService.emitQuizArenaResult(session, result);
+
+    // Trận qua phòng mời: báo phòng để chuyển sang chờ tái đấu (hoặc đóng nếu hết lượt).
+    if (session.friendly && session.inviteRoomId) {
+      const { InviteRoomService } = await import("../../../services");
+      const { INVITE_ROOM_SOCKET_EVENTS, INVITE_ROOM_CLOSE_REASONS } = await import("@uniclub/shared");
+      const room = await InviteRoomService.onGameEnded(session.inviteRoomId);
+      if (room) {
+        if (room.status === "closed") {
+          io.to(room.roomId).emit(INVITE_ROOM_SOCKET_EVENTS.CLOSED, {
+            reason: INVITE_ROOM_CLOSE_REASONS.LIMIT_REACHED,
+          });
+          await InviteRoomService.deleteRoom(room.roomId);
+        } else {
+          io.to(room.roomId).emit(INVITE_ROOM_SOCKET_EVENTS.STATE, { room });
+        }
+      }
+    }
   }
 
   /**

@@ -9,7 +9,7 @@ import { QuizArenaService } from './quiz-arena.service';
 import { UserAbilityService } from './user-ability.service';
 import { redis } from '../../../config/index';
 import { QUIZ_ARENA_REDIS_KEYS, DEFAULT_QUIZ_ARENA_CONFIG } from '@uniclub/shared';
-import type { MatchmakingSessionFactory, AIDifficulty, QuizDifficulty } from '@uniclub/shared';
+import type { MatchmakingSessionFactory, AIDifficulty, QuizDifficulty, PVPSessionOptions } from '@uniclub/shared';
 
 export interface QuizMatchmakingContext {
   displayName: string;
@@ -45,32 +45,52 @@ export async function clearPendingContext(userId: string): Promise<void> {
 }
 
 const quizArenaFactory: MatchmakingSessionFactory = {
-  async createPVPSession(playerA: string, playerB: string) {
+  async createPVPSession(playerA: string, playerB: string, opts?: PVPSessionOptions) {
     const config = await GameConfigService.getQuizArenaConfig().catch(() => DEFAULT_QUIZ_ARENA_CONFIG);
 
-    const [ctxA, ctxB] = await Promise.all([
-      getPendingContext(playerA),
-      getPendingContext(playerB),
-    ]);
+    let nameA: string;
+    let nameB: string;
+    let gradeA: number;
+    let gradeB: number;
+    let bucket: QuizDifficulty;
 
-    const gradeA = ctxA?.grade ?? 10;
-    const gradeB = ctxB?.grade ?? gradeA;
-    const nameA = ctxA?.displayName ?? playerA;
-    const nameB = ctxB?.displayName ?? playerB;
-    const bucket: QuizDifficulty = ctxA?.abilityBucket ?? ctxB?.abilityBucket ?? 'medium';
+    if (opts?.players) {
+      // ---- Phòng mời: context truyền trực tiếp (không qua pendingContext) ----
+      // Handler đã set grade của cả 2 = grade host → câu hỏi theo khối host.
+      nameA = opts.players.a.displayName ?? playerA;
+      nameB = opts.players.b.displayName ?? playerB;
+      gradeA = opts.players.a.grade ?? 10;
+      gradeB = opts.players.b.grade ?? gradeA;
+      bucket = 'medium';
+    } else {
+      // ---- Ghép random: đọc pendingContext đã lưu khi join queue ----
+      const [ctxA, ctxB] = await Promise.all([
+        getPendingContext(playerA),
+        getPendingContext(playerB),
+      ]);
+
+      gradeA = ctxA?.grade ?? 10;
+      gradeB = ctxB?.grade ?? gradeA;
+      nameA = ctxA?.displayName ?? playerA;
+      nameB = ctxB?.displayName ?? playerB;
+      bucket = ctxA?.abilityBucket ?? ctxB?.abilityBucket ?? 'medium';
+    }
 
     const session = await QuizArenaService.createPVPSession(
       playerA, nameA, gradeA,
       playerB, nameB, gradeB,
       bucket,
       config,
+      { friendly: opts?.friendly, inviteRoomId: opts?.inviteRoomId },
     );
 
-    // Cleanup contexts
-    await Promise.all([
-      clearPendingContext(playerA),
-      clearPendingContext(playerB),
-    ]);
+    // Chỉ cleanup pendingContext khi thực sự dùng (flow random)
+    if (!opts?.players) {
+      await Promise.all([
+        clearPendingContext(playerA),
+        clearPendingContext(playerB),
+      ]);
+    }
 
     return { sessionId: session.sessionId };
   },

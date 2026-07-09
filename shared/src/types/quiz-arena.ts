@@ -70,6 +70,16 @@ export interface QuizArenaConfig {
    * Độ trễ (ms) trước khi chuyển sang câu hỏi tiếp theo sau khi cả 2 đã trả lời (default: 3000).
    */
   nextQuestionDelayMs: number;
+  /**
+   * Tổng số ván tối đa trong một phòng mời (tính cả ván đầu, default: 3).
+   * VD 3 → chơi tối đa 3 ván ⇒ tái đấu được 2 lần. Set 1 để tắt tái đấu.
+   */
+  maxGamesPerRoom: number;
+  /**
+   * Hệ số nhân điểm cho NGƯỜI MỜI (host) khi thắng trận qua phòng mời (default: 2).
+   * VD 2 → host thắng nhận điểm ×2. Set 1 để không nhân. Chỉ áp dụng cho host, chỉ khi thắng.
+   */
+  inviteHostWinMultiplier: number;
 }
 
 // ---- Question ----
@@ -170,6 +180,10 @@ export interface QuizArenaSession {
   abilityBucket: QuizDifficulty;
   /** Trận đấu với AI bot không */
   isBot: boolean;
+  /** Trận giao hữu qua phòng mời — KHÔNG tính điểm/BXH/UniClass sync */
+  friendly?: boolean;
+  /** ID phòng mời nguồn (nếu tạo từ InviteRoom) — để báo lại phòng khi kết thúc (tái đấu) */
+  inviteRoomId?: string;
   /** Độ khó bot (chỉ khi isBot=true) */
   botDifficulty?: QuizDifficulty;
   /** Profile bot (chỉ khi isBot=true) */

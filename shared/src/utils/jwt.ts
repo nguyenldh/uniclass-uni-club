@@ -26,6 +26,7 @@ export function normalizeAuthUser(payload: unknown): AuthUser {
       grade: inner.grade as number | undefined,
       avatar: inner.avatar as string | undefined,
       profileId: inner.profileId as string | undefined,
+      type: inner.type === 'guest' ? 'guest' : 'user',
     };
   }
 
@@ -36,5 +37,6 @@ export function normalizeAuthUser(payload: unknown): AuthUser {
     grade: raw.grade as number | undefined,
     avatar: raw.avatar as string | undefined,
     profileId: raw.profileId as string | undefined,
+    type: raw.type === 'guest' ? 'guest' : 'user',
   };
 }

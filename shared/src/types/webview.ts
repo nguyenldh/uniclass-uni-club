@@ -19,7 +19,10 @@ export type WebViewMessageType =
   | 'game:started'      // Bắt đầu một ván game
   | 'game:ended'        // Kết thúc một ván game
   | 'game:score'        // Cập nhật điểm số giữa ván
-  | 'game:error';      // Lỗi trong game
+  | 'game:error'        // Lỗi trong game
+  | 'mgm:invite'        // Mời bạn vào phòng — parent app xử lý chia sẻ link
+  | 'mgm:guest-reward'  // Guest bấm "Đổi quà" sau khi chơi xong
+  | 'mgm:user-reward';  // User bấm nút "Thưởng" ở sảnh
 
 /**
  * Format tổng quát cho mọi message gửi từ WebView ra parent.
@@ -52,6 +55,65 @@ export interface WebViewExitPayload {
 }
 
 /**
+ * Payload cho message type 'mgm:invite'.
+ * Bắn ra khi người chơi tạo phòng mời bạn hoặc bấm "Chia sẻ".
+ * Parent app (UniClass) nhận và xử lý chia sẻ link (share sheet, sao chép, v.v.).
+ */
+export interface WebViewInvitePayload {
+  /** profileId của người mời (host) */
+  profileId: string;
+  /** ID phòng chờ */
+  roomId: string;
+  /** Loại game của phòng (vd. 'quiz') */
+  gameType: string;
+  /** Đường dẫn tương đối để vào phòng (parent tự ghép domain) */
+  joinUrl: string;
+}
+
+/**
+ * Payload cho message type 'mgm:guest-reward'.
+ * Guest bấm "Đổi quà" sau khi chơi xong — cung cấp thông tin cần thiết của guest
+ * để parent app (UniClass) xử lý đổi/trao quà cho khách.
+ */
+export interface WebViewGuestRewardPayload {
+  /** profileId của guest */
+  profileId: string;
+  /** Tên hiển thị của guest */
+  name?: string;
+  /** Loại tài khoản — luôn là 'guest' */
+  type: 'guest';
+  /** ID phòng mời */
+  roomId?: string;
+  /** Loại game (vd. 'quiz_arena') */
+  gameType?: string;
+  /** ID phiên chơi vừa kết thúc */
+  sessionId?: string;
+  /** Số câu trả lời đúng của guest */
+  correctCount?: number;
+  /** Tổng số câu trong trận */
+  totalQuestions?: number;
+  /** Guest có thắng trận không */
+  isWin?: boolean;
+}
+
+/**
+ * Payload cho message type 'mgm:user-reward'.
+ * User bấm nút "Thưởng" ở sảnh — cung cấp thông tin user để parent app trao/đổi quà.
+ */
+export interface WebViewUserRewardPayload {
+  /** profileId của user */
+  profileId: string;
+  /** Tên hiển thị */
+  name?: string;
+  /** Loại tài khoản — luôn là 'user' */
+  type: 'user';
+  /** Khối lớp */
+  grade?: number;
+  /** Avatar URL */
+  avatar?: string;
+}
+
+/**
  * Payload cho message type 'game:ended'
  *
  * Tương thích với ClubGameResultDto (Kafka) — parent app (UniClass)
@@ -68,6 +130,10 @@ export interface WebViewGameEndedPayload {
   subGame?: 'gomoku' | 'card_flip';
   /** ID phiên chơi (sessionId hoặc attemptId) */
   sessionId?: string;
+  /** Loại tài khoản người chơi: `user` (học sinh) hoặc `guest` (khách được mời) */
+  type?: 'user' | 'guest';
+  /** ID phòng mời (chỉ có khi trận đến từ phòng mời bạn) */
+  roomId?: string;
   /** Số UniPoint đạt được */
   point: number;
   /** Thời gian chơi tính bằng giây */

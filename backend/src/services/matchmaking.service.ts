@@ -11,6 +11,7 @@ import type {
   MatchmakingGameType,
   MatchmakingSessionFactory,
   AIDifficulty,
+  PVPSessionOptions,
 } from '@uniclub/shared';
 import { UserService } from './user.service';
 
@@ -167,6 +168,21 @@ export class MatchmakingService {
       aiDifficulty,
       opponentProfile: botProfile,
     };
+  }
+
+  /**
+   * Tạo trực tiếp một PvP session giữa 2 người chơi cụ thể — KHÔNG qua hàng đợi random.
+   * Dùng cho phòng mời (InviteRoom): host đấu đúng guest đã mời.
+   * Tái dùng registry factory của game (giống flow ghép random).
+   */
+  static async createDirectPVPSession(
+    gameType: MatchmakingGameType,
+    hostId: string,
+    guestId: string,
+    opts?: PVPSessionOptions,
+  ): Promise<{ sessionId: string }> {
+    const factory = this.getFactory(gameType);
+    return factory.createPVPSession(String(hostId), String(guestId), opts);
   }
 
   /** Lấy kích thước queue */

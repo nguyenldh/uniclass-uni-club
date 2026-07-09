@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { AIDifficulty, MatchmakingStatus } from './common';
+import type { PVPSessionOptions } from './invite-room';
 
 /** Tất cả game có hỗ trợ matchmaking PvP */
 export type MatchmakingGameType = 'gomoku' | 'quiz' | 'card_flip' | 'quiz_arena';
@@ -47,8 +48,12 @@ export interface MatchmakingResult {
  * MatchmakingService không cần biết chi tiết từng game, chỉ gọi factory.
  */
 export interface MatchmakingSessionFactory {
-  /** Tạo session PvP giữa 2 người chơi */
-  createPVPSession(playerA: string, playerB: string): Promise<{ sessionId: string }>;
+  /**
+   * Tạo session PvP giữa 2 người chơi.
+   * `opts` (tùy chọn) dùng cho phòng mời — trận giao hữu, context truyền trực tiếp.
+   * Factory của game bỏ qua opts nếu không cần (backward-compatible).
+   */
+  createPVPSession(playerA: string, playerB: string, opts?: PVPSessionOptions): Promise<{ sessionId: string }>;
   /** Tạo session đấu AI khi timeout. Trả về cả botProfile để hiển thị nhất quán. */
   createAISession(userId: string, difficulty: AIDifficulty): Promise<{
     sessionId: string;
