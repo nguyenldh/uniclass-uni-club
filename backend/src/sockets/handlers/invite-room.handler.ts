@@ -10,7 +10,7 @@ import {
   INVITE_ROOM_ERROR_CODES,
   INVITE_ROOM_CONFIG,
 } from '@uniclub/shared';
-import type { InviteRoom, MatchmakingGameType } from '@uniclub/shared';
+import type { InviteRoom, InviteRoomMember, MatchmakingGameType } from '@uniclub/shared';
 import {
   InviteRoomService,
   InviteRoomError,
@@ -28,20 +28,55 @@ interface MemberPayload {
   displayName?: string;
   grade?: number;
   avatar?: string;
+  /** Vân tay TRÌNH DUYỆT (browser fingerprint) */
+  fingerprint?: string;
+  /** Device class — đặc trưng phần cứng độc lập trình duyệt */
+  deviceClass?: string;
 }
 
-/** Số ván tối đa mỗi phòng theo config của game */
-async function getMaxGames(gameType: MatchmakingGameType): Promise<number> {
+/** Policy phòng mời theo config của game */
+async function getInvitePolicy(
+  gameType: MatchmakingGameType,
+): Promise<{ maxGames: number; blockSameDevice: boolean }> {
   if (gameType === 'quiz' || gameType === 'quiz_arena') {
     const cfg = await GameConfigService.getQuizArenaConfig().catch(() => null);
-    return cfg?.maxGamesPerRoom ?? 3;
+    return {
+      maxGames: cfg?.maxGamesPerRoom ?? 3,
+      blockSameDevice: cfg?.inviteBlockSameDevice ?? true,
+    };
   }
-  return 3;
+  return { maxGames: 3, blockSameDevice: true };
+}
+
+/** Lấy IP client từ socket handshake (ưu tiên x-forwarded-for khi sau proxy/LB) */
+function getClientIp(socket: Socket): string | undefined {
+  const xff = socket.handshake.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.length > 0) return xff.split(',')[0].trim();
+  if (Array.isArray(xff) && xff.length > 0) return xff[0];
+  return socket.handshake.address || undefined;
+}
+
+/**
+ * Lược bỏ dữ liệu server-only (fingerprint, ip, socketId) trước khi gửi cho client
+ * để không lộ định danh thiết bị của đối thủ.
+ */
+function sanitizeRoom(room: InviteRoom): InviteRoom {
+  return {
+    ...room,
+    members: room.members.map((m) => {
+      const clean: InviteRoomMember = { ...m };
+      delete clean.fingerprint;
+      delete clean.deviceClass;
+      delete clean.ip;
+      delete clean.socketId;
+      return clean;
+    }),
+  };
 }
 
 /** Phát state phòng cho tất cả socket trong room (cross-instance qua Redis adapter) */
 function broadcastState(io: Server, room: InviteRoom): void {
-  io.to(room.roomId).emit(INVITE_ROOM_SOCKET_EVENTS.STATE, { room });
+  io.to(room.roomId).emit(INVITE_ROOM_SOCKET_EVENTS.STATE, { room: sanitizeRoom(room) });
 }
 
 export function registerInviteRoomHandlers(io: Server, socket: Socket): void {
@@ -70,7 +105,7 @@ export function registerInviteRoomHandlers(io: Server, socket: Socket): void {
           }
         }
 
-        const maxGames = await getMaxGames(data.gameType);
+        const { maxGames, blockSameDevice } = await getInvitePolicy(data.gameType);
         const room = await InviteRoomService.createRoom(
           {
             userId,
@@ -78,9 +113,13 @@ export function registerInviteRoomHandlers(io: Server, socket: Socket): void {
             avatar: data.avatar,
             grade: data.grade,
             socketId: socket.id,
+            fingerprint: data.fingerprint,
+            deviceClass: data.deviceClass,
+            ip: getClientIp(socket),
           },
           data.gameType,
           maxGames,
+          blockSameDevice,
         );
 
         socket.data.userId = userId;
@@ -117,6 +156,9 @@ export function registerInviteRoomHandlers(io: Server, socket: Socket): void {
           avatar: data.avatar,
           grade: data.grade,
           socketId: socket.id,
+          fingerprint: data.fingerprint,
+          deviceClass: data.deviceClass,
+          ip: getClientIp(socket),
         });
 
         socket.data.userId = userId;

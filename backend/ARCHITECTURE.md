@@ -295,6 +295,7 @@ backend/
 - `matchmaking:leave { userId, gameType }`: rời queue
 - `quiz-arena:join-session { sessionId }`: vào room sau khi matched
 - `quiz-arena:answer { sessionId, selectedIndex }`: gửi đáp án (0-3 hoặc null)
+- `quiz-arena:emoji { sessionId, emoji }`: thả emoji khiêu khích sang đối thủ (validate palette + cooldown Redis)
 
 #### Socket (server → client)
 
@@ -306,6 +307,7 @@ backend/
 - `quiz-arena:state { playerA, playerB }`: state tổng thể
 - `quiz-arena:end`: QuizArenaResult (winner, loser, summary cả 2)
 - `quiz-arena:opponent-disconnected { userId }`: đối thủ mất kết nối
+- `quiz-arena:emoji-received { emoji, fromUserId }`: đối thủ vừa thả emoji khiêu khích sang mình
 
 ### Persistence Rules
 
@@ -314,6 +316,7 @@ backend/
 - `difficultyBucket` được recompute qua admin endpoint hoặc tự động sau mỗi câu trả lời
 - Redis cache config: `game:config:quiz_arena` TTL 5 phút
 - Redis session: `quiz-arena:session:<sessionId>` TTL 30 phút
+- Redis emoji cooldown: `quiz-arena:emoji-cooldown:<sessionId>:<userId>` TTL = `emojiCooldownMs` (chống spam thả emoji)
 - Redis user ability cache: `quiz-arena:user-ability:<userId>` TTL 10 phút
 - Redis recent matches: `quiz-arena:user-recent-matches:<userId>` TTL 90 ngày (cap N=`recentMatchesForAbility`)
 - Redis recent questions: `quiz-arena:user-recent-questions:<userId>` TTL 30 ngày (cap 50 câu)

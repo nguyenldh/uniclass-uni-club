@@ -11,6 +11,7 @@ import type {
   BossInstanceStatus,
   DailyAttemptStatus,
 } from '@uniclub/shared';
+import { DEFAULT_PROVOKE_EMOJIS } from '@uniclub/shared';
 
 export interface IGameConfig extends Document {
   gameType: MindGameType | 'quiz_arena' | 'boss_battle';
@@ -82,6 +83,10 @@ const QuizArenaConfigSchema = new Schema<QuizArenaConfig>(
     nextQuestionDelayMs: { type: Number, required: true, default: 3000 },
     maxGamesPerRoom: { type: Number, required: true, default: 3, min: 1 },
     inviteHostWinMultiplier: { type: Number, required: true, default: 2, min: 1 },
+    inviteBlockSameDevice: { type: Boolean, required: true, default: true },
+    emojiEnabled: { type: Boolean, required: true, default: true },
+    emojiPalette: { type: [String], required: true, default: () => [...DEFAULT_PROVOKE_EMOJIS] },
+    emojiCooldownMs: { type: Number, required: true, default: 3000, min: 0 },
   },
   { _id: false },
 );

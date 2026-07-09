@@ -8,3 +8,4 @@ export * from './versus';
 export * from './scoreboard';
 export * from './question';
 export * from './result';
+export * from './emoji';

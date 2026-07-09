@@ -15,8 +15,13 @@ import {
   ResultCompare,
   FloatingPoints,
   QuizCallout,
+  EmojiStrip,
+  FlyingEmoji,
+  EmojiThrowBurst,
+  EmojiHitCluster,
   type AnswerKey,
   type ProgressPip,
+  type Pt,
 } from "../../design-system/sotai";
 import { useQuizArenaStore } from "../../stores/quiz-arena";
 import { quizArenaApi } from "../../services/quiz-arena";
@@ -127,6 +132,44 @@ export function QuizArenaGamePage() {
   const submittedRef = useRef(false); // tránh double-submit khi timeout
   const gameEndedSentRef = useRef(false);
 
+  // ---- Emoji khiêu khích ----
+  const effectIdRef = useRef(0);
+  const vbarRef = useRef<HTMLDivElement>(null);
+  /** Emoji đang bay (mình ném sang đối thủ) — kèm toạ độ avatar 2 bên. */
+  const [flyingEmojis, setFlyingEmojis] = useState<
+    { id: number; emoji: string; from: Pt; to: Pt; spin: number }[]
+  >([]);
+  /** Nổ tại chỗ đối thủ khi emoji ném tới (màn người ném). */
+  const [throwBursts, setThrowBursts] = useState<
+    { id: number; emoji: string; at: Pt }[]
+  >([]);
+  /** Cụm bong bóng đè lên avatar đối thủ (màn người bị ném). */
+  const [hitClusters, setHitClusters] = useState<
+    { id: number; emoji: string; at: Pt }[]
+  >([]);
+
+  // Đo tâm avatar trong VersusBar (viewport px). Avatar để trong .st-vbar-av.me/.opp.
+  const avatarCenter = useCallback((side: "me" | "opp"): Pt => {
+    const el = document.querySelector(`.st-vbar-av.${side}`);
+    if (el) {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+    // Fallback: góc trên-trái (me) / trên-phải (opp)
+    const w = window.innerWidth;
+    return { x: side === "me" ? w * 0.12 : w * 0.88, y: 56 };
+  }, []);
+
+  // Rung nhẹ thanh điểm khi trúng đòn — retrigger được khi bị ném liên tiếp,
+  // không remount VersusBar (tránh nháy avatar).
+  const triggerShake = useCallback(() => {
+    const el = vbarRef.current;
+    if (!el) return;
+    el.classList.remove("st-hit-shake");
+    void el.offsetWidth; // force reflow để chạy lại animation
+    el.classList.add("st-hit-shake");
+  }, []);
+
   // ---- Tái đấu (phòng mời) ----
   const isInvite = !!navState?.roomId;
   const isGuest = user?.type === 'guest';
@@ -142,7 +185,7 @@ export function QuizArenaGamePage() {
   const oppData = amIPlayerA ? playerBData : playerAData;
 
   // ---- Socket ----
-  const { joinSession, submitAnswer } = useQuizArenaSocket({
+  const { joinSession, submitAnswer, sendEmoji } = useQuizArenaSocket({
     sessionId: navState?.sessionId ?? "",
     userId,
     onCountdown: useCallback(
@@ -173,7 +216,32 @@ export function QuizArenaGamePage() {
       console.warn("[QuizArena] Opponent disconnected");
     }, []),
     onNoQuestions: useCallback(() => setNoQuestions(), [setNoQuestions]),
+    // Bị đối thủ thả emoji: cụm bong bóng đè lên avatar đối thủ + rung nhẹ.
+    onEmojiReceived: useCallback(
+      (emoji: string) => {
+        const id = ++effectIdRef.current;
+        const at = avatarCenter("opp");
+        setHitClusters((list) => [...list, { id, emoji, at }]);
+        triggerShake();
+      },
+      [triggerShake, avatarCenter],
+    ),
   });
+
+  // Ném emoji sang đối thủ: gửi server + emoji bay theo quỹ đạo vật lý từ avatar
+  // mình sang avatar đối thủ (lạc quan).
+  const handleThrowEmoji = useCallback(
+    (emoji: string) => {
+      sendEmoji(emoji);
+      const id = ++effectIdRef.current;
+      const from = avatarCenter("me");
+      const to = avatarCenter("opp");
+      // Xoay đa dạng theo id (đổi chiều), không phụ thuộc random
+      const spin = (id % 2 === 0 ? 1 : -1) * (460 + (id % 3) * 160);
+      setFlyingEmojis((list) => [...list, { id, emoji, from, to, spin }]);
+    },
+    [sendEmoji, avatarCenter],
+  );
 
   // ---- Phòng mời: giữ kết nối phòng xuyên suốt ván để hỗ trợ Tái đấu ----
   const handleRematchStart = useCallback(
@@ -659,6 +727,13 @@ export function QuizArenaGamePage() {
     ? KEYS.map((k, i) => ({ key: k, label: currentQuestion.options[i] }))
     : [];
 
+  // ---- Emoji khiêu khích (config snapshot của trận) ----
+  const emojiPalette = session.config.emojiPalette ?? [];
+  const showEmojiStrip =
+    !!session.config.emojiEnabled &&
+    emojiPalette.length > 0 &&
+    (phase === "answering" || phase === "waiting" || phase === "revealing");
+
   return (
     <GameCanvas
       className="quiz-arena-page no-top"
@@ -673,15 +748,20 @@ export function QuizArenaGamePage() {
         confirmMessage="Bạn đang trong trận. Thoát bây giờ có thể bị xử thua. Bạn có chắc không?"
       />
 
-      {/* Top scorebar */}
-      <VersusBar
-        me={{ name: myData?.name, avatar: myData?.avatar, score: meScore }}
-        opponent={{
-          name: oppData?.name,
-          avatar: oppData?.avatar,
-          score: oppScore,
-        }}
-      />
+      {/* Top scorebar (rung nhẹ khi bị ném emoji) */}
+      <div
+        ref={vbarRef}
+        onAnimationEnd={() => vbarRef.current?.classList.remove("st-hit-shake")}
+      >
+        <VersusBar
+          me={{ name: myData?.name, avatar: myData?.avatar, score: meScore }}
+          opponent={{
+            name: oppData?.name,
+            avatar: oppData?.avatar,
+            score: oppScore,
+          }}
+        />
+      </div>
 
       {/* Progress */}
       <MatchProgress current={qIndex + 1} total={totalQ} mePips={mePips} />
@@ -698,6 +778,15 @@ export function QuizArenaGamePage() {
             padding: "0 16px",
           }}
         >
+          {/* Dải emoji khiêu khích — nằm NGAY TRÊN thẻ câu hỏi */}
+          {showEmojiStrip && (
+            <EmojiStrip
+              emojis={emojiPalette}
+              cooldownMs={session.config.emojiCooldownMs ?? 3000}
+              onPick={handleThrowEmoji}
+            />
+          )}
+
           <QuestionCard
             index={qIndex + 1}
             total={totalQ}
@@ -740,6 +829,49 @@ export function QuizArenaGamePage() {
           )}
         </div>
       )}
+
+      {/* ── Lớp hiệu ứng emoji (overflow:hidden → không tràn màn hình) ── */}
+      <div className="st-fx-layer" aria-hidden>
+        {/* Emoji bay quỹ đạo vật lý: mình → đối thủ; tới nơi thì kích nổ tại chỗ đối thủ */}
+        {flyingEmojis.map((f) => (
+          <FlyingEmoji
+            key={f.id}
+            emoji={f.emoji}
+            from={f.from}
+            to={f.to}
+            spin={f.spin}
+            onDone={() => {
+              setFlyingEmojis((list) => list.filter((x) => x.id !== f.id));
+              const bid = ++effectIdRef.current;
+              setThrowBursts((list) => [...list, { id: bid, emoji: f.emoji, at: f.to }]);
+            }}
+          />
+        ))}
+
+        {/* Nổ tại chỗ đối thủ (màn người ném) */}
+        {throwBursts.map((b) => (
+          <EmojiThrowBurst
+            key={b.id}
+            emoji={b.emoji}
+            at={b.at}
+            onDone={() =>
+              setThrowBursts((list) => list.filter((x) => x.id !== b.id))
+            }
+          />
+        ))}
+
+        {/* Cụm bong bóng đè lên avatar đối thủ (màn người bị ném) */}
+        {hitClusters.map((h) => (
+          <EmojiHitCluster
+            key={h.id}
+            emoji={h.emoji}
+            at={h.at}
+            onDone={() =>
+              setHitClusters((list) => list.filter((x) => x.id !== h.id))
+            }
+          />
+        ))}
+      </div>
     </GameCanvas>
   );
 }

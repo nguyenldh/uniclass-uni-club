@@ -80,6 +80,43 @@ export interface QuizArenaConfig {
    * VD 2 → host thắng nhận điểm ×2. Set 1 để không nhân. Chỉ áp dụng cho host, chỉ khi thắng.
    */
   inviteHostWinMultiplier: number;
+  /**
+   * Chống gian lận phòng mời: chặn 2 người chơi CÙNG THIẾT BỊ/MÁY (default: true).
+   * Dựa trên browser fingerprint + IP để phát hiện "tự tạo tài khoản mới tự chơi với mình".
+   * Tắt nếu môi trường dùng máy chung (phòng máy, thiết bị dùng chung).
+   */
+  inviteBlockSameDevice: boolean;
+  /**
+   * Bật/tắt tính năng thả emoji khiêu khích trong trận (default: true).
+   */
+  emojiEnabled: boolean;
+  /**
+   * Danh sách emoji khiêu khích admin cấu hình (default: DEFAULT_PROVOKE_EMOJIS).
+   * Người chơi chỉ được thả emoji nằm trong danh sách này.
+   */
+  emojiPalette: string[];
+  /**
+   * Cooldown giữa 2 lần thả emoji của cùng một người chơi (ms, default: 3000).
+   * Set 0 để không giới hạn tốc độ (không khuyến nghị).
+   */
+  emojiCooldownMs: number;
+}
+
+// ---- Emoji khiêu khích ----
+
+/** Client → Server: thả 1 emoji sang đối thủ */
+export interface QuizEmojiPayload {
+  sessionId: string;
+  /** Emoji được chọn — phải nằm trong config.emojiPalette */
+  emoji: string;
+}
+
+/** Server → Client (người bị ném): đối thủ vừa thả emoji sang mình */
+export interface QuizEmojiReceived {
+  /** Emoji đối thủ đã thả */
+  emoji: string;
+  /** userId của người thả */
+  fromUserId: string;
 }
 
 // ---- Question ----

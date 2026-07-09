@@ -12,6 +12,8 @@ import {
   Slider,
   Divider,
   Modal,
+  Switch,
+  Select,
 } from 'antd';
 import { SaveOutlined, ClearOutlined, SyncOutlined } from '@ant-design/icons';
 import { useConfigStore } from '../../stores/config.store';
@@ -164,6 +166,65 @@ export function QuizArenaConfigPage() {
             tooltip="Người tạo phòng (mời bạn) khi THẮNG sẽ nhận điểm × hệ số này. VD 2 → ×2 điểm. Đặt 1 để không nhân. Chỉ áp dụng cho người mời, không áp dụng cho người được mời."
           >
             <InputNumber min={1} max={10} step={0.5} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="inviteBlockSameDevice"
+            label="Chặn 2 người chơi cùng thiết bị"
+            valuePropName="checked"
+            tooltip="Chống gian lận: chặn việc tự tạo tài khoản mới rồi tự chơi với mình trên cùng một máy (dựa trên browser fingerprint + IP). Tắt nếu học sinh dùng máy chung (phòng máy, thiết bị dùng chung)."
+          >
+            <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
+          </Form.Item>
+
+          {/* Section: Emoji khiêu khích */}
+          <Divider orientation="left">Emoji khiêu khích</Divider>
+
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Trong trận, người chơi có thể thả emoji để khiêu khích đối thủ. Người bị ném
+            sẽ thấy hiệu ứng nhưng không bị cản trở việc trả lời câu hỏi.
+          </Text>
+
+          <Form.Item
+            name="emojiEnabled"
+            label="Bật tính năng thả emoji"
+            valuePropName="checked"
+            tooltip="Tắt để ẩn hoàn toàn nút thả emoji trong trận So Tài"
+          >
+            <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
+          </Form.Item>
+
+          <Form.Item
+            name="emojiCooldownMs"
+            label="Thời gian chờ giữa 2 lần thả (ms)"
+            rules={[{ required: true, message: 'Bắt buộc' }]}
+            tooltip="Khoảng thời gian tối thiểu giữa 2 lần thả emoji của cùng một người chơi (chống spam). VD 3000 = 3 giây."
+          >
+            <InputNumber min={0} max={60000} step={500} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="emojiPalette"
+            label="Danh sách emoji"
+            rules={[
+              { required: true, message: 'Cần ít nhất 1 emoji' },
+              {
+                validator: (_, value) =>
+                  Array.isArray(value) && value.length > 0
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('Cần ít nhất 1 emoji')),
+              },
+            ]}
+            tooltip="Nhập từng emoji rồi nhấn Enter để thêm. Chỉ những emoji trong danh sách này mới được phép thả."
+          >
+            <Select
+              mode="tags"
+              tokenSeparators={[' ', ',']}
+              placeholder="Nhập emoji rồi nhấn Enter (vd: 😜 🤪 🔥)"
+              style={{ width: '100%' }}
+              open={false}
+              suffixIcon={null}
+            />
           </Form.Item>
 
           {/* Section: Matchmaking */}

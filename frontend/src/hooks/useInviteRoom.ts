@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { INVITE_ROOM_SOCKET_EVENTS } from '@uniclub/shared';
 import type { InviteRoom, MatchmakingGameType } from '@uniclub/shared';
+import { getDeviceFingerprint, getDeviceClass } from '../utils/fingerprint';
 
 export interface InviteRoomStartPayload {
   sessionId: string;
@@ -69,8 +70,14 @@ export function useInviteRoom({
   onClosedRef.current = onClosed;
   identityRef.current = { userId, displayName, grade, avatar, gameType };
 
-  // Emit theo intent (dùng cho lần đầu và mỗi lần reconnect)
-  const emitIntent = useCallback(() => {
+  // Emit theo intent (dùng cho lần đầu và mỗi lần reconnect).
+  // Bất đồng bộ: chờ fingerprint (FingerprintJS) sẵn sàng rồi mới emit, để server
+  // luôn có dữ liệu chống gian lận. Kết quả fingerprint được cache nên chỉ chậm lần đầu.
+  const emitIntent = useCallback(async () => {
+    if (!socketRef.current?.connected || !intentRef.current) return;
+    const fingerprint = await getDeviceFingerprint();
+    const deviceClass = getDeviceClass();
+    // Sau await: xác thực lại socket & intent (có thể đã đổi/ngắt)
     const socket = socketRef.current;
     const intent = intentRef.current;
     if (!socket || !socket.connected || !intent) return;
@@ -82,6 +89,8 @@ export function useInviteRoom({
         grade: id.grade,
         avatar: id.avatar,
         gameType: id.gameType,
+        fingerprint,
+        deviceClass,
       });
     } else {
       socket.emit(INVITE_ROOM_SOCKET_EVENTS.JOIN, {
@@ -90,12 +99,16 @@ export function useInviteRoom({
         displayName: id.displayName,
         grade: id.grade,
         avatar: id.avatar,
+        fingerprint,
+        deviceClass,
       });
     }
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
+    // Warm cache fingerprint sớm để lần emit đầu không bị chờ
+    void getDeviceFingerprint();
     const socket = io(import.meta.env.VITE_SOCKET_URL || '/', {
       transports: ['websocket'],
       reconnection: true,

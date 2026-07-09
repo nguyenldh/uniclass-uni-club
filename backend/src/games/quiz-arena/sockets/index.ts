@@ -4,7 +4,7 @@
 
 import type { Socket, Server } from 'socket.io';
 import { QuizArenaService } from '../services/quiz-arena.service';
-import { QUIZ_ARENA_SOCKET_EVENTS, SOCKET_EVENTS } from '@uniclub/shared';
+import { QUIZ_ARENA_SOCKET_EVENTS, QUIZ_ARENA_REDIS_KEYS, SOCKET_EVENTS } from '@uniclub/shared';
 import { SocketRegistry, TimerQueueService } from '../../../services';
 import { redis } from '../../../config/index';
 
@@ -133,6 +133,50 @@ export function registerQuizArenaHandlers(io: Server, socket: Socket): void {
         }
 
         await QuizArenaService.submitAnswer(sessionId, userId, selectedIndex, io);
+      } catch (error: any) {
+        socket.emit(SOCKET_EVENTS.ERROR, { message: error.message });
+      }
+    },
+  );
+
+  // ============================================================
+  // Emoji khiêu khích — thả 1 emoji sang đối thủ
+  // ============================================================
+
+  socket.on(
+    QUIZ_ARENA_SOCKET_EVENTS.EMOJI,
+    async (data: { sessionId: string; emoji: string }) => {
+      try {
+        const { sessionId, emoji } = data ?? {};
+        const userId: string | undefined = socket.data.userId;
+        if (!sessionId || !userId || !emoji) return;
+
+        const session = await QuizArenaService.getSession(sessionId);
+        // Chỉ cho thả khi trận đang diễn ra
+        if (!session || session.status !== 'playing') return;
+
+        // Chỉ người trong trận mới được thả
+        if (userId !== session.playerA && userId !== session.playerB) return;
+
+        const cfg = session.config;
+        // Tôn trọng cấu hình snapshot của trận (bật/tắt + palette hợp lệ)
+        if (!cfg?.emojiEnabled) return;
+        if (!Array.isArray(cfg.emojiPalette) || !cfg.emojiPalette.includes(emoji)) return;
+
+        // Cooldown per người chơi (chống spam — server là nguồn sự thật)
+        const cooldownMs = Math.max(0, cfg.emojiCooldownMs ?? 0);
+        if (cooldownMs > 0) {
+          const key = `${QUIZ_ARENA_REDIS_KEYS.EMOJI_COOLDOWN}:${sessionId}:${userId}`;
+          const ok = await redis.set(key, '1', 'PX', cooldownMs, 'NX');
+          if (!ok) return; // đang trong cooldown → bỏ qua im lặng
+        }
+
+        // Gửi tới đối thủ: mọi socket khác trong room (= đối thủ trong trận 1v1).
+        // Trận với Bot: bot không có socket → không ai nhận (đúng thiết kế).
+        socket.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.EMOJI_RECEIVED, {
+          emoji,
+          fromUserId: userId,
+        });
       } catch (error: any) {
         socket.emit(SOCKET_EVENTS.ERROR, { message: error.message });
       }

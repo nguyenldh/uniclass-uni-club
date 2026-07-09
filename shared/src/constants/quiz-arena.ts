@@ -24,6 +24,11 @@ export const QUIZ_ARENA_REDIS_KEYS = {
   UNICLASS_SYNC_RETRY: 'quiz-arena:uniclass-sync:retry',
   /** Pending matchmaking context: quiz-arena:pending-context:<userId> */
   PENDING_CONTEXT: 'quiz-arena:pending-context',
+  /**
+   * Cooldown thả emoji per người chơi per trận:
+   * quiz-arena:emoji-cooldown:<sessionId>:<userId> (TTL = config.emojiCooldownMs)
+   */
+  EMOJI_COOLDOWN: 'quiz-arena:emoji-cooldown',
 } as const;
 
 // ---- Socket events ----
@@ -71,7 +76,36 @@ export const QUIZ_ARENA_SOCKET_EVENTS = {
    * Payload: { sessionId: string; grade: number }
    */
   NO_QUESTIONS: 'quiz-arena:no-questions',
+  /**
+   * Client → Server: thả 1 emoji khiêu khích sang đối thủ.
+   * Payload: QuizEmojiPayload { sessionId, emoji }
+   */
+  EMOJI: 'quiz-arena:emoji',
+  /**
+   * Server → Client (người bị ném): đối thủ vừa thả emoji.
+   * Payload: QuizEmojiReceived { emoji, fromUserId }
+   */
+  EMOJI_RECEIVED: 'quiz-arena:emoji-received',
 } as const;
+
+// ---- Emoji khiêu khích ----
+
+/**
+ * Bộ emoji khiêu khích mặc định (admin có thể chỉnh trong CMS).
+ * Chọn các emoji vui, mang tính trêu chọc nhẹ nhàng — phù hợp môi trường học đường.
+ */
+export const DEFAULT_PROVOKE_EMOJIS = [
+  '😜',
+  '😝',
+  '🤪',
+  '😎',
+  '😏',
+  '😂',
+  '🤣',
+  '🥱',
+  '🔥',
+  '👀',
+] as const;
 
 // ---- Default config ----
 
@@ -93,6 +127,10 @@ export const DEFAULT_QUIZ_ARENA_CONFIG: QuizArenaConfig = {
   nextQuestionDelayMs: 3000,
   maxGamesPerRoom: 3,
   inviteHostWinMultiplier: 2,
+  inviteBlockSameDevice: true,
+  emojiEnabled: true,
+  emojiPalette: [...DEFAULT_PROVOKE_EMOJIS],
+  emojiCooldownMs: 3000,
 };
 
 // ---- Bot profiles ----

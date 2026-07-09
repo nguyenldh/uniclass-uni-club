@@ -38,6 +38,8 @@ export const INVITE_ROOM_ERROR_CODES = {
   SELF_JOIN: 'ROOM_SELF_JOIN',
   NO_QUESTIONS: 'ROOM_NO_QUESTIONS',
   LIMIT_REACHED: 'ROOM_LIMIT_REACHED',
+  /** Phát hiện guest dùng cùng thiết bị/máy với host (chống tự chơi với mình) */
+  SAME_DEVICE: 'ROOM_SAME_DEVICE',
 } as const;
 
 /** Lý do đóng phòng */

@@ -29,6 +29,21 @@ export interface InviteRoomMember {
    * Cập nhật mỗi lần join/ready. Không dùng ở client.
    */
   socketId?: string;
+  /**
+   * (Server-only) Vân tay TRÌNH DUYỆT (browser fingerprint) — bắt nhân bản trên
+   * cùng trình duyệt. Được LƯỢC BỎ trước khi broadcast cho client.
+   */
+  fingerprint?: string;
+  /**
+   * (Server-only) "Device class" — đặc trưng phần cứng độc lập trình duyệt.
+   * Kết hợp IP để bắt "cùng máy khác trình duyệt". Được LƯỢC BỎ trước khi broadcast.
+   */
+  deviceClass?: string;
+  /**
+   * (Server-only) IP nguồn — kết hợp fingerprint/deviceClass để xác định "cùng một máy".
+   * Được LƯỢC BỎ trước khi broadcast cho client.
+   */
+  ip?: string;
 }
 
 /** Phòng mời — lưu trong Redis, sống xuyên nhiều ván (tái đấu) */
@@ -42,6 +57,11 @@ export interface InviteRoom {
   gamesPlayed: number;
   /** Tổng số ván tối đa (tính cả ván đầu) — lấy từ config game */
   maxGames: number;
+  /**
+   * Chặn 2 người chơi cùng thiết bị (snapshot config lúc tạo phòng).
+   * Khi bật, guest có fingerprint trùng host (và không phải khác IP) sẽ bị từ chối join.
+   */
+  blockSameDevice?: boolean;
   /** Session game đang chạy (chỉ khi status = in_game) */
   currentSessionId?: string;
   /** Thời điểm tạo (ms) */

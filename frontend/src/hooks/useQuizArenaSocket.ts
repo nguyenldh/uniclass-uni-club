@@ -28,6 +28,8 @@ export interface UseQuizArenaSocketOptions {
   onOpponentDisconnected: (userId: string) => void;
   /** Called when grade has no questions → show "no questions" screen */
   onNoQuestions: () => void;
+  /** Called when opponent throws a provoke emoji at me */
+  onEmojiReceived: (emoji: string, fromUserId: string) => void;
 }
 
 export interface QuizArenaSocketActions {
@@ -35,6 +37,8 @@ export interface QuizArenaSocketActions {
   joinSession: () => void;
   /** Emit selected answer (index 0-3) or null for timeout/skip */
   submitAnswer: (selectedIndex: number | null) => void;
+  /** Emit a provoke emoji thrown at the opponent */
+  sendEmoji: (emoji: string) => void;
 }
 
 export function useQuizArenaSocket({
@@ -48,6 +52,7 @@ export function useQuizArenaSocket({
   onGameEnd,
   onOpponentDisconnected,
   onNoQuestions,
+  onEmojiReceived,
 }: UseQuizArenaSocketOptions): QuizArenaSocketActions {
   const socketRef = useRef<Socket | null>(null);
   /** Track if joinSession was called so we can re-emit on reconnect */
@@ -62,6 +67,7 @@ export function useQuizArenaSocket({
   const onGameEndRef = useRef(onGameEnd);
   const onOpponentDisconnectedRef = useRef(onOpponentDisconnected);
   const onNoQuestionsRef = useRef(onNoQuestions);
+  const onEmojiReceivedRef = useRef(onEmojiReceived);
 
   onCountdownRef.current = onCountdown;
   onQuestionRef.current = onQuestion;
@@ -71,6 +77,7 @@ export function useQuizArenaSocket({
   onGameEndRef.current = onGameEnd;
   onOpponentDisconnectedRef.current = onOpponentDisconnected;
   onNoQuestionsRef.current = onNoQuestions;
+  onEmojiReceivedRef.current = onEmojiReceived;
 
   useEffect(() => {
     const socket = io(import.meta.env.VITE_SOCKET_URL || '/', {
@@ -141,6 +148,13 @@ export function useQuizArenaSocket({
       onNoQuestionsRef.current();
     });
 
+    socket.on(
+      QUIZ_ARENA_SOCKET_EVENTS.EMOJI_RECEIVED,
+      (data: { emoji: string; fromUserId: string }) => {
+        onEmojiReceivedRef.current(data.emoji, data.fromUserId);
+      },
+    );
+
     return () => {
       console.log('[QuizArenaSocket] Disconnecting');
       socket.disconnect();
@@ -163,5 +177,12 @@ export function useQuizArenaSocket({
     [sessionId],
   );
 
-  return { joinSession, submitAnswer };
+  const sendEmoji = useCallback(
+    (emoji: string) => {
+      socketRef.current?.emit(QUIZ_ARENA_SOCKET_EVENTS.EMOJI, { sessionId, emoji });
+    },
+    [sessionId],
+  );
+
+  return { joinSession, submitAnswer, sendEmoji };
 }

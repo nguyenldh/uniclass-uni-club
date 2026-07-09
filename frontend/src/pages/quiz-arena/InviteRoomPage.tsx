@@ -21,6 +21,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   ROOM_FULL: 'Phòng đã đủ người.',
   ROOM_EXPIRED: 'Phòng đã đóng.',
   ROOM_SELF_JOIN: 'Bạn không thể tự tham gia phòng của chính mình.',
+  ROOM_SAME_DEVICE:
+    'Không thể tham gia trận đấu này vì phát hiện bạn đang dùng cùng thiết bị với người mời.',
 };
 
 export function InviteRoomPage() {

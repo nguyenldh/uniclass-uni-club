@@ -1187,3 +1187,215 @@
 @media (prefers-reduced-motion: reduce) {
   .st-btn-ribbon > .st-ribbon { animation: none; }
 }
+
+/* =====================================================================
+   EMOJI KHIÊU KHÍCH (provoke)
+   - EmojiStrip: dải chọn emoji căn giữa, ngay trên phần đáp án (vuốt/nav)
+   - Emoji bay vòng cung (người ném) + nổ tại đối thủ
+   - Cụm bong bóng đè avatar đối thủ (người bị ném)
+   Lớp .st-fx-layer overflow:hidden + pointer-events:none → không tràn màn
+   hình, không cản trả lời.
+===================================================================== */
+
+/* ---- Dải chọn emoji (đặt trong QuestionCard, trên đáp án) ---- */
+.st-emoji-strip-wrap{
+  position: relative;
+  display: flex; align-items: center; gap: 4px;
+  margin: 2px 0 8px;
+  min-height: 40px;
+}
+.st-emoji-strip{
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto; scroll-behavior: smooth;
+  flex: 1;
+  padding: 3px 2px;
+  justify-content: center;          /* căn giữa khi vừa; tràn thì cuộn */
+  scrollbar-width: none;            /* ẩn scrollbar (Firefox) */
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.st-emoji-strip::-webkit-scrollbar{ display: none; }
+.st-emoji-chip{
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; line-height: 1;
+  border: 1.5px solid rgba(110,63,23,.14);
+  border-radius: 12px;
+  background: rgba(255,255,255,.55);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  cursor: pointer;
+  scroll-snap-align: center;
+  transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.st-emoji-chip:hover{ background:#fff; transform: translateY(-2px) scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,.16); }
+.st-emoji-chip:active{ transform: scale(.88); }
+.st-emoji-chip:disabled{ cursor: default; }
+
+/* Nút prev/next khi tràn */
+.st-emoji-nav{
+  flex: 0 0 auto;
+  width: 26px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 900; line-height: 1;
+  color: var(--st-me-2, #e8530e);
+  border: none; border-radius: 10px;
+  background: rgba(232,83,14,.10);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.st-emoji-nav:active{ background: rgba(232,83,14,.22); }
+
+/* Cooldown: mờ + pill đếm ngược */
+.st-emoji-strip-wrap.is-cooling .st-emoji-strip,
+.st-emoji-strip-wrap.is-disabled .st-emoji-strip{ opacity: .45; filter: grayscale(.4); }
+.st-emoji-cool-pill{
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 3px 12px;
+  font-family: var(--f-game); font-weight: 900; font-size: 14px;
+  color: #fff; background: rgba(26,31,43,.9);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  pointer-events: none;
+}
+
+/* ---- Lớp hiệu ứng (bao trọn viewport, cắt phần tràn) ---- */
+.st-fx-layer{
+  position: fixed; inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 60;
+}
+
+/* ---- Emoji bay theo QUỸ ĐẠO VẬT LÝ: avatar mình → avatar đối thủ ----
+   3 lớp lồng nhau, cùng thời lượng 760ms:
+   - .st-fly   : trượt ngang tốc độ đều (linear) — vận tốc ngang không đổi
+   - .st-fly-y : rơi theo parabol trọng lực (vị trí lấy mẫu đều theo thời gian
+                 = đúng chuyển động dưới trọng lực), võng xuống vùng chơi
+   - .st-fly-r : xoay tít + phồng/xẹp như vật thể thật
+   Neo tại toạ độ (left/top) tâm avatar mình, dịch bằng --dx/--dy/--apex.       */
+.st-fly{
+  position: absolute; left: 0; top: 0;
+  will-change: transform;
+  animation: st-throw-x 760ms linear forwards;
+}
+@keyframes st-throw-x{
+  from{ transform: translate(-50%, -50%) translateX(0); }
+  to{   transform: translate(-50%, -50%) translateX(var(--dx)); }
+}
+.st-fly-y{
+  display: inline-block;
+  will-change: transform;
+  animation: st-throw-y 760ms linear forwards;
+}
+@keyframes st-throw-y{
+  0%{   transform: translateY(calc(var(--dy) * 0    - var(--apex) * 0));    }
+  10%{  transform: translateY(calc(var(--dy) * 0.1  - var(--apex) * 0.36)); }
+  20%{  transform: translateY(calc(var(--dy) * 0.2  - var(--apex) * 0.64)); }
+  30%{  transform: translateY(calc(var(--dy) * 0.3  - var(--apex) * 0.84)); }
+  40%{  transform: translateY(calc(var(--dy) * 0.4  - var(--apex) * 0.96)); }
+  50%{  transform: translateY(calc(var(--dy) * 0.5  - var(--apex) * 1));    }
+  60%{  transform: translateY(calc(var(--dy) * 0.6  - var(--apex) * 0.96)); }
+  70%{  transform: translateY(calc(var(--dy) * 0.7  - var(--apex) * 0.84)); }
+  80%{  transform: translateY(calc(var(--dy) * 0.8  - var(--apex) * 0.64)); }
+  90%{  transform: translateY(calc(var(--dy) * 0.9  - var(--apex) * 0.36)); }
+  100%{ transform: translateY(calc(var(--dy) * 1    - var(--apex) * 0));    }
+}
+.st-fly-r{
+  display: inline-block;
+  font-size: 38px; line-height: 1;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.45));
+  will-change: transform, opacity;
+  animation: st-throw-r 760ms linear forwards;
+}
+@keyframes st-throw-r{
+  0%{   transform: rotate(0deg) scale(.45);                  opacity: 0; }
+  10%{  transform: rotate(calc(var(--spin) * 0.10)) scale(1.15); opacity: 1; }
+  50%{  transform: rotate(calc(var(--spin) * 0.50)) scale(1.0);  opacity: 1; }
+  88%{  transform: rotate(calc(var(--spin) * 0.88)) scale(.95);  opacity: 1; }
+  100%{ transform: rotate(var(--spin)) scale(.72);           opacity: 0; }
+}
+
+/* Nổ khi emoji ném tới (màn người ném) — neo tại toạ độ đối thủ (left/top inline) */
+.st-tb{ position: absolute; }
+.st-tb-emoji{
+  position: absolute; left: 0; top: 0;
+  font-size: 50px; line-height: 1;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 5px 8px rgba(0,0,0,.5));
+  animation: st-tb 560ms cubic-bezier(.2,1.3,.4,1) forwards;
+}
+@keyframes st-tb{
+  0%{   transform: translate(-50%,-50%) scale(.3)  rotate(-12deg); opacity: 0; }
+  30%{  transform: translate(-50%,-50%) scale(1.4) rotate(8deg);   opacity: 1; }
+  55%{  transform: translate(-50%,-50%) scale(1.0) rotate(-2deg);  opacity: 1; }
+  100%{ transform: translate(-50%,-64%) scale(.85) rotate(0deg);   opacity: 0; }
+}
+.st-tb-ring{
+  position: absolute; left: 0; top: 0;
+  width: 34px; height: 34px; margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,214,102,.9);
+  animation: st-tb-ring 600ms ease-out forwards;
+}
+@keyframes st-tb-ring{
+  0%{ transform: scale(.3); opacity: .9; }
+  100%{ transform: scale(3.2); opacity: 0; }
+}
+
+/* ---- Cụm bong bóng đè lên avatar đối thủ (màn người bị ném) ----
+   Neo tại toạ độ tâm avatar đối thủ (left/top inline); bong bóng spread rộng. */
+.st-hitc{ position: absolute; left: 0; top: 0; }
+.st-hitc-bubble{
+  position: absolute; left: 0; top: 0;
+  line-height: 1;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,.4));
+  transform-origin: center;
+  opacity: 0;
+  animation: st-hitc-pop 1400ms cubic-bezier(.2,.8,.3,1) forwards;
+}
+/* Bong bóng nổi lên rồi nổ — giữ offset (--dx/--dy), trôi lên (--rise) khi scale */
+@keyframes st-hitc-pop{
+  0%{   transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))                       scale(0);    opacity: 0; }
+  22%{  transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) - var(--rise) * 0.3))    scale(1.1);  opacity: 1; }
+  70%{  transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) - var(--rise) * 0.8))    scale(1.0);  opacity: 1; }
+  100%{ transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) - var(--rise)))          scale(1.5);  opacity: 0; }
+}
+
+/* Emoji giữa (to nhất) — lắc nhẹ gây chú ý */
+.st-hitc-center{
+  position: absolute; left: 0; top: 0;
+  font-size: 56px; line-height: 1;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.5));
+  animation: st-hitc-center 1500ms ease-in-out forwards;
+}
+@keyframes st-hitc-center{
+  0%{   transform: translate(-50%,-50%) scale(0)   rotate(-10deg); opacity: 0; }
+  18%{  transform: translate(-50%,-50%) scale(1.2) rotate(8deg);   opacity: 1; }
+  32%{  transform: translate(-50%,-50%) scale(1.0) rotate(-8deg);  opacity: 1; }
+  46%{  transform: translate(-50%,-50%) scale(1.06) rotate(8deg);  opacity: 1; }
+  60%{  transform: translate(-50%,-50%) scale(1.0) rotate(-6deg);  opacity: 1; }
+  74%{  transform: translate(-50%,-50%) scale(1.05) rotate(6deg);  opacity: 1; }
+  100%{ transform: translate(-50%,-58%) scale(1.25) rotate(0deg);  opacity: 0; }
+}
+
+/* Rung nhẹ thanh điểm khi trúng đòn */
+.st-hit-shake{ animation: st-hit-shake 460ms cubic-bezier(.36,.07,.19,.97); }
+@keyframes st-hit-shake{
+  0%,100%{ transform: translateX(0); }
+  15%{ transform: translateX(-6px) rotate(-.6deg); }
+  30%{ transform: translateX(6px) rotate(.6deg); }
+  45%{ transform: translateX(-4px); }
+  60%{ transform: translateX(4px); }
+  75%{ transform: translateX(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .st-fly, .st-fly-y, .st-fly-r, .st-tb-emoji, .st-tb-ring,
+  .st-hitc-bubble, .st-hitc-center, .st-hit-shake{
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+  }
+}

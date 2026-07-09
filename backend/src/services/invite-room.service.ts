@@ -26,6 +26,12 @@ export interface InviteRoomMemberInput {
   grade?: number;
   /** Socket id hiện tại (để emit START đúng socket phòng) */
   socketId?: string;
+  /** Vân tay TRÌNH DUYỆT (browser fingerprint) */
+  fingerprint?: string;
+  /** Device class — đặc trưng phần cứng độc lập trình duyệt */
+  deviceClass?: string;
+  /** IP nguồn (server đọc từ socket handshake) */
+  ip?: string;
 }
 
 /** Lỗi nghiệp vụ của phòng — mang theo `code` để client hiển thị đúng */
@@ -35,6 +41,42 @@ export class InviteRoomError extends Error {
     super(message);
     this.code = code;
   }
+}
+
+type DeviceSignals = { fingerprint?: string; deviceClass?: string; ip?: string };
+
+/**
+ * Xác định 2 định danh có phải "cùng một máy" không (chống tự chơi với mình).
+ * Kết hợp 2 tín hiệu để bắt cả 2 kiểu gian lận mà vẫn hạn chế false-positive:
+ *
+ * 1) Cùng TRÌNH DUYỆT (nhân bản tab/ẩn danh/đăng nhập 2 acc): fingerprint trùng.
+ *    - Trừ khi biết rõ cả 2 IP mà KHÁC nhau (vd 2 điện thoại cùng model khác mạng
+ *      cho ra fingerprint giống) → tha.
+ * 2) Cùng MÁY nhưng KHÁC trình duyệt (vd Chrome vs Edge): fingerprint khác nhau
+ *    nhưng deviceClass (phần cứng) trùng VÀ cùng IP.
+ *    - Yêu cầu cùng IP để không đụng 2 người dùng máy KHÁC nhau chung mạng
+ *      (device class của họ khác nhau nên đằng nào cũng không dính).
+ *
+ * Thiếu tín hiệu → fail-open (không kết luận) để tránh chặn nhầm.
+ */
+function isSameDevice(a: DeviceSignals, b: DeviceSignals): boolean {
+  // (1) Cùng trình duyệt
+  if (a.fingerprint && b.fingerprint && a.fingerprint === b.fingerprint) {
+    if (a.ip && b.ip && a.ip !== b.ip) return false; // khác mạng → coi như khác máy
+    return true;
+  }
+  // (2) Cùng máy khác trình duyệt: phần cứng trùng + cùng IP
+  if (
+    a.deviceClass &&
+    b.deviceClass &&
+    a.deviceClass === b.deviceClass &&
+    a.ip &&
+    b.ip &&
+    a.ip === b.ip
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export class InviteRoomService {
@@ -93,6 +135,7 @@ export class InviteRoomService {
     host: InviteRoomMemberInput,
     gameType: MatchmakingGameType,
     maxGames: number,
+    blockSameDevice = false,
   ): Promise<InviteRoom> {
     const hostId = String(host.userId);
     return withRedisLock(`lock:${this.hostKey(hostId)}`, async () => {
@@ -102,7 +145,14 @@ export class InviteRoomService {
         const existing = await this.getRoom(existingId);
         if (existing && existing.status !== 'closed') {
           const hostMember = existing.members.find((m) => m.isHost);
-          if (hostMember) hostMember.socketId = host.socketId ?? hostMember.socketId;
+          if (hostMember) {
+            hostMember.socketId = host.socketId ?? hostMember.socketId;
+            hostMember.fingerprint = host.fingerprint ?? hostMember.fingerprint;
+            hostMember.deviceClass = host.deviceClass ?? hostMember.deviceClass;
+            hostMember.ip = host.ip ?? hostMember.ip;
+          }
+          // Áp lại policy theo config hiện tại
+          existing.blockSameDevice = blockSameDevice;
           existing.expiresAt = Date.now() + EXPIRY_MS;
           await this.save(existing);
           return existing;
@@ -125,10 +175,14 @@ export class InviteRoomService {
             isHost: true,
             ready: false,
             socketId: host.socketId,
+            fingerprint: host.fingerprint,
+            deviceClass: host.deviceClass,
+            ip: host.ip,
           },
         ],
         gamesPlayed: 0,
         maxGames: Math.max(1, maxGames),
+        blockSameDevice,
         createdAt: now,
         expiresAt: now + EXPIRY_MS,
       };
@@ -155,9 +209,28 @@ export class InviteRoomService {
         existing.avatar = member.avatar ?? existing.avatar;
         existing.grade = member.grade ?? existing.grade;
         existing.socketId = member.socketId ?? existing.socketId;
+        existing.fingerprint = member.fingerprint ?? existing.fingerprint;
+        existing.deviceClass = member.deviceClass ?? existing.deviceClass;
+        existing.ip = member.ip ?? existing.ip;
       } else {
         if (room.members.length >= 2) {
           throw new InviteRoomError('ROOM_FULL', 'Phòng đã đủ người');
+        }
+        // Chống gian lận: guest MỚI không được cùng thiết bị/máy với thành viên đang có
+        if (room.blockSameDevice) {
+          const clash = room.members.some((m) =>
+            isSameDevice(m, {
+              fingerprint: member.fingerprint,
+              deviceClass: member.deviceClass,
+              ip: member.ip,
+            }),
+          );
+          if (clash) {
+            throw new InviteRoomError(
+              'ROOM_SAME_DEVICE',
+              'Không thể tham gia: bạn đang dùng cùng thiết bị với người mời.',
+            );
+          }
         }
         room.members.push({
           userId,
@@ -167,6 +240,9 @@ export class InviteRoomService {
           isHost: false,
           ready: false,
           socketId: member.socketId,
+          fingerprint: member.fingerprint,
+          deviceClass: member.deviceClass,
+          ip: member.ip,
         });
         // Đủ 2 người và chưa vào trận → chuyển sang chờ sẵn sàng
         if (room.members.length === 2 && room.status === 'waiting') {
