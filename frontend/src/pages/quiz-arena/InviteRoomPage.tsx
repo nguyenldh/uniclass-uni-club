@@ -23,6 +23,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   ROOM_SELF_JOIN: 'Bạn không thể tự tham gia phòng của chính mình.',
   ROOM_SAME_DEVICE:
     'Không thể tham gia trận đấu này vì phát hiện bạn đang dùng cùng thiết bị với người mời.',
+  ROOM_DISABLED: 'Tính năng thách đấu bạn bè hiện đang tạm tắt.',
 };
 
 export function InviteRoomPage() {
@@ -69,13 +70,21 @@ export function InviteRoomPage() {
     onClosed: (reason) => setClosedReason(reason),
   });
 
+  // Chỉ tự bắn lời mời khi vào phòng qua thao tác TẠO (bấm nút Mời bạn),
+  // không bắn khi join/F5/quay lại phòng.
+  const cameFromCreateRef = useRef(false);
+
   // Khởi tạo 1 lần: có roomId → guest join; không có → host tạo phòng
   const didInit = useRef(false);
   useEffect(() => {
     if (didInit.current || !userId) return;
     didInit.current = true;
-    if (roomIdParam) join(roomIdParam);
-    else create();
+    if (roomIdParam) {
+      join(roomIdParam);
+    } else {
+      cameFromCreateRef.current = true;
+      create();
+    }
   }, [userId, roomIdParam, join, create]);
 
   // Bắn lời mời ra parent app (mgm:invite) — parent xử lý chia sẻ link.
@@ -91,16 +100,23 @@ export function InviteRoomPage() {
     [user?.profileId, userId],
   );
 
-  // Tự động bắn 1 lần khi tạo/vào phòng thành công với vai trò host
-  const invitePostedRef = useRef<string | null>(null);
+  // Tự bắn lời mời 1 lần khi: vào phòng qua thao tác TẠO (bấm nút Mời bạn)
+  // VÀ phòng CHƯA có người chơi khác (guest). Nếu đã có guest → không bắn.
+  // Cũng không bắn khi F5/quay lại (đi nhánh join → cameFromCreateRef=false).
+  const autoInvitedRef = useRef(false);
   useEffect(() => {
     if (!room || !userId) return;
-    const meMember = room.members.find((m) => m.userId === userId);
-    if (!meMember?.isHost) return;
-    if (invitePostedRef.current === room.roomId) return;
-    invitePostedRef.current = room.roomId;
+    if (!cameFromCreateRef.current || autoInvitedRef.current) return;
+    const hasGuest = room.members.some((m) => m.userId !== userId);
+    if (hasGuest) return; // đã có client trong phòng → không bắn
+    autoInvitedRef.current = true;
     fireInvite(room);
-  }, [room, userId, fireInvite]);
+    // Đồng bộ URL với roomId để F5 sẽ JOIN lại phòng cũ (reconnect),
+    // không chạy lại create() → không bắn lại mgm:invite.
+    if (!roomIdParam) {
+      navigate(`/quiz-arena/room/${room.roomId}`, { replace: true });
+    }
+  }, [room, userId, fireInvite, roomIdParam, navigate]);
 
   const handleShare = () => {
     if (!room) return;

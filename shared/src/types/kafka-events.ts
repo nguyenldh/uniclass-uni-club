@@ -17,6 +17,16 @@ export interface ClubGameResultDto {
   profileId: string;
   /** Loại tài khoản: `user` (học sinh thường) hoặc `guest` (khách được mời) */
   type?: 'user' | 'guest';
+  /**
+   * ID phiên chơi vừa kết thúc. Dùng để UniClass đối soát/cộng điểm lại
+   * cho guest sau khi khách tạo tài khoản (matching theo session).
+   */
+  sessionId?: string;
+  /**
+   * ID phòng mời (chỉ có khi trận đến từ phòng mời bạn). Cùng `sessionId`
+   * giúp BE matching kết quả của guest về đúng trận sau khi tạo tài khoản.
+   */
+  roomId?: string;
   /** Loại game */
   gameType: KafkaGameType;
   /** Số UniPoint được cộng trực tiếp từ kết quả game */

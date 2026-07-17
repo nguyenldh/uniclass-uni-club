@@ -26,14 +26,20 @@ export function QuizArenaLobbyPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [checkingQuestions, setCheckingQuestions] = useState(false);
   const [inviteMultiplier, setInviteMultiplier] = useState<number | null>(null);
+  const [questionCount, setQuestionCount] = useState<number | null>(null);
+  // MGM (Thách đấu bạn bè) bật/tắt — mặc định bật cho tới khi có config.
+  const [inviteEnabled, setInviteEnabled] = useState(true);
 
-  // Lấy hệ số nhân điểm mời bạn (config) để hiển thị trên nút "Mời bạn bè"
+  // Lấy config: bật/tắt MGM + hệ số nhân điểm (nút Thách đấu) + số câu mỗi trận (chip sneak-peek)
   useEffect(() => {
     let cancelled = false;
     quizArenaApi
       .getConfig()
       .then((res) => {
-        if (!cancelled) setInviteMultiplier(res.config?.inviteHostWinMultiplier ?? null);
+        if (cancelled) return;
+        setInviteEnabled(res.config?.inviteEnabled ?? true);
+        setInviteMultiplier(res.config?.inviteHostWinMultiplier ?? null);
+        setQuestionCount(res.config?.questionsPerMatch ?? null);
       })
       .catch(() => {
         /* Không có config → nút hiển thị nhãn mặc định */
@@ -156,22 +162,25 @@ export function QuizArenaLobbyPage() {
       <Lobby
         ctaLabel="Ghép trận ngẫu nhiên"
         player={{ name: displayName, grade, avatar: user?.avatar }}
+        questionCount={questionCount ?? undefined}
+        gradeLevel={user?.grade}
         onFindMatch={handleFindMatch}
-        onInvite={() => navigate('/quiz-arena/room')}
+        onInvite={inviteEnabled ? () => navigate('/quiz-arena/room') : undefined}
         inviteLabel={
           inviteMultiplier && inviteMultiplier > 1 ? (
             <span className="st-invite-label">
-              👥 Mời bạn bè
+              Thách đấu bạn bè
               <span className="st-cup-badge">🏆 ×{inviteMultiplier} CÚP</span>
             </span>
           ) : (
-            '👥 Mời bạn bè'
+            'Thách đấu bạn bè'
           )
         }
         findMatchLoading={checkingQuestions}
         inviteExtra={
+          inviteEnabled ? (
           <GameButton
-            color="green"
+            color="ghost"
             size="md"
             onClick={() =>
               notifyUserReward({
@@ -185,6 +194,7 @@ export function QuizArenaLobbyPage() {
           >
             🎁 Thưởng
           </GameButton>
+          ) : undefined
         }
         topRight={<ExitButton from="/quiz-arena" className="st-exit-btn">Thoát</ExitButton>}
       />

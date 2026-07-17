@@ -23,7 +23,9 @@ function toRankEntry(
     avatar: entry.avatar,
     correctCount: entry.correctCountWeek,
     totalCorrectTimeSec: entry.totalCorrectTimeSec,
+    lastAchievedAt: entry.lastAchievedAt,
     pointsContributed: entry.pointsContributedWeek,
+    isTied: entry.isTied,
     meta: undefined, // backend không trả về class trong entry
     isMe: entry.studentId === myUserId,
   };
@@ -160,9 +162,11 @@ export function BossLeaderboardPage() {
           <GameButton size="sm" color="ghost" onClick={() => navigate('/boss-battle')}>
             Về sảnh
           </GameButton>
+          {/* Tạm ẩn nút Vinh danh ở client (khôi phục khi cần)
           <GameButton size="sm" color="ghost" onClick={handleViewHonor}>
             Vinh danh →
           </GameButton>
+          */}
         </div>
       }
     />

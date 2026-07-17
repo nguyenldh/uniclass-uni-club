@@ -20,6 +20,59 @@ function cacheKey(weekKey: string, gradeLevel: number): string {
   return `${BOSS_BATTLE_REDIS_KEYS.LEADERBOARD}:${weekKey}:${gradeLevel}`;
 }
 
+/**
+ * Thứ tự xếp hạng (4 tiêu chí):
+ *   (1) pointsContributedWeek desc  (2) correctCountWeek desc
+ *   (3) totalCorrectTimeSec asc (đến ms)  (4) lastAchievedAt asc
+ * Đồng hạng CHỈ khi cả 4 tiêu chí trùng nhau.
+ */
+export const RANK_SORT = {
+  pointsContributedWeek: -1,
+  correctCountWeek: -1,
+  totalCorrectTimeSec: 1,
+  lastAchievedAt: 1,
+} as const;
+
+/** Thời gian quy về mili giây (số nguyên) để so trùng tiêu chí #3 ổn định với số thực. */
+function timeMs(sec: number | null | undefined): number {
+  return Math.round((sec ?? 0) * 1000);
+}
+
+/** Mốc thời điểm ghi nhận quy về epoch ms để so trùng tiêu chí #4. */
+function stampMs(d: Date | null | undefined): number {
+  return d ? new Date(d).getTime() : 0;
+}
+
+/** true khi hai bản ghi trùng CẢ 4 tiêu chí xếp hạng → đồng hạng. */
+function isSameRank(a: any, b: any): boolean {
+  return (
+    (a.pointsContributedWeek ?? 0) === (b.pointsContributedWeek ?? 0) &&
+    (a.correctCountWeek ?? 0) === (b.correctCountWeek ?? 0) &&
+    timeMs(a.totalCorrectTimeSec) === timeMs(b.totalCorrectTimeSec) &&
+    stampMs(a.lastAchievedAt) === stampMs(b.lastAchievedAt)
+  );
+}
+
+/**
+ * Gán rank kiểu "standard competition ranking" (1,2,2,4) cho danh sách progress
+ * đã sắp theo RANK_SORT. Trả về mảng { rank, isTied } cùng index.
+ */
+export function assignRanks(sorted: any[]): Array<{ rank: number; isTied: boolean }> {
+  const out: Array<{ rank: number; isTied: boolean }> = [];
+  for (let i = 0; i < sorted.length; i++) {
+    // Đồng hạng với người liền trước → giữ nguyên rank; nếu không → rank = vị trí + 1
+    const rank = i > 0 && isSameRank(sorted[i - 1], sorted[i]) ? out[i - 1].rank : i + 1;
+    out.push({ rank, isTied: false });
+  }
+  // Đánh dấu isTied cho mọi nhóm có từ 2 người cùng rank trở lên
+  for (let i = 0; i < out.length; i++) {
+    const tiedPrev = i > 0 && out[i - 1].rank === out[i].rank;
+    const tiedNext = i < out.length - 1 && out[i + 1].rank === out[i].rank;
+    out[i].isTied = tiedPrev || tiedNext;
+  }
+  return out;
+}
+
 export class LeaderboardService {
   static async getLeaderboard(
     weekKey: string,
@@ -74,9 +127,11 @@ export class LeaderboardService {
       gradeLevel,
       correctCountWeek: { $gt: 0 },
     })
-      .sort({ correctCountWeek: -1, totalCorrectTimeSec: 1, lastAchievedAt: 1 })
+      .sort(RANK_SORT)
       .limit(200)
       .lean();
+
+    const ranks = assignRanks(progress);
 
     const studentIds = progress.map((p: any) => p.studentId);
     const users = await UserModel.find({ userId: { $in: studentIds } }).lean();
@@ -85,7 +140,7 @@ export class LeaderboardService {
     const entries: BossLeaderboardEntry[] = progress.map((p: any, idx: number) => {
       const u = userMap.get(p.studentId);
       return {
-        rank: idx + 1,
+        rank: ranks[idx].rank,
         studentId: p.studentId,
         displayName: u?.name ?? p.studentId,
         avatar: u?.avatar,
@@ -93,6 +148,7 @@ export class LeaderboardService {
         totalCorrectTimeSec: p.totalCorrectTimeSec,
         lastAchievedAt: p.lastAchievedAt,
         pointsContributedWeek: p.pointsContributedWeek,
+        isTied: ranks[idx].isTied,
       };
     });
 
@@ -115,20 +171,42 @@ export class LeaderboardService {
     const me = await StudentBossProgressModel.findOne({ weekKey, gradeLevel, studentId }).lean();
     if (!me || me.correctCountWeek === 0) return null;
 
-    // Đếm số HS đứng trên: correct nhiều hơn, hoặc bằng nhưng time nhanh hơn, hoặc bằng cả 2 nhưng achieve sớm hơn
+    // Đếm số HS xếp TRÊN theo đúng thứ tự 4 tiêu chí (standard competition ranking):
+    //   điểm cao hơn; hoặc bằng điểm & câu đúng nhiều hơn;
+    //   hoặc bằng điểm+câu & thời gian nhanh hơn; hoặc bằng cả 3 & ghi nhận sớm hơn
     const aboveCount = await StudentBossProgressModel.countDocuments({
       weekKey,
       gradeLevel,
       correctCountWeek: { $gt: 0 },
       $or: [
-        { correctCountWeek: { $gt: me.correctCountWeek } },
-        { correctCountWeek: me.correctCountWeek, totalCorrectTimeSec: { $lt: me.totalCorrectTimeSec } },
+        { pointsContributedWeek: { $gt: me.pointsContributedWeek } },
         {
+          pointsContributedWeek: me.pointsContributedWeek,
+          correctCountWeek: { $gt: me.correctCountWeek },
+        },
+        {
+          pointsContributedWeek: me.pointsContributedWeek,
+          correctCountWeek: me.correctCountWeek,
+          totalCorrectTimeSec: { $lt: me.totalCorrectTimeSec },
+        },
+        {
+          pointsContributedWeek: me.pointsContributedWeek,
           correctCountWeek: me.correctCountWeek,
           totalCorrectTimeSec: me.totalCorrectTimeSec,
           lastAchievedAt: { $lt: me.lastAchievedAt },
         },
       ],
+    });
+
+    // Đồng hạng: tồn tại HS khác trùng CẢ 4 tiêu chí
+    const tiedCount = await StudentBossProgressModel.countDocuments({
+      weekKey,
+      gradeLevel,
+      studentId: { $ne: studentId },
+      pointsContributedWeek: me.pointsContributedWeek,
+      correctCountWeek: me.correctCountWeek,
+      totalCorrectTimeSec: me.totalCorrectTimeSec,
+      lastAchievedAt: me.lastAchievedAt,
     });
 
     const user = await UserModel.findOne({ userId: studentId }).lean();
@@ -142,6 +220,7 @@ export class LeaderboardService {
       totalCorrectTimeSec: me.totalCorrectTimeSec,
       lastAchievedAt: me.lastAchievedAt,
       pointsContributedWeek: me.pointsContributedWeek,
+      isTied: tiedCount > 0,
     };
   }
 

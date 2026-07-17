@@ -120,13 +120,13 @@ export interface StudentBossProgress {
   bossInstanceId: string;
   weekKey: string;
   gradeLevel: number;
-  /** Tổng câu đúng tuần (tối đa = questionsPerWeek). Tiêu chí xếp hạng #1 */
+  /** Tổng câu đúng tuần (tối đa = questionsPerWeek). Tiêu chí xếp hạng #2 */
   correctCountWeek: number;
-  /** Tổng thời gian các câu **đúng** (giây). Tiêu chí #2 (nhỏ hơn = trên) */
+  /** Tổng thời gian các câu **đúng** (giây, chính xác đến mili giây). Tiêu chí #3 (nhỏ hơn = trên) */
   totalCorrectTimeSec: number;
-  /** Thời điểm đạt mốc thành tích hiện tại. Tiêu chí #3 (sớm hơn = trên) */
+  /** Thời điểm hệ thống ghi nhận thành tích hiện tại. Tiêu chí #4 (sớm hơn = trên) */
   lastAchievedAt: Date | null;
-  /** Tổng điểm cá nhân góp vào Boss */
+  /** Tổng điểm cá nhân góp vào Boss (điểm số câu đúng + điểm tốc độ). Tiêu chí xếp hạng #1 (cao hơn = trên) */
   pointsContributedWeek: number;
 }
 
@@ -230,10 +230,19 @@ export interface BossLeaderboardEntry {
   displayName: string;
   /** Avatar URL */
   avatar: string;
+  /** Tiêu chí #2 */
   correctCountWeek: number;
+  /** Tiêu chí #3 — tổng thời gian câu đúng (giây, chính xác đến mili giây) */
   totalCorrectTimeSec: number;
+  /** Tiêu chí #4 — thời điểm hệ thống ghi nhận câu trả lời */
   lastAchievedAt: Date | null;
+  /** Tiêu chí #1 — tổng điểm (điểm số câu đúng + điểm tốc độ), số nguyên */
   pointsContributedWeek: number;
+  /**
+   * Đồng hạng: true khi entry này trùng cả 4 tiêu chí xếp hạng với ít nhất
+   * một entry khác (cùng rank). Dùng để UI thể hiện "2 cột bằng nhau".
+   */
+  isTied?: boolean;
 }
 
 export interface BossLeaderboardResponse {

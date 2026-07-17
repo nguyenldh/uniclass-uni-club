@@ -133,7 +133,7 @@ export function BossResult({
         <div className="bb-stats">
           <ResultStat data-ui="UI-301" label="Câu đúng" value={<>{correctCount}<small>/{totalQuestions}</small></>} />
           <ResultStat data-ui="UI-302" label="Tổng thời gian" value={fmtTime(totalTime)} />
-          <ResultStat data-ui="UI-303" label="Điểm đóng góp" value={`+${pointsContributed.toLocaleString('vi-VN')}`} hero />
+          <ResultStat data-ui="UI-303" label="Sát thương" value={`+${pointsContributed.toLocaleString('vi-VN')}`} hero />
         </div>
 
         <BossDamageRecap hpBefore={hpBefore} hpAfter={hpAfter} pointsContributed={pointsContributed} states={states} bossName={bossName} bossImg={bossImg} />

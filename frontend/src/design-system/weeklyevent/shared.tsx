@@ -227,7 +227,7 @@ export interface QuestionCardProps extends Omit<HTMLAttributes<HTMLDivElement>, 
 }
 export function QuestionCard({
   index, total, question, image, options,
-  selected = null, locked = false, saved = false, reveal = false, correct = null,
+  selected = null, locked = false, reveal = false, correct = null,
   onSelect, className, ...rest
 }: QuestionCardProps) {
   const disabled = locked || reveal;
@@ -235,11 +235,6 @@ export function QuestionCard({
     <div data-ui="UI-C-003" className={cn('we-qcard', className)} {...rest}>
       <div className="q-head">
         <span className="we-qtag">Câu {index}/{total}</span>
-        {saved && !reveal && (
-          <span style={{ fontWeight: 900, fontSize: 12, color: '#1f8a55', display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-            ✓ Đã lưu đáp án
-          </span>
-        )}
       </div>
       {image && <img className="we-qimg" src={image} alt="" />}
       <p className="we-qtext">{multiline(question)}</p>

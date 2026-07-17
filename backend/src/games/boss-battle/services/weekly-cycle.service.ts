@@ -20,6 +20,7 @@ import {
 } from '@uniclub/shared';
 import type { BossBattleConfig, WeeklyHonor } from '@uniclub/shared';
 import { GameConfigService } from '../../../services/game-config.service';
+import { RANK_SORT, assignRanks } from './leaderboard.service';
 import { QuestionSetService } from './question-set.service';
 import { BossQuestionService } from './boss-question.service';
 import { BossWeeklyConfigService } from './boss-weekly-config.service';
@@ -178,7 +179,7 @@ export class WeeklyCycleService {
           gradeLevel: grade,
           correctCountWeek: { $gt: 0 },
         })
-          .sort({ correctCountWeek: -1, totalCorrectTimeSec: 1, lastAchievedAt: 1 })
+          .sort(RANK_SORT)
           .limit(topN)
           .lean();
 
@@ -186,6 +187,9 @@ export class WeeklyCycleService {
           honorsCreated.push({ gradeLevel: grade, count: 0 });
           continue;
         }
+
+        // Standard competition ranking + đồng hạng khi trùng cả 4 tiêu chí
+        const ranks = assignRanks(topProgress);
 
         const studentIds = topProgress.map((p: any) => p.studentId);
         const users = await UserModel.find({ userId: { $in: studentIds } }).lean();
@@ -199,7 +203,7 @@ export class WeeklyCycleService {
             studentId: p.studentId,
             displayName: u?.name ?? p.studentId,
             avatar: u?.avatar,
-            rank: idx + 1,
+            rank: ranks[idx].rank,
             correctCountWeek: p.correctCountWeek,
             totalCorrectTimeSec: p.totalCorrectTimeSec,
             pointsContributedWeek: p.pointsContributedWeek,

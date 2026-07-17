@@ -302,6 +302,8 @@ vd: https://game.uniclass.vn/quiz-arena/room/a1b2-...?token=eyJhbGci...</pre>
       <table>
         <tr><th>Field</th><th>Kiểu</th><th>Mô tả</th></tr>
         <tr><td><code>type</code></td><td>'user' | 'guest'</td><td><span class="tag upd">MỚI THÊM</span> Loại tài khoản — UniClass dùng để phân biệt (vd không cộng điểm/BXH cho guest)</td></tr>
+        <tr><td><code>sessionId</code></td><td>string?</td><td><span class="tag upd">MỚI THÊM</span> ID phiên chơi — để BE đối soát/cộng điểm lại cho guest sau khi khách tạo tài khoản</td></tr>
+        <tr><td><code>roomId</code></td><td>string?</td><td><span class="tag upd">MỚI THÊM</span> ID phòng mời (chỉ có khi trận đến từ phòng mời) — cùng <code>sessionId</code> để matching kết quả guest</td></tr>
         <tr><td><code>profileId</code></td><td>string</td><td>Profile người chơi</td></tr>
         <tr><td><code>gameType</code></td><td>KafkaGameType</td><td><code>"SO_TAI"</code></td></tr>
         <tr><td><code>point</code></td><td>number</td><td>Host trận mời: <b>đã nhân hệ số</b> (config CMS <code>inviteHostWinMultiplier</code>) khi thắng. Guest: <b>0</b>.</td></tr>
@@ -310,7 +312,8 @@ vd: https://game.uniclass.vn/quiz-arena/room/a1b2-...?token=eyJhbGci...</pre>
         <tr><td><code>correctCount</code>, <code>totalQuestions</code></td><td>number?</td><td>Kết quả làm bài</td></tr>
       </table>
       <pre>// Guest kết thúc trận mời
-{ "profileId":"67890", "type":"guest", "gameType":"SO_TAI",
+{ "profileId":"67890", "type":"guest",
+  "sessionId":"quiz-...", "roomId":"a1b2-...", "gameType":"SO_TAI",
   "point":0, "playTime":95, "sessionCompleted":true, "isWin":false,
   "correctCount":6, "totalQuestions":10 }</pre>
       <div class="note warn">Trận mời là <b>giao hữu</b>: chỉ người mời (host) được cộng điểm (×hệ số khi thắng). Guest luôn <code>point = 0</code> và <code>type:"guest"</code> — UniClass nên bỏ qua cộng Cúp/BXH cho các bản ghi <code>type:"guest"</code>, chỉ dùng cho thống kê/đổi quà.</div>

@@ -600,35 +600,44 @@ export class QuizArenaService {
     }
     afkState.finished = true;
 
-    // Đối thủ nhận điểm tối đa cho các câu còn lại (tính như trả lời đúng)
-    for (let i = opponentState.answers.length; i < questions.length; i++) {
-      const q = questions[i];
-      // Giả lập thời gian phản xạ hợp lý để kết quả trông thực tế
-      const simulatedResponseMs = Math.floor(
-        Math.random() * 4000 + 2000, // 2-6 giây, realistic
-      );
-      opponentState.answers.push({
-        questionId: q.id,
-        selectedIndex: q.correctIndex,
-        responseTimeMs: simulatedResponseMs,
-        isCorrect: true,
-        earnedPoints: config.maxPointsPerQuestion,
-      });
-      opponentState.correctCount++;
-      opponentState.totalCorrectTimeMs += simulatedResponseMs;
-      opponentState.totalScore += config.maxPointsPerQuestion;
+    // Đối thủ là BOT: giả lập trả lời đúng các câu còn lại để bot "hoàn tất" trận.
+    // Đối thủ là NGƯỜI THẬT (bao gồm trận mời inviter–invitee, và PvP thường):
+    // KHÔNG giả lập — giữ nguyên kết quả thực tế họ đã trả lời (không fake correctCount).
+    if (session.isBot) {
+      for (let i = opponentState.answers.length; i < questions.length; i++) {
+        const q = questions[i];
+        // Giả lập thời gian phản xạ hợp lý để kết quả trông thực tế
+        const simulatedResponseMs = Math.floor(
+          Math.random() * 4000 + 2000, // 2-6 giây, realistic
+        );
+        opponentState.answers.push({
+          questionId: q.id,
+          selectedIndex: q.correctIndex,
+          responseTimeMs: simulatedResponseMs,
+          isCorrect: true,
+          earnedPoints: config.maxPointsPerQuestion,
+        });
+        opponentState.correctCount++;
+        opponentState.totalCorrectTimeMs += simulatedResponseMs;
+        opponentState.totalScore += config.maxPointsPerQuestion;
+      }
     }
     opponentState.finished = true;
 
     session.currentQuestionIndex = questions.length - 1; // jump to end
     await this.saveSession(session);
-    await this.endMatch(sessionId, io);
+    // AFK = xử thua: ép đối thủ thắng (không phụ thuộc điểm, vì đã bỏ giả lập).
+    await this.endMatch(sessionId, io, opponentState.userId);
   }
 
   /**
    * Kết thúc trận, tính kết quả, cập nhật score, enqueue sync.
    */
-  static async endMatch(sessionId: string, io: Server): Promise<void> {
+  static async endMatch(
+    sessionId: string,
+    io: Server,
+    forcedWinnerId?: string,
+  ): Promise<void> {
     const session = await this.getSession(sessionId);
     if (!session || session.status === "finished") return;
 
@@ -644,10 +653,17 @@ export class QuizArenaService {
     session.status = "finished";
     session.endedAt = new Date();
 
-    const { winner, loser } = determineWinner(
-      session.playerAState,
-      session.playerBState,
-    );
+    // Forfeit (AFK): ép winner; ngược lại so kè theo điểm/thời gian thực tế.
+    const { winner, loser } =
+      forcedWinnerId != null
+        ? {
+            winner: forcedWinnerId,
+            loser:
+              forcedWinnerId === session.playerA
+                ? session.playerB
+                : session.playerA,
+          }
+        : determineWinner(session.playerAState, session.playerBState);
     session.winner = winner;
 
     const { config } = session;
@@ -775,12 +791,9 @@ export class QuizArenaService {
       playerB: this.toPlayerSummary(session.playerBState, uniB),
     };
 
-    io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.END, result);
-
-    // Emit Kafka event for UniClass integration.
-    // Với trận mời, service tự bỏ qua guest (chỉ emit cho host = playerA).
-    await GameResultEventService.emitQuizArenaResult(session, result);
-
+    // Chuyển phòng mời sang chờ tái đấu (ready_check + reset ready) TRƯỚC khi emit END.
+    // Nếu làm sau, người chơi bấm "Tái đấu" ngay khi thấy kết quả (lúc server còn gửi
+    // Kafka) sẽ bị onGameEnded reset cờ ready → cả 2 kẹt ở "Đang chờ đối thủ".
     // Trận qua phòng mời: báo phòng để chuyển sang chờ tái đấu (hoặc đóng nếu hết lượt).
     if (session.friendly && session.inviteRoomId) {
       const { InviteRoomService } = await import("../../../services");
@@ -797,6 +810,12 @@ export class QuizArenaService {
         }
       }
     }
+
+    io.to(sessionId).emit(QUIZ_ARENA_SOCKET_EVENTS.END, result);
+
+    // Emit Kafka event for UniClass integration.
+    // Với trận mời, service tự bỏ qua guest (chỉ emit cho host = playerA).
+    await GameResultEventService.emitQuizArenaResult(session, result);
   }
 
   /**

@@ -386,37 +386,86 @@
 .st-vbar-side.me .sc{ color: #ffb89a; }
 .st-vbar-side.opp .sc{ color: #b8e0fa; }
 
-/* The split bar itself */
+/* The split bar itself — "lưỡi kiếm năng lượng" điện xẹt */
 .st-vbar-track{
   position: relative;
-  height: 18px; border-radius: 999px;
-  background: rgba(0,0,0,.4);
+  height: 24px; border-radius: 999px;
+  /* KHÔNG overflow:hidden ở đây để vòng tròn tia sét + tia điện tràn không bị cắt */
+}
+/* Lớp trong bọc 2 thanh năng lượng, bo tròn + clip riêng */
+.st-vbar-clip{
+  position: absolute; inset: 0;
+  border-radius: 999px;
   overflow: hidden;
+  background: rgba(4,10,20,.55);
   border: 2px solid rgba(0,0,0,.5);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.4);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.6), inset 0 0 10px rgba(0,0,0,.5);
 }
 .st-vbar-fill{
   position: absolute; top: 0; bottom: 0;
   transition: width .6s cubic-bezier(.4,.0,.2,1);
+  overflow: hidden;
 }
+/* Thân thanh năng lượng: gradient dọc bóng bẩy + glow màu */
 .st-vbar-fill.me{
   left: 0;
-  background: linear-gradient(90deg, var(--st-me-1), var(--st-me-2));
-  border-right: 2px solid #fff;
-  box-shadow: 0 0 16px var(--st-me-glow);
+  background: linear-gradient(180deg, var(--st-me-1), var(--st-me-2) 58%, var(--st-me-3));
+  box-shadow: 0 0 16px var(--st-me-glow), inset 0 1px 0 rgba(255,255,255,.4);
 }
 .st-vbar-fill.opp{
   right: 0;
-  background: linear-gradient(270deg, var(--st-opp-1), var(--st-opp-2));
-  border-left: 2px solid #fff;
-  box-shadow: 0 0 16px var(--st-opp-glow);
+  background: linear-gradient(180deg, var(--st-opp-1), var(--st-opp-2) 58%, var(--st-opp-3));
+  box-shadow: 0 0 16px var(--st-opp-glow), inset 0 1px 0 rgba(255,255,255,.4);
 }
-.st-vbar-pivot{
-  position: absolute; top:-4px; bottom:-4px;
-  width: 4px; background: #fff;
-  transition: left .6s cubic-bezier(.4,.0,.2,1);
-  box-shadow: 0 0 12px #fff;
+
+/* Vạch nối / khe giữa 2 thanh */
+.st-vbar-seam{
+  position: absolute; top:-2px; bottom:-2px;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,.3));
+  box-shadow: 0 0 5px rgba(255,255,255,.5);
   border-radius: 2px;
+  transition: left .6s cubic-bezier(.4,.0,.2,1);
+  z-index: 2;
+}
+/* Vòng tròn chứa tia sét ở giữa */
+.st-vbar-bolt{
+  position: absolute; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(circle at 32% 28%, #ffffff 0%, #fff2b8 32%, #ffcf4a 62%, #f79a1e 100%);
+  border: 2px solid rgba(255,255,255,.95);
+  box-shadow:
+    0 0 10px #ffd85a,
+    0 0 22px rgba(255,190,60,.7),
+    inset 0 0 6px rgba(255,255,255,.85);
+  color: #7a3d00;
+  transition: left .6s cubic-bezier(.4,.0,.2,1);
+  z-index: 3;
+  animation: st-bolt-pulse 1.3s ease-in-out infinite;
+}
+.st-vbar-bolt svg{
+  width: 17px; height: 17px;
+  display: block;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.6));
+}
+
+@keyframes st-bolt-pulse{
+  0%,100%{
+    box-shadow: 0 0 10px #ffd85a, 0 0 22px rgba(255,190,60,.7), inset 0 0 6px rgba(255,255,255,.85);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50%{
+    box-shadow: 0 0 16px #ffe27a, 0 0 34px rgba(255,200,70,.95), inset 0 0 8px rgba(255,255,255,.95);
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .st-vbar-bolt{ animation: none; }
 }
 
 /* Match progress (3/10) + question pills */

@@ -75,6 +75,14 @@ export function GomokuPage() {
   const [error, setError] = useState<string | null>(null);
   const playerSymbol: "X" | "O" = matchmakingResult?.playerSymbol ?? "X";
   const isPvP: boolean = matchmakingResult ? !matchmakingResult.isAI : false;
+
+  // Số nước đi của RIÊNG người chơi từ tổng số nước cả bàn. X luôn đi trước nên
+  // X đi ceil(total/2), O đi floor(total/2). Dùng cho stat "Số nước" ở overlay.
+  const myMoves = useCallback(
+    (totalMoves: number) =>
+      playerSymbol === "X" ? Math.ceil(totalMoves / 2) : Math.floor(totalMoves / 2),
+    [playerSymbol],
+  );
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const processingRef = useRef(false);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -164,7 +172,7 @@ export function GomokuPage() {
 
             // Delay overlay to let user see the winning line animation
             overlayTimerRef.current = setTimeout(() => {
-              endGame(won ? "win" : "lose", timeTaken, moves, score);
+              endGame(won ? "win" : "lose", timeTaken, myMoves(moves), score);
             }, 1500);
           }
         }
@@ -210,9 +218,9 @@ export function GomokuPage() {
         if (winner) {
           const won = winner === userId;
           const winPoints = session?.config?.winPoints ?? 100;
-          endGame(won ? "win" : "lose", timeElapsed, moveCount, won ? winPoints : 0);
+          endGame(won ? "win" : "lose", timeElapsed, myMoves(moveCount), won ? winPoints : 0);
         } else {
-          endGame("lose", timeElapsed, moveCount, 0);
+          endGame("lose", timeElapsed, myMoves(moveCount), 0);
         }
       }, 1500);
     },
@@ -370,7 +378,7 @@ export function GomokuPage() {
 
         if (!aiMove) {
           // No moves left — draw
-          endGame("lose", timeElapsed, moveCount, 0);
+          endGame("lose", timeElapsed, myMoves(moveCount), 0);
           processingRef.current = false;
           return;
         }
@@ -390,7 +398,7 @@ export function GomokuPage() {
             aiSymbol,
             "lose",
             timeElapsed,
-            moveCount + 1,
+            myMoves(moveCount + 1),
             0,
           );
           // Notify server via socket (fire-and-forget)
@@ -400,7 +408,7 @@ export function GomokuPage() {
         }
 
         if (isBoardFull(newBoard)) {
-          endGame("lose", timeElapsed, moveCount + 1, 0);
+          endGame("lose", timeElapsed, myMoves(moveCount + 1), 0);
           emitMove(session.sessionId, "AI", aiMove.row, aiMove.col);
           processingRef.current = false;
           return;
@@ -427,6 +435,7 @@ export function GomokuPage() {
     endGame,
     timeElapsed,
     moveCount,
+    myMoves,
   ]);
 
   // Handle cell click
@@ -456,11 +465,11 @@ export function GomokuPage() {
             playerSymbol,
             "win",
             timeElapsed,
-            moveCount + 1,
+            myMoves(moveCount + 1),
             session.config.winPoints,
           );
         } else if (isBoardFull(newBoard)) {
-          endGame("lose", timeElapsed, moveCount + 1, 0);
+          endGame("lose", timeElapsed, myMoves(moveCount + 1), 0);
         }
       } catch (err: any) {
         setError(err.message);
@@ -479,6 +488,7 @@ export function GomokuPage() {
       timeElapsed,
       moveCount,
       userId,
+      myMoves,
     ],
   );
 

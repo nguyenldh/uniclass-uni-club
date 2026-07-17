@@ -28,12 +28,16 @@ export interface LobbyProps extends HTMLAttributes<HTMLDivElement> {
   player: LobbyPlayer;
   /** Called when user taps the big "Tìm Đối Thủ" CTA. */
   onFindMatch?: () => void;
-  /** Called when user taps the "Mời bạn bè" secondary CTA. Nút chỉ hiện khi có prop này. */
+  /** Called when user taps the "Thách đấu bạn bè" secondary CTA. Nút chỉ hiện khi có prop này. */
   onInvite?: () => void;
-  /** Override nhãn nút "Mời bạn bè" (vd kèm hệ số nhân điểm). */
+  /** Override nhãn nút "Thách đấu bạn bè" (vd kèm hệ số nhân điểm). */
   inviteLabel?: ReactNode;
-  /** Nội dung phụ hiển thị NGAY BÊN PHẢI nút "Mời bạn bè", cùng hàng (vd nút Thưởng). */
+  /** Nội dung phụ hiển thị NGAY BÊN PHẢI nút "Thách đấu bạn bè", cùng hàng (vd nút Thưởng). */
   inviteExtra?: ReactNode;
+  /** Sneak-peek: số câu mỗi trận (chip "N câu hỏi"). */
+  questionCount?: number;
+  /** Sneak-peek: khối lớp (chip "Kiến thức lớp X"). */
+  gradeLevel?: number;
   /** Đang xử lý trước khi ghép trận (vd: kiểm tra câu hỏi) → khoá CTA. */
   findMatchLoading?: boolean;
   /** Override CTA label. */
@@ -49,8 +53,10 @@ export function Lobby({
   player,
   onFindMatch,
   onInvite,
-  inviteLabel = '👥 Mời bạn bè',
+  inviteLabel = 'Thách đấu bạn bè',
   inviteExtra,
+  questionCount,
+  gradeLevel,
   findMatchLoading = false,
   ctaLabel = 'Tìm Đối Thủ',
   topRight,
@@ -58,6 +64,7 @@ export function Lobby({
   className,
   ...rest
 }: LobbyProps) {
+  const hasPeek = questionCount != null || gradeLevel != null;
   return (
     <div className={cn('st-stage is-lobby', className)} {...rest}>
       {sparks && (
@@ -101,6 +108,32 @@ export function Lobby({
             </div>
           </div>
 
+          {hasPeek && (
+            <div
+              className="st-lobby-peek"
+              style={{
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}
+            >
+              {questionCount != null && (
+                <GamePill tone="gold" icon={<span aria-hidden>⚡</span>}>
+                  {questionCount} câu hỏi
+                </GamePill>
+              )}
+              {gradeLevel != null && (
+                <GamePill tone="blue" icon={<span aria-hidden>🎓</span>}>
+                  Kiến thức lớp {gradeLevel}
+                </GamePill>
+              )}
+              <GamePill tone="green" icon={<span aria-hidden>🏅</span>}>
+                Đối thủ xứng tầm
+              </GamePill>
+            </div>
+          )}
+
           <div className="st-lobby-cta">
             <div className="cue">Sẵn sàng bước vào trận?</div>
             <GameButton
@@ -111,7 +144,7 @@ export function Lobby({
             >
               {findMatchLoading ? 'Đang kiểm tra…' : ctaLabel}
             </GameButton>
-            {onInvite && (
+            {(onInvite || inviteExtra) && (
               <div
                 style={{
                   display: 'flex',
@@ -122,14 +155,16 @@ export function Lobby({
                   flexWrap: 'wrap',
                 }}
               >
-                <GameButton
-                  color="ghost"
-                  size="md"
-                  onClick={onInvite}
-                  disabled={findMatchLoading}
-                >
-                  {inviteLabel}
-                </GameButton>
+                {onInvite && (
+                  <GameButton
+                    color="ghost"
+                    size="md"
+                    onClick={onInvite}
+                    disabled={findMatchLoading}
+                  >
+                    {inviteLabel}
+                  </GameButton>
+                )}
                 {inviteExtra}
               </div>
             )}

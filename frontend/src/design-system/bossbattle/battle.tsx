@@ -48,11 +48,11 @@ export function BossStrip({ name, hpPercent, states = DEFAULT_BOSS_STATES, lastD
               <div className="bbar-fill" style={{ width: `${hp}%` }} />
             </div>
           )
-          : <div className="bbar-dmg-label">Sát thương bạn đã gây</div>}
+          : <div className="bbar-dmg-label">Sát thương gây cho Boss</div>}
       </div>
       {mode === 'hp'
         ? <div className="bbar-hp">{hp.toFixed(2)}%</div>
-        : <div className="bbar-dmg">-{damageDealt.toLocaleString('vi-VN')}<small>HP</small></div>}
+        : <div className="bbar-dmg">{damageDealt.toLocaleString('vi-VN')}<small>sát thương</small></div>}
     </div>
   );
 }
@@ -225,8 +225,9 @@ export function BossArena({
         )}
       </div>
       <div className="bb-arena-dealt">
-        <span className="lab">Sát thương bạn đã gây</span>
-        <span className="val">-{damageDealt.toLocaleString('vi-VN')}<small>HP</small></span>
+        <span className="lab">Bạn đã gây ra</span>
+        <span className="val">{damageDealt.toLocaleString('vi-VN')}</span>
+        <span className="lab">sát thương cho Boss</span>
       </div>
     </div>
   );

@@ -71,6 +71,13 @@ export interface QuizArenaConfig {
    */
   nextQuestionDelayMs: number;
   /**
+   * Bật/tắt tính năng "Thách đấu bạn bè" (MGM — mời bạn / phòng chờ / tái đấu).
+   * `false` → ẩn toàn bộ giao diện & nút mời bạn ở client, và backend từ chối
+   * tạo/vào phòng mời. Random matchmaking, emoji, thưởng KHÔNG bị ảnh hưởng.
+   * (default: true)
+   */
+  inviteEnabled: boolean;
+  /**
    * Tổng số ván tối đa trong một phòng mời (tính cả ván đầu, default: 3).
    * VD 3 → chơi tối đa 3 ván ⇒ tái đấu được 2 lần. Set 1 để tắt tái đấu.
    */

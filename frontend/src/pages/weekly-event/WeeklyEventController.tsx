@@ -6,7 +6,6 @@ import {
   ExamScreen,
   SubmissionLoading,
   LeaderboardScreen,
-  PersonalResultScreen,
   EventClosedScreen,
   OnlineCounter,
 } from '../../design-system/weeklyevent';
@@ -520,49 +519,14 @@ export function WeeklyEventController() {
           }
           right={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {!store.event ? (
-                <>
-                  {store.personalResult && (
-                    <GameButton size="sm" color="ghost" onClick={() => store.setPhase('result')}>
-                      Chi tiết kết quả
-                    </GameButton>
-                  )}
-                  <GameButton size="sm" color="ghost" onClick={() => store.setPhase('closed')}>
-                    Quay lại
-                  </GameButton>
-                </>
-              ) : (
-                store.personalResult && (
-                  <GameButton size="sm" color="ghost" onClick={() => store.setPhase('result')}>
-                    Chi tiết kết quả
-                  </GameButton>
-                )
+              {!store.event && (
+                <GameButton size="sm" color="ghost" onClick={() => store.setPhase('closed')}>
+                  Quay lại
+                </GameButton>
               )}
               <ExitButton from="/weekly-event" className="we-exit-btn">Thoát</ExitButton>
             </div>
           }
-        />
-      );
-
-    case 'result':
-      return (
-        <PersonalResultScreen
-          grade={userGrade}
-          name={user.name}
-          avatarUrl={user.avatar}
-          correct={store.personalResult?.correctCount ?? 0}
-          wrong={
-            (store.personalResult?.totalAnswered ?? 0) -
-            (store.personalResult?.correctCount ?? 0)
-          }
-          skipped={
-            (store.questions.length || 25) - (store.personalResult?.totalAnswered ?? 0)
-          }
-          score={store.personalResult?.score ?? 0}
-          rank={store.personalResult?.rank ?? 0}
-          totalTimeMs={store.personalResult?.totalTimeMs ?? 0}
-          onLeaderboard={() => store.setPhase('leaderboard')}
-          headerRight={<ExitButton from={`/weekly-event`} className="we-exit-btn">Thoát</ExitButton>}
         />
       );
 

@@ -330,13 +330,15 @@
 
 /* UI-104 Countdown */
 .bb-countdown{
-  display:inline-flex; align-items:center; gap:10px;
+  display:inline-flex; flex-wrap:wrap; align-items:center; justify-content:center;
+  gap:6px 10px;
   padding:8px 14px; border-radius:14px;
   background: rgba(0,0,0,.3);
   border:1px solid rgba(255,255,255,.14);
   font-weight:800; font-size:12px;
+  max-width:100%; text-align:center;
 }
-.bb-countdown .lab{ text-transform:uppercase; letter-spacing:.1em; opacity:.7; font-size:10.5px;}
+.bb-countdown .lab{ text-transform:uppercase; letter-spacing:.08em; opacity:.7; font-size:10.5px;}
 .bb-countdown .clock{ display:flex; gap:5px; }
 .bb-countdown .seg{
   min-width:34px; text-align:center;
@@ -827,6 +829,82 @@
 .bb-myrank .right .points{ font-weight:800; font-size:13px; color:#ffb86a; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .bb-myrank .right .time{ font-weight:700; font-size:11px; opacity:.7; }
 .bb-myrank.empty{ color: rgba(255,255,255,.7); }
+
+/* =====================================================================
+   SCR-04 · Mặc định chỉ hiện Tổng điểm + nút "i" (tooltip chi tiết) + đồng hạng
+===================================================================== */
+/* Cột phải: Tổng điểm là số chính, kèm nút chi tiết */
+.bb-rank .right,
+.bb-myrank .right{
+  display:flex; align-items:center; justify-content:flex-end; gap:8px;
+}
+.bb-rank .right .pts,
+.bb-myrank .right .pts{
+  display:inline-flex; align-items:baseline; gap:3px;
+  font-weight:800; font-size:12px; color:#ffb86a; white-space:nowrap;
+}
+.bb-rank .right .pts b{ font-size:18px; color:var(--bb-gold); font-variant-numeric:tabular-nums; }
+.bb-myrank .right .pts b{ font-size:20px; color:var(--bb-gold); font-variant-numeric:tabular-nums; }
+.bb-rank .right .pts small,
+.bb-myrank .right .pts small{ font-size:11px; opacity:.7; font-weight:800; }
+
+/* Podium: Tổng điểm + nút chi tiết */
+.bb-pod .sc{ gap:5px; }
+.bb-pod .sc .pts{ font-weight:800; font-size:13px; color:#fff; }
+.bb-pod .sc .pts b{ color: var(--bb-gold); font-size:15px; font-variant-numeric:tabular-nums; }
+
+/* Nút "i" mở chi tiết */
+.bb-tip-btn{
+  flex-shrink:0;
+  width:20px; height:20px; border-radius:50%;
+  display:inline-grid; place-items:center;
+  font-family: var(--f-game); font-weight:900; font-size:12px; font-style:italic; line-height:1;
+  color:#fff; cursor:pointer;
+  background: rgba(255,255,255,.12);
+  border:1.5px solid rgba(255,255,255,.32);
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.bb-tip-btn:hover{ background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.55); }
+.bb-tip-btn:active{ transform: scale(.9); }
+
+/* Popover chi tiết (render qua portal ra body → không bị cắt bởi overflow) */
+.bb-tip{
+  position:fixed; z-index:9999;
+  transform: translateX(-100%);
+  min-width:232px; max-width:min(284px, 90vw);
+  display:flex; flex-direction:column; gap:7px;
+  padding:12px 14px; border-radius:14px;
+  font-family: var(--f-game); color:#fff;
+  background: linear-gradient(180deg, rgba(48,32,70,.98), rgba(22,14,34,.98));
+  border:2px solid rgba(138,99,255,.5);
+  box-shadow: 0 12px 28px rgba(0,0,0,.5), 0 0 22px rgba(138,99,255,.25);
+}
+.bb-tip-head{
+  font-weight:900; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color: var(--bb-cyan); text-shadow:0 0 10px var(--bb-cyan-glow);
+  padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,.12);
+}
+.bb-tip-row{
+  display:flex; align-items:baseline; justify-content:space-between; gap:14px; font-size:12.5px;
+}
+.bb-tip-row > span{ font-weight:700; opacity:.72; white-space:nowrap; }
+.bb-tip-row > b{ font-weight:900; font-variant-numeric:tabular-nums; text-align:right; }
+.bb-tip-tie{
+  margin-top:2px; padding-top:7px; border-top:1px solid rgba(255,255,255,.12);
+  font-weight:800; font-size:11.5px; color: var(--bb-gold);
+}
+
+/* Dấu đồng hạng cạnh số thứ hạng */
+.bb-tie-mark{
+  display:inline-grid; place-items:center;
+  margin-left:3px; padding:0 4px; height:15px; min-width:15px;
+  font-style:normal; font-weight:900; font-size:11px; line-height:1;
+  border-radius:5px; vertical-align:middle;
+  color:#5a3c05; background: var(--bb-gold);
+  box-shadow:0 1px 0 rgba(0,0,0,.3);
+}
+.bb-rank.tied{ border-color: rgba(246,195,68,.35); }
+.bb-pod.tied .block{ box-shadow: inset 0 0 0 2px rgba(246,195,68,.4); }
 
 /* =====================================================================
    SCR-05 · HONOR

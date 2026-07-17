@@ -81,6 +81,7 @@ const QuizArenaConfigSchema = new Schema<QuizArenaConfig>(
     recentMatchesForAbility: { type: Number, required: true, default: 5 },
     afkConsecutiveMisses: { type: Number, required: true, default: 3 },
     nextQuestionDelayMs: { type: Number, required: true, default: 3000 },
+    inviteEnabled: { type: Boolean, required: true, default: true },
     maxGamesPerRoom: { type: Number, required: true, default: 3, min: 1 },
     inviteHostWinMultiplier: { type: Number, required: true, default: 2, min: 1 },
     inviteBlockSameDevice: { type: Boolean, required: true, default: true },
@@ -435,10 +436,13 @@ const StudentBossProgressSchema = new Schema<IStudentBossProgress>(
 );
 
 StudentBossProgressSchema.index({ studentId: 1, weekKey: 1 }, { unique: true });
-// Leaderboard sort: (1) correctCountWeek desc (2) totalCorrectTimeSec asc (3) lastAchievedAt asc
+// Leaderboard sort (4 tiêu chí, đồng hạng khi trùng cả 4):
+//   (1) pointsContributedWeek desc (2) correctCountWeek desc
+//   (3) totalCorrectTimeSec asc (đến ms) (4) lastAchievedAt asc
 StudentBossProgressSchema.index({
   weekKey: 1,
   gradeLevel: 1,
+  pointsContributedWeek: -1,
   correctCountWeek: -1,
   totalCorrectTimeSec: 1,
   lastAchievedAt: 1,

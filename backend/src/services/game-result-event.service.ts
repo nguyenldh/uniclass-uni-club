@@ -40,6 +40,8 @@ export class GameResultEventService {
     const playerAResult: ClubGameResultDto = {
       profileId: session.playerA,
       type: typeA,
+      sessionId: session.sessionId,
+      roomId: session.inviteRoomId,
       gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
       point: result.playerA.uniPointsEarned,
       playTime: playTime,
@@ -69,6 +71,8 @@ export class GameResultEventService {
       const playerBResult: ClubGameResultDto = {
         profileId: session.playerB,
         type: typeB,
+        sessionId: session.sessionId,
+        roomId: session.inviteRoomId,
         gameType: GAME_TYPE_TO_KAFKA['quiz_arena'] as KafkaGameType,
         point: result.playerB.uniPointsEarned,
         playTime: playTime,

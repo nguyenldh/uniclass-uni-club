@@ -301,9 +301,10 @@ export function useWeeklyEventSocket({
       console.log('[WeeklyEventSocket] Received personal:result', payload);
       const { phase, setPersonalResult, setPhase } = useWeeklyEventStore.getState();
       setPersonalResult(payload);
-      // If we are waiting or loading results, jump straight to the result page
-      if (phase === 'exam' || phase === 'loading') {
-        setPhase('result');
+      // Result detail page removed: while still in the exam, move to the
+      // loading screen and wait for the leaderboard to arrive.
+      if (phase === 'exam') {
+        setPhase('loading');
       }
     });
 

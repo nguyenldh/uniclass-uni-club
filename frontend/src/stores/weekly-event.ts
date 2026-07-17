@@ -16,7 +16,6 @@ export type WeeklyEventPhase =
   | 'exam'
   | 'loading'
   | 'leaderboard'
-  | 'result'
   | 'closed';
 
 interface WeeklyEventState {

@@ -111,16 +111,6 @@ export function PlayerCard({
         <div className="pc-name">{name}</div>
         <div className="pc-stats">
           {mark && <CaroMarkPill mark={mark} />}
-          {score != null && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <StarIcon size={14} /> <AnimatedNumber value={score} />
-            </span>
-          )}
-          {streak != null && streak > 0 && (
-            <span className="streak-counter">
-              <FlameIcon size={14} /> {streak}
-            </span>
-          )}
         </div>
       </div>
     </div>

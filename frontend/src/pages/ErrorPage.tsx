@@ -2,12 +2,12 @@
 // ErrorPage — hiển thị lỗi xác thực / lỗi hệ thống
 // ============================================================
 
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { GameCanvas, GameButton } from '../design-system/game';
+import { exitWebView } from '../utils/webview';
 
 export function ErrorPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const message = (location.state as { message?: string } | null)?.message ?? 'Đã xảy ra lỗi không xác định.';
 
   return (
@@ -29,6 +29,13 @@ export function ErrorPage() {
       <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 16, margin: 0, textAlign: 'center', maxWidth: 400 }}>
         {message}
       </p>
+      <GameButton
+        color="orange"
+        size="md"
+        onClick={() => exitWebView('/error', 'error')}
+      >
+        Thoát
+      </GameButton>
     </GameCanvas>
   );
 }

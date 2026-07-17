@@ -143,9 +143,13 @@ export function QuizArenaGamePage() {
   const [throwBursts, setThrowBursts] = useState<
     { id: number; emoji: string; at: Pt }[]
   >([]);
-  /** Cụm bong bóng đè lên avatar đối thủ (màn người bị ném). */
+  /** Cụm bong bóng đè lên avatar mình khi bị ném (màn người bị ném). */
   const [hitClusters, setHitClusters] = useState<
     { id: number; emoji: string; at: Pt }[]
+  >([]);
+  /** Emoji bay tới mình khi bị ném (đối thủ phải → mình trái). */
+  const [incomingEmojis, setIncomingEmojis] = useState<
+    { id: number; emoji: string; from: Pt; to: Pt; spin: number }[]
   >([]);
 
   // Đo tâm avatar trong VersusBar (viewport px). Avatar để trong .st-vbar-av.me/.opp.
@@ -216,15 +220,17 @@ export function QuizArenaGamePage() {
       console.warn("[QuizArena] Opponent disconnected");
     }, []),
     onNoQuestions: useCallback(() => setNoQuestions(), [setNoQuestions]),
-    // Bị đối thủ thả emoji: cụm bong bóng đè lên avatar đối thủ + rung nhẹ.
+    // Bị đối thủ thả emoji: emoji bay từ đối thủ (phải) sang mình (trái),
+    // tới nơi mới kích cụm bong bóng đè lên avatar mình + rung nhẹ.
     onEmojiReceived: useCallback(
       (emoji: string) => {
         const id = ++effectIdRef.current;
-        const at = avatarCenter("opp");
-        setHitClusters((list) => [...list, { id, emoji, at }]);
-        triggerShake();
+        const from = avatarCenter("opp"); // người ném — bên phải
+        const to = avatarCenter("me"); // mình (người bị ném) — bên trái
+        const spin = (id % 2 === 0 ? 1 : -1) * (460 + (id % 3) * 160);
+        setIncomingEmojis((list) => [...list, { id, emoji, from, to, spin }]);
       },
-      [triggerShake, avatarCenter],
+      [avatarCenter],
     ),
   });
 
@@ -860,7 +866,25 @@ export function QuizArenaGamePage() {
           />
         ))}
 
-        {/* Cụm bong bóng đè lên avatar đối thủ (màn người bị ném) */}
+        {/* Emoji bay tới mình khi bị ném: đối thủ (phải) → mình (trái);
+            tới nơi kích cụm bong bóng đè lên avatar mình + rung */}
+        {incomingEmojis.map((f) => (
+          <FlyingEmoji
+            key={f.id}
+            emoji={f.emoji}
+            from={f.from}
+            to={f.to}
+            spin={f.spin}
+            onDone={() => {
+              setIncomingEmojis((list) => list.filter((x) => x.id !== f.id));
+              const cid = ++effectIdRef.current;
+              setHitClusters((list) => [...list, { id: cid, emoji: f.emoji, at: f.to }]);
+              triggerShake();
+            }}
+          />
+        ))}
+
+        {/* Cụm bong bóng đè lên avatar mình (màn người bị ném) */}
         {hitClusters.map((h) => (
           <EmojiHitCluster
             key={h.id}

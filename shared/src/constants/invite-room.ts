@@ -40,6 +40,8 @@ export const INVITE_ROOM_ERROR_CODES = {
   LIMIT_REACHED: 'ROOM_LIMIT_REACHED',
   /** Phát hiện guest dùng cùng thiết bị/máy với host (chống tự chơi với mình) */
   SAME_DEVICE: 'ROOM_SAME_DEVICE',
+  /** Tính năng Thách đấu bạn bè (MGM) đang bị admin tắt */
+  DISABLED: 'ROOM_DISABLED',
 } as const;
 
 /** Lý do đóng phòng */

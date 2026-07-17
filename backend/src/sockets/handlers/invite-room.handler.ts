@@ -37,15 +37,16 @@ interface MemberPayload {
 /** Policy phòng mời theo config của game */
 async function getInvitePolicy(
   gameType: MatchmakingGameType,
-): Promise<{ maxGames: number; blockSameDevice: boolean }> {
+): Promise<{ enabled: boolean; maxGames: number; blockSameDevice: boolean }> {
   if (gameType === 'quiz' || gameType === 'quiz_arena') {
     const cfg = await GameConfigService.getQuizArenaConfig().catch(() => null);
     return {
+      enabled: cfg?.inviteEnabled ?? true,
       maxGames: cfg?.maxGamesPerRoom ?? 3,
       blockSameDevice: cfg?.inviteBlockSameDevice ?? true,
     };
   }
-  return { maxGames: 3, blockSameDevice: true };
+  return { enabled: true, maxGames: 3, blockSameDevice: true };
 }
 
 /** Lấy IP client từ socket handshake (ưu tiên x-forwarded-for khi sau proxy/LB) */
@@ -105,7 +106,14 @@ export function registerInviteRoomHandlers(io: Server, socket: Socket): void {
           }
         }
 
-        const { maxGames, blockSameDevice } = await getInvitePolicy(data.gameType);
+        const { enabled, maxGames, blockSameDevice } = await getInvitePolicy(data.gameType);
+        if (!enabled) {
+          socket.emit(INVITE_ROOM_SOCKET_EVENTS.ERROR, {
+            message: 'Tính năng thách đấu bạn bè đang tạm tắt.',
+            code: INVITE_ROOM_ERROR_CODES.DISABLED,
+          });
+          return;
+        }
         const room = await InviteRoomService.createRoom(
           {
             userId,
@@ -148,6 +156,20 @@ export function registerInviteRoomHandlers(io: Server, socket: Socket): void {
         if (!userId || !data.roomId) {
           socket.emit(INVITE_ROOM_SOCKET_EVENTS.ERROR, { message: 'userId và roomId là bắt buộc' });
           return;
+        }
+
+        // Chặn vào phòng khi MGM đã tắt (vd link mời cũ). Lấy gameType từ phòng để
+        // áp đúng policy; nếu phòng không tồn tại → joinRoom sẽ báo NOT_FOUND như thường.
+        const existingRoom = await InviteRoomService.getRoom(data.roomId);
+        if (existingRoom) {
+          const { enabled } = await getInvitePolicy(existingRoom.gameType);
+          if (!enabled) {
+            socket.emit(INVITE_ROOM_SOCKET_EVENTS.ERROR, {
+              message: 'Tính năng thách đấu bạn bè đang tạm tắt.',
+              code: INVITE_ROOM_ERROR_CODES.DISABLED,
+            });
+            return;
+          }
         }
 
         const room = await InviteRoomService.joinRoom(data.roomId, {

@@ -347,7 +347,7 @@ export function BossLobby({
         <div className="bb-lobby-foot">
           <div className="bb-meta-row">
             <DailyQuotaBadge done={dailyDone} total={dailyTotal} />
-            <WeeklyCountdown to={resetAt} />
+            <WeeklyCountdown to={resetAt} label={<>Thời gian còn lại để chiến đấu với {bossName}</>} />
           </div>
           <BattleCTA status={ctaStatus} onBattle={onBattle} />
         </div>

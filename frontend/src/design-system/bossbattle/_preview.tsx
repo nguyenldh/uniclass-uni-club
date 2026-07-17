@@ -291,7 +291,7 @@ function Showcase() {
           <div className="bb-stats">
             <ResultStat label="Câu đúng" value={<>5<small>/5</small></>} />
             <ResultStat label="Tổng thời gian" value="42.0s" />
-            <ResultStat label="Điểm đóng góp" value="+72" hero />
+            <ResultStat label="Sát thương" value="+72" hero />
           </div>
           <BossDamageRecap hpBefore={40} hpAfter={0} bossName="Hắc Long Tri Thức" />
         </div>

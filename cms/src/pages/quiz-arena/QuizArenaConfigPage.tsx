@@ -151,6 +151,15 @@ export function QuizArenaConfigPage() {
           <Divider orientation="left">Mời bạn / Tái đấu</Divider>
 
           <Form.Item
+            name="inviteEnabled"
+            label="Bật tính năng Thách đấu bạn bè (MGM)"
+            valuePropName="checked"
+            tooltip="Bật/tắt tính năng mời & thách đấu bạn bè (phòng chờ + tái đấu). Tắt → ẩn nút 'Thách đấu bạn bè' và nút 'Thưởng' ở sảnh, và chặn tạo/vào phòng mời (kể cả link cũ). Không ảnh hưởng ghép trận ngẫu nhiên và emoji."
+          >
+            <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
+          </Form.Item>
+
+          <Form.Item
             name="maxGamesPerRoom"
             label="Số ván tối đa mỗi phòng mời"
             rules={[{ required: true, message: 'Bắt buộc' }]}

@@ -3,7 +3,7 @@
    - VersusBar: 1 thanh chia 2 màu (đỏ-xanh) đẩy qua đẩy lại theo điểm
    - MatchProgress: 3/10 + pips trạng thái từng câu cho cả 2 bên
    ============================================================ */
-import React, { type ReactNode, type HTMLAttributes } from "react";
+import { type ReactNode, type HTMLAttributes } from "react";
 import { AvatarImage } from "../../components/AvatarImage";
 
 const cn = (...xs: Array<string | false | null | undefined>) =>
@@ -75,12 +75,16 @@ export function VersusBar({
         aria-valuemax={100}
         aria-valuenow={Math.round(mePct)}
       >
-        <div className="st-vbar-fill me" style={{ width: `${mePct}%` }} />
-        <div className="st-vbar-fill opp" style={{ width: `${oppPct}%` }} />
-        <div
-          className="st-vbar-pivot"
-          style={{ left: `calc(${mePct}% - 2px)` }}
-        />
+        <div className="st-vbar-clip">
+          <div className="st-vbar-fill me" style={{ width: `${mePct}%` }} />
+          <div className="st-vbar-fill opp" style={{ width: `${oppPct}%` }} />
+        </div>
+        <div className="st-vbar-seam" style={{ left: `${mePct}%` }} />
+        <div className="st-vbar-bolt" style={{ left: `${mePct}%` }}>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
+          </svg>
+        </div>
       </div>
 
       <div className="st-vbar-side opp">
