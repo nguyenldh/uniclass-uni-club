@@ -156,7 +156,7 @@ export function MonitorPage() {
 
   return (
     <div>
-      <Title level={4}>Theo dõi Săn Boss</Title>
+      <Title level={4}>Theo dõi Săn Quái Vật</Title>
 
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
@@ -190,7 +190,7 @@ export function MonitorPage() {
         items={[
           {
             key: 'instances',
-            label: 'Boss Instances',
+            label: 'Trạng thái Quái Vật',
             children: (
               <Card>
                 <Table<BossInstanceMonitorEntry>
@@ -199,7 +199,7 @@ export function MonitorPage() {
                   dataSource={instances}
                   pagination={false}
                   columns={[
-                    { title: 'weekKey', dataIndex: ['instance', 'weekKey'], width: 130 },
+                    { title: 'Tuần', dataIndex: ['instance', 'weekKey'], width: 130 },
                     { title: 'Khối', dataIndex: ['instance', 'gradeLevel'], width: 80 },
                     {
                       title: 'Trạng thái',
@@ -230,7 +230,7 @@ export function MonitorPage() {
           },
           {
             key: 'leaderboard',
-            label: 'Leaderboard',
+            label: 'Bảng xếp hạng',
             children: (
               <Card
                 extra={
@@ -269,54 +269,54 @@ export function MonitorPage() {
               </Card>
             ),
           },
-          {
-            key: 'honors',
-            label: 'Weekly Honors',
-            children: (
-              <Card
-                extra={
-                  <Space>
-                    <Select
-                      value={grade}
-                      onChange={setGrade}
-                      style={{ width: 120 }}
-                      options={GRADES.map((g) => ({ label: `Khối ${g}`, value: g }))}
-                    />
-                    <Button icon={<ReloadOutlined />} onClick={loadHonors} loading={honorsLoading}>
-                      Tải
-                    </Button>
-                  </Space>
-                }
-              >
-                <Table<WeeklyHonor>
-                  rowKey="id"
-                  loading={honorsLoading}
-                  dataSource={honors}
-                  pagination={false}
-                  columns={[
-                    { title: 'Khối', dataIndex: 'gradeLevel', width: 80 },
-                    { title: '#', dataIndex: 'rank', width: 60 },
-                    { title: 'Học sinh', dataIndex: 'displayName' },
-                    { title: 'studentId', dataIndex: 'studentId', ellipsis: true },
-                    { title: 'Câu đúng', dataIndex: 'correctCountWeek', width: 100 },
-                    {
-                      title: 'Hạn khung',
-                      dataIndex: 'frameExpiry',
-                      width: 200,
-                      render: (v: any) => new Date(v).toLocaleString('vi-VN'),
-                    },
-                    {
-                      title: 'Banner',
-                      dataIndex: 'bannerActive',
-                      width: 90,
-                      render: (v: boolean) =>
-                        v ? <Tag color="green">Hiện</Tag> : <Tag>Ẩn</Tag>,
-                    },
-                  ]}
-                />
-              </Card>
-            ),
-          },
+          // {
+          //   key: 'honors',
+          //   label: 'Weekly Honors',
+          //   children: (
+          //     <Card
+          //       extra={
+          //         <Space>
+          //           <Select
+          //             value={grade}
+          //             onChange={setGrade}
+          //             style={{ width: 120 }}
+          //             options={GRADES.map((g) => ({ label: `Khối ${g}`, value: g }))}
+          //           />
+          //           <Button icon={<ReloadOutlined />} onClick={loadHonors} loading={honorsLoading}>
+          //             Tải
+          //           </Button>
+          //         </Space>
+          //       }
+          //     >
+          //       <Table<WeeklyHonor>
+          //         rowKey="id"
+          //         loading={honorsLoading}
+          //         dataSource={honors}
+          //         pagination={false}
+          //         columns={[
+          //           { title: 'Khối', dataIndex: 'gradeLevel', width: 80 },
+          //           { title: '#', dataIndex: 'rank', width: 60 },
+          //           { title: 'Học sinh', dataIndex: 'displayName' },
+          //           { title: 'studentId', dataIndex: 'studentId', ellipsis: true },
+          //           { title: 'Câu đúng', dataIndex: 'correctCountWeek', width: 100 },
+          //           {
+          //             title: 'Hạn khung',
+          //             dataIndex: 'frameExpiry',
+          //             width: 200,
+          //             render: (v: any) => new Date(v).toLocaleString('vi-VN'),
+          //           },
+          //           {
+          //             title: 'Banner',
+          //             dataIndex: 'bannerActive',
+          //             width: 90,
+          //             render: (v: boolean) =>
+          //               v ? <Tag color="green">Hiện</Tag> : <Tag>Ẩn</Tag>,
+          //           },
+          //         ]}
+          //       />
+          //     </Card>
+          //   ),
+          // },
         ]}
       />
     </div>

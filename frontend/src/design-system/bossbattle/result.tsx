@@ -56,7 +56,7 @@ export interface BossDamageRecapProps {
   /** Ảnh boss state hiện tại (API/socket) — ưu tiên hơn ảnh theo mốc HP. */
   bossImg?: string | null;
 }
-export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states = DEFAULT_BOSS_STATES, bossName = 'Boss', bossImg }: BossDamageRecapProps) {
+export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states = DEFAULT_BOSS_STATES, bossName = 'Quái Vật', bossImg }: BossDamageRecapProps) {
   const before = Math.max(0, Math.min(100, hpBefore));
   const after = Math.max(0, Math.min(100, hpAfter));
   const delta = Math.max(0, before - after);
@@ -72,18 +72,10 @@ export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states =
         : '−0 điểm máu';
   return (
     <div data-ui="UI-304" className="bb-recap">
-      <div className="recap-top">
-        <span><span className="you">Lượt của bạn</span> vừa giáng đòn vào {bossName}</span>
-        <span className="delta">{deltaStr}</span>
-      </div>
       <div className="bb-recap-portrait">
         {img
           ? <img className="bb-recap-face-img" src={img} alt="" />
           : <span className="glyph" aria-hidden>{st.glyph ?? '🐉'}</span>}
-      </div>
-      <div className="bb-recap-hpbar">
-        <div className="track"><div className="fill" style={{ width: `${after}%` }} /></div>
-        <div className="hp">{after.toFixed(2)}% <span>máu Boss còn lại</span></div>
       </div>
     </div>
   );
@@ -95,7 +87,7 @@ export interface BossResultProps extends HTMLAttributes<HTMLDivElement> {
   correctCount: number;
   /** Tổng số câu trong lượt. */
   totalQuestions?: number;
-  /** Tổng thời gian lượt (giây) — UI-302. */
+  /** Thời gian trả lời đúng của lượt (giây) — UI-302. Cùng định nghĩa với tiêu chí thời gian ở BXH. */
   totalTime: number;
   /** Điểm đóng góp (đã gồm speed bonus) — UI-303. */
   pointsContributed: number;
@@ -114,7 +106,7 @@ export interface BossResultProps extends HTMLAttributes<HTMLDivElement> {
 }
 export function BossResult({
   correctCount, totalQuestions = 5, totalTime, pointsContributed,
-  hpBefore, hpAfter, states = DEFAULT_BOSS_STATES, bossName = 'Boss', bossImg,
+  hpBefore, hpAfter, states = DEFAULT_BOSS_STATES, bossName = 'Quái Vật', bossImg,
   bossDefeated = false, onViewLeaderboard, extraActions, className, ...rest
 }: BossResultProps) {
   return (
@@ -122,18 +114,18 @@ export function BossResult({
       <div className="bb-embers" aria-hidden><i /><i /><i /><i /><i /><i /><i /></div>
       <div className="bb-result">
         <div className={cn('bb-result-head', bossDefeated && 'victory')}>
-          <div className="verdict">{bossDefeated ? '⚔️ HẠ GỤC BOSS!' : 'HOÀN THÀNH LƯỢT!'}</div>
+          <div className="verdict">{bossDefeated ? '⚔️ HẠ GỤC QUÁI VẬT!' : 'HOÀN THÀNH LƯỢT!'}</div>
           <div className="sub">
             {bossDefeated
-              ? `Cả khối đã đánh bại ${bossName} — chờ Boss tuần sau!`
-              : 'Đòn đánh của bạn đã được cộng vào máu Boss'}
+              ? `Cả khối đã đánh bại ${bossName} — chờ Quái Vật tuần sau!`
+              : 'Lượt tấn công của bạn đã làm giảm máu Quái Vật'}
           </div>
         </div>
 
         <div className="bb-stats">
           <ResultStat data-ui="UI-301" label="Câu đúng" value={<>{correctCount}<small>/{totalQuestions}</small></>} />
-          <ResultStat data-ui="UI-302" label="Tổng thời gian" value={fmtTime(totalTime)} />
-          <ResultStat data-ui="UI-303" label="Sát thương" value={`+${pointsContributed.toLocaleString('vi-VN')}`} hero />
+          <ResultStat data-ui="UI-302" label="Thời gian trả lời đúng" value={fmtTime(totalTime)} />
+          <ResultStat data-ui="UI-303" label="Sát thương" value={`${pointsContributed}`} hero />
         </div>
 
         <BossDamageRecap hpBefore={hpBefore} hpAfter={hpAfter} pointsContributed={pointsContributed} states={states} bossName={bossName} bossImg={bossImg} />

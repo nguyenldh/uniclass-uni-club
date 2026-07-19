@@ -132,7 +132,7 @@ export function BossHonorPage() {
     ? {
         name: myHonor.displayName,
         avatar: myHonor.avatar,
-        frameLabel: 'Dũng sĩ diệt Boss',
+        frameLabel: 'Dũng sĩ diệt Quái Vật',
         daysLeft: myHonor.frameExpiry
           ? Math.max(0, Math.ceil((new Date(myHonor.frameExpiry).getTime() - Date.now()) / 86400000))
           : 7,
@@ -141,7 +141,7 @@ export function BossHonorPage() {
       ? {
           name: honors[0].displayName,
           avatar: honors[0].avatar,
-          frameLabel: 'Dũng sĩ diệt Boss',
+          frameLabel: 'Dũng sĩ diệt Quái Vật',
           daysLeft: 7,
         }
       : undefined;

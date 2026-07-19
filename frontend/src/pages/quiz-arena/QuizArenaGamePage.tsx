@@ -573,6 +573,8 @@ export function QuizArenaGamePage() {
           correct: mySummary.correctCount,
           totalScore: mySummary.totalScore,
           correctResponseTime: Math.round(mySummary.totalCorrectTimeMs / 1000),
+          // Cúp chỉ cộng cho người thắng → hiển thị 0 cho người thua.
+          cup: amIWinner ? mySummary.uniPointsEarned : 0,
         }}
         opponent={{
           name: oppData?.name,
@@ -580,10 +582,9 @@ export function QuizArenaGamePage() {
           correct: oppSummary.correctCount,
           totalScore: oppSummary.totalScore,
           correctResponseTime: Math.round(oppSummary.totalCorrectTimeMs / 1000),
+          cup: amIWinner ? 0 : oppSummary.uniPointsEarned,
         }}
         totalQuestions={totalQ}
-        uniPointsEarned={mySummary.uniPointsEarned}
-        showReward={!isGuest}
         actions={
           <div
             style={{

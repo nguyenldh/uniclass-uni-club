@@ -147,6 +147,16 @@ export function ImportExcelModal({ open, onCancel, onSuccess }: ImportExcelModal
       ]}
     >
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <Alert
+          type="info"
+          showIcon
+          message={
+            <span>
+              Có thể nhập công thức toán bằng <code>$...$</code> trong ô nội dung/đáp án, ví dụ{' '}
+              <code>{'$\\frac{a}{b}$'}</code>, <code>{'$x^2$'}</code>.
+            </span>
+          }
+        />
         <Upload
           accept=".xlsx,.xls"
           fileList={fileList}

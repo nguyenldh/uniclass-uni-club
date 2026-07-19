@@ -243,7 +243,7 @@ export function DashboardPage() {
                   <Statistic
                     title={
                       <span>
-                        Săn Boss{' '}
+                        Săn Quái Vật{' '}
                         <Tag color="red" style={{ fontSize: 10 }}>
                           Boss Battle
                         </Tag>
@@ -353,12 +353,12 @@ export function DashboardPage() {
                 </Card>
               </Col>
 
-              {/* Săn Boss */}
+              {/* Săn Quái Vật */}
               <Col xs={24} lg={12}>
                 <Card
                   title={
                     <span>
-                      <FireOutlined style={{ color: '#f5222d' }} /> Săn Boss
+                      <FireOutlined style={{ color: '#f5222d' }} /> Săn Quái Vật
                     </span>
                   }
                   hoverable

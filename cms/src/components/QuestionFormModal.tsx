@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Radio, Space } from 'antd';
 import type { QuizQuestion, CreateQuizQuestionInput } from '@uniclub/shared';
+import { MathPreview, MathSyntaxHint } from './MathText';
 
 const { TextArea } = Input;
 
@@ -20,6 +21,13 @@ export function QuestionFormModal({
   loading,
 }: QuestionFormModalProps) {
   const [form] = Form.useForm();
+
+  const content = Form.useWatch('content', form);
+  const option0 = Form.useWatch('option0', form);
+  const option1 = Form.useWatch('option1', form);
+  const option2 = Form.useWatch('option2', form);
+  const option3 = Form.useWatch('option3', form);
+  const correctIndex = Form.useWatch('correctIndex', form);
 
   useEffect(() => {
     if (open) {
@@ -99,6 +107,7 @@ export function QuestionFormModal({
         >
           <TextArea rows={3} placeholder="Nhập nội dung câu hỏi..." />
         </Form.Item>
+        <MathSyntaxHint />
 
         <Form.Item
           name="correctIndex"
@@ -122,6 +131,12 @@ export function QuestionFormModal({
             </Space>
           </Radio.Group>
         </Form.Item>
+
+        <MathPreview
+          question={content}
+          options={[option0, option1, option2, option3]}
+          correctIndex={correctIndex}
+        />
       </Form>
     </Modal>
   );

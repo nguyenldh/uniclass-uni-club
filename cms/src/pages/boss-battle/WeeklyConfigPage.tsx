@@ -97,8 +97,8 @@ const FIELD_LABELS: Record<OverridableBossBattleConfigKey, string> = {
   basePoint: 'Điểm cơ bản',
   maxSpeedBonus: 'Điểm tốc độ',
   tMaxSec: 'Thời gian/câu (s)',
-  bossName: 'Tên Boss',
-  bossStates: 'Trạng thái Boss',
+  bossName: 'Tên Quái Vật',
+  bossStates: 'Trạng thái Quái Vật',
 };
 
 export function WeeklyConfigPage() {
@@ -296,7 +296,7 @@ export function WeeklyConfigPage() {
       render: (_, r) => r.effectiveConfig?.tMaxSec ?? '—',
     },
     {
-      title: 'Tên Boss',
+      title: 'Tên Quái Vật',
       width: 160,
       ellipsis: true,
       render: (_, r) => (
@@ -731,7 +731,7 @@ function WeeklyConfigEditModal({ open, weekKey, item, onClose, onSaved }: EditMo
       </Text>
 
       <Form form={form} layout="horizontal">
-        <FieldRow name="bossName" label="Tên Boss" enabled={enabled.bossName} onToggle={toggle}>
+        <FieldRow name="bossName" label="Tên Quái Vật" enabled={enabled.bossName} onToggle={toggle}>
           <Form.Item name="bossName" noStyle rules={[{ required: enabled.bossName }]}>
             <Input disabled={!enabled.bossName} />
           </Form.Item>
@@ -767,7 +767,7 @@ function WeeklyConfigEditModal({ open, weekKey, item, onClose, onSaved }: EditMo
           </Form.Item>
         </FieldRow>
 
-        <FieldRow name="bossStates" label="Trạng thái Boss theo % HP" enabled={enabled.bossStates} onToggle={toggle}>
+        <FieldRow name="bossStates" label="Trạng thái Quái Vật theo % HP" enabled={enabled.bossStates} onToggle={toggle}>
           <BossStatesEditor
             value={states}
             disabled={!enabled.bossStates}

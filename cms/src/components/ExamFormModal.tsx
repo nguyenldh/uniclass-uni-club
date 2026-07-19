@@ -16,6 +16,7 @@ import {
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useWeeklyEventStore } from '../stores/weekly-event.store';
 import type { ExamBank, ExamQuestion } from '@uniclub/shared';
+import { MathPreview, MathSyntaxHint } from './MathText';
 
 interface ExamFormModalProps {
   open: boolean;
@@ -176,6 +177,8 @@ export function ExamFormModal({ open, exam, onClose }: ExamFormModalProps) {
         Câu hỏi ({questions.length} câu)
       </Divider>
 
+      <MathSyntaxHint />
+
       <div style={{ maxHeight: 400, overflow: 'auto' }}>
         {questions.map((q, idx) => (
           <Card
@@ -224,6 +227,12 @@ export function ExamFormModal({ open, exam, onClose }: ExamFormModalProps) {
               />{' '}
               <span style={{ fontSize: 12, color: '#888' }}>Cho phép trộn phương án</span>
             </div>
+
+            <MathPreview
+              question={q.stem}
+              options={OPTION_KEYS.map((key) => q.options.find((o) => o.key === key)?.text)}
+              correctIndex={OPTION_KEYS.indexOf(q.correctKey)}
+            />
           </Card>
         ))}
       </div>

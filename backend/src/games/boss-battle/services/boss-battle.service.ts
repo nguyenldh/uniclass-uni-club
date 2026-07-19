@@ -81,6 +81,7 @@ function attemptDto(doc: any): DailyAttemptDto {
     status: doc.status,
     correctCount: doc.correctCount,
     totalResponseTime: doc.totalResponseTime,
+    correctResponseTime: doc.correctResponseTime ?? 0,
     pointsEarned: doc.pointsEarned,
     currentQuestionIndex: doc.currentQuestionIndex,
     startedAt: doc.startedAt,
@@ -184,6 +185,7 @@ export class BossBattleService {
           status: 'IN_PROGRESS',
           correctCount: 0,
           totalResponseTime: 0,
+          correctResponseTime: 0,
           pointsEarned: 0,
           currentQuestionIndex: 0,
           startedAt: new Date(),
@@ -304,6 +306,9 @@ export class BossBattleService {
     // Cập nhật attempt
     attempt.correctCount += isCorrect ? 1 : 0;
     attempt.totalResponseTime += responseTimeSec;
+    // Thời gian chỉ tính câu ĐÚNG (đồng bộ định nghĩa với tiêu chí thời gian ở BXH).
+    // Dùng `|| 0` để an toàn với lượt cũ chưa có field (tránh NaN).
+    attempt.correctResponseTime = (attempt.correctResponseTime || 0) + (isCorrect ? responseTimeSec : 0);
     attempt.pointsEarned += pointsAwarded;
     attempt.currentQuestionIndex += 1;
 

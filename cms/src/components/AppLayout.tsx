@@ -40,7 +40,7 @@ const menuItems: MenuItem[] = [
     getItem('Cấu hình', '/quiz-arena/config'),
     getItem('Ngân hàng câu hỏi', '/quiz-arena/questions'),
   ]),
-  getItem('Săn Boss', 'boss-battle', <FireOutlined />, [
+  getItem('Săn Quái Vật', 'boss-battle', <FireOutlined />, [
     getItem('Cấu hình mặc định', '/boss-battle/config'),
     getItem('Cấu hình tuần', '/boss-battle/weekly-config'),
     getItem('Ngân hàng câu hỏi', '/boss-battle/questions'),

@@ -1004,6 +1004,37 @@
   text-shadow: 0 2px 0 rgba(255,255,255,.5);
 }
 
+/* 2 panel cúp — mỗi panel căn giữa NỬA của mình (khớp 2 cột người chơi) */
+.st-reward-pair{
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+}
+.st-reward-half{
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+.st-reward-pair .st-reward{
+  min-width: 0;
+  width: 100%;
+  max-width: 240px;
+  padding: 12px 18px 14px;
+}
+.st-reward-pair .st-reward .lab{
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.st-reward-pair .st-reward .pts{ font-size: 34px; }
+/* Bên nhận nhiều cúp hơn — làm nổi bật */
+.st-reward-pair .st-reward.is-top{
+  border-color: var(--o-500, #f59e0b);
+  box-shadow: var(--sh-game), 0 0 0 2px rgba(245,158,11,.35), 0 0 18px rgba(245,158,11,.35);
+}
+
 /* Action row */
 .st-result-actions{
   display:flex; gap: 14px; justify-content:center; flex-wrap: wrap;

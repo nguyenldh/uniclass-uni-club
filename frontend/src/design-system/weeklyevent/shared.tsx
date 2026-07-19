@@ -11,14 +11,10 @@
    ============================================================ */
 import React, { type ReactNode, type HTMLAttributes } from 'react';
 import { AvatarImage } from '../../components/AvatarImage';
+import { MathText } from '../common/MathText';
 
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
-
-/** Đổi ký tự "\n" dạng literal (từ import Excel/JSON) thành xuống dòng thật;
- *  kết hợp CSS `white-space: pre-line` để câu hỏi dạng thơ hiển thị đúng dòng. */
-const multiline = (node: ReactNode): ReactNode =>
-  typeof node === 'string' ? node.replace(/\\r\\n|\\r|\\n/g, '\n') : node;
 
 export const initialOf = (name?: string) =>
   typeof name === 'string' && name.trim() ? name.trim().charAt(0).toUpperCase() : '?';
@@ -237,7 +233,7 @@ export function QuestionCard({
         <span className="we-qtag">Câu {index}/{total}</span>
       </div>
       {image && <img className="we-qimg" src={image} alt="" />}
-      <p className="we-qtext">{multiline(question)}</p>
+      <p className="we-qtext"><MathText source={question} /></p>
       <div className="we-answers">
         {options.map((opt) => {
           let stateCls: string | false = false;
@@ -258,7 +254,7 @@ export function QuestionCard({
               onClick={() => !disabled && onSelect?.(opt.key)}
             >
               <span className="letter">{opt.key}</span>
-              <span className="lbl">{opt.label}</span>
+              <span className="lbl"><MathText source={opt.label} /></span>
             </button>
           );
         })}

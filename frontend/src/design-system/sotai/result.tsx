@@ -24,6 +24,8 @@ export interface ResultPlayer {
   totalScore: number;
   /** Tổng thời gian phản xạ của các câu trả lời ĐÚNG (giây). */
   correctResponseTime: number;
+  /** Cúp người này THỰC SỰ nhận được (winner mới có; loser = 0). */
+  cup?: number;
 }
 
 export interface ResultCompareProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
@@ -32,9 +34,12 @@ export interface ResultCompareProps extends Omit<HTMLAttributes<HTMLDivElement>,
   opponent: ResultPlayer;
   /** Tổng câu trong trận. Default 10. */
   totalQuestions?: number;
-  /** UniPoints đồng bộ về UniClass (= correct * UniPoint/câu). */
-  uniPointsEarned: number;
-  /** Hiện panel "Cúp nhận được". Default true. Ẩn với guest (không tính điểm). */
+  /**
+   * @deprecated Dùng `me.cup` / `opponent.cup` để hiện cúp riêng từng bên.
+   * Chỉ dùng khi KHÔNG truyền cup per-player (panel cúp đơn cũ).
+   */
+  uniPointsEarned?: number;
+  /** Hiện panel cúp đơn (cũ). Chỉ áp dụng khi không có cup per-player. */
   showReward?: boolean;
   /** Title override — default theo outcome. */
   title?: ReactNode;
@@ -128,11 +133,11 @@ function ResultSide({
         />
         <StatRow
           label="Điểm trận"
-          value={player.totalScore.toLocaleString('vi-VN')}
+          value={player.totalScore}
           better={bestScore}
         />
         <StatRow
-          label="TG phản xạ đúng"
+          label="Thời gian phản xạ đúng"
           value={fmtTime(player.correctResponseTime)}
           better={bestTime}
         />
@@ -164,6 +169,10 @@ export function ResultCompare({
   // But only meaningful if you actually have correct answers.
   const bestTimeMe = me.correct > 0 && (opponent.correct === 0 || me.correctResponseTime < opponent.correctResponseTime);
   const bestTimeOpp = opponent.correct > 0 && (me.correct === 0 || opponent.correctResponseTime < me.correctResponseTime);
+  // Cúp nhận riêng từng bên (winner mới có) → so sánh trực tiếp.
+  const hasPerSideCup = me.cup != null || opponent.cup != null;
+  const bestCupMe = (me.cup ?? 0) > (opponent.cup ?? 0);
+  const bestCupOpp = (opponent.cup ?? 0) > (me.cup ?? 0);
 
   return (
     <div className={cn('st-stage', className)} {...rest}>
@@ -203,12 +212,27 @@ export function ResultCompare({
           />
         </div>
 
-        {showReward && (
+        {hasPerSideCup ? (
+          <div className="st-reward-pair">
+            <div className="st-reward-half">
+              <div className={cn('st-reward', bestCupMe && 'is-top')}>
+                <div className="lab">{me.name}</div>
+                <div className="pts">+{(me.cup ?? 0).toLocaleString('vi-VN')}</div>
+              </div>
+            </div>
+            <div className="st-reward-half">
+              <div className={cn('st-reward', bestCupOpp && 'is-top')}>
+                <div className="lab">{opponent.name}</div>
+                <div className="pts">+{(opponent.cup ?? 0).toLocaleString('vi-VN')}</div>
+              </div>
+            </div>
+          </div>
+        ) : showReward ? (
           <div className="st-reward">
             <div className="lab">Cúp nhận được</div>
-            <div className="pts">+{uniPointsEarned.toLocaleString('vi-VN')}</div>
+            <div className="pts">+{(uniPointsEarned ?? 0).toLocaleString('vi-VN')}</div>
           </div>
-        )}
+        ) : null}
 
         {actions && <div className="st-result-actions">{actions}</div>}
       </div>

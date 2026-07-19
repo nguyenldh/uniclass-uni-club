@@ -68,6 +68,10 @@ const fmtStamp = (v?: string | Date | null) => {
 };
 
 /* ---------- Tooltip "Chi tiết" (portal, chạy được trên cả touch) ---------- */
+// Điều phối: chỉ MỘT tooltip "Tiêu chí xếp hạng" được mở tại một thời điểm.
+const tipBus = new EventTarget();
+const TIP_OPEN_EVENT = 'bb-tip-open';
+
 interface DetailTipProps {
   correctCount: number;
   totalCorrectTimeSec: number;
@@ -77,37 +81,69 @@ interface DetailTipProps {
 function DetailTip({ correctCount, totalCorrectTimeSec, lastAchievedAt, isTied }: DetailTipProps) {
   const [open, setOpen] = React.useState(false);
   const btnRef = React.useRef<HTMLButtonElement>(null);
+  const tipRef = React.useRef<HTMLDivElement>(null);
+  const tipId = React.useId();
   const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null);
 
-  const place = () => {
-    const el = btnRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    // Neo mép phải tooltip vào nút (CSS dịch translateX(-100%)), mở xuống dưới.
-    setPos({ top: r.bottom + 8, left: r.right });
-  };
+  // Đo kích thước thật của tooltip rồi kẹp hoàn toàn trong viewport
+  const computePos = React.useCallback(() => {
+    const btn = btnRef.current;
+    const tip = tipRef.current;
+    if (!btn || !tip) return;
+    const b = btn.getBoundingClientRect();
+    const M = 8; // lề an toàn với mép màn hình
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const tw = tip.offsetWidth;
+    const th = tip.offsetHeight;
+    // Ngang: canh mép phải tooltip theo nút, rồi kẹp vào trong màn hình
+    let left = b.right - tw;
+    left = Math.min(Math.max(M, left), Math.max(M, vw - tw - M));
+    // Dọc: ưu tiên mở xuống dưới; nếu không đủ chỗ thì lật lên trên
+    let top = b.bottom + M;
+    if (top + th > vh - M) {
+      const above = b.top - M - th;
+      top = above >= M ? above : Math.max(M, vh - th - M);
+    }
+    setPos({ top, left });
+  }, []);
 
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpen((o) => {
-      if (!o) place();
-      return !o;
-    });
+    const next = !open;
+    setOpen(next);
+    // Mở tooltip này → báo cho các tooltip khác tự đóng
+    if (next) tipBus.dispatchEvent(new CustomEvent(TIP_OPEN_EVENT, { detail: tipId }));
   };
+
+  // Sau khi tooltip render (biết kích thước) mới chốt vị trí đã kẹp trong màn hình
+  React.useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    computePos();
+  }, [open, computePos]);
 
   React.useEffect(() => {
     if (!open) return;
     const close = () => setOpen(false);
+    // Tooltip khác vừa mở → đóng tooltip này
+    const onOther = (e: Event) => {
+      if ((e as CustomEvent).detail !== tipId) setOpen(false);
+    };
+    tipBus.addEventListener(TIP_OPEN_EVENT, onOther);
     // Cuộn danh sách / đổi kích thước / chạm ra ngoài → đóng
     window.addEventListener('scroll', close, true);
     window.addEventListener('resize', close);
     document.addEventListener('pointerdown', close);
     return () => {
+      tipBus.removeEventListener(TIP_OPEN_EVENT, onOther);
       window.removeEventListener('scroll', close, true);
       window.removeEventListener('resize', close);
       document.removeEventListener('pointerdown', close);
     };
-  }, [open]);
+  }, [open, tipId]);
 
   return (
     <>
@@ -122,12 +158,17 @@ function DetailTip({ correctCount, totalCorrectTimeSec, lastAchievedAt, isTied }
       >
         i
       </button>
-      {open && pos &&
+      {open &&
         createPortal(
           <div
+            ref={tipRef}
             className="bb-tip"
             role="tooltip"
-            style={{ top: pos.top, left: pos.left }}
+            style={
+              pos
+                ? { top: pos.top, left: pos.left }
+                : { top: 0, left: 0, opacity: 0, pointerEvents: 'none' }
+            }
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="bb-tip-head">Tiêu chí xếp hạng</div>

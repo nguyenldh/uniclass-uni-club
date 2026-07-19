@@ -10,14 +10,10 @@ import React, {
   type HTMLAttributes,
   type ButtonHTMLAttributes,
 } from 'react';
+import { MathText } from '../common/MathText';
 
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
-
-/** Đổi ký tự "\n" dạng literal (từ import Excel/JSON) thành xuống dòng thật;
- *  kết hợp CSS `white-space: pre-line` để câu hỏi dạng thơ hiển thị đúng dòng. */
-const multiline = (node: ReactNode): ReactNode =>
-  typeof node === 'string' ? node.replace(/\\r\\n|\\r|\\n/g, '\n') : node;
 
 /* ============================================================
    Types
@@ -78,7 +74,7 @@ export function AnswerChoice({
       {...rest}
     >
       <span className="letter">{letter}</span>
-      <span className="lbl">{children}</span>
+      <span className="lbl"><MathText source={children} /></span>
     </button>
   );
 }
@@ -296,7 +292,7 @@ export function QuestionCard({
         </span> */}
       </div>
 
-      <p className="qtext">{multiline(question)}</p>
+      <p className="qtext"><MathText source={question} /></p>
 
       <div className={cn('st-qmeter', barTone)}>
         <div className="timer-box">

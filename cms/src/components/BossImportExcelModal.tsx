@@ -112,7 +112,7 @@ export function BossImportExcelModal({ open, onCancel, onSuccess }: BossImportEx
 
   return (
     <Modal
-      title="Import câu hỏi Săn Boss từ Excel"
+      title="Import câu hỏi Săn Quái Vật từ Excel"
       open={open}
       onCancel={handleClose}
       width={800}
@@ -135,6 +135,16 @@ export function BossImportExcelModal({ open, onCancel, onSuccess }: BossImportEx
       ]}
     >
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <Alert
+          type="info"
+          showIcon
+          message={
+            <span>
+              Có thể nhập công thức toán bằng <code>$...$</code> trong ô nội dung/đáp án, ví dụ{' '}
+              <code>{'$\\frac{a}{b}$'}</code>, <code>{'$x^2$'}</code>.
+            </span>
+          }
+        />
         <Upload
           accept=".xlsx,.xls"
           fileList={fileList}

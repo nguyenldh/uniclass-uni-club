@@ -870,7 +870,6 @@
 /* Popover chi tiết (render qua portal ra body → không bị cắt bởi overflow) */
 .bb-tip{
   position:fixed; z-index:9999;
-  transform: translateX(-100%);
   min-width:232px; max-width:min(284px, 90vw);
   display:flex; flex-direction:column; gap:7px;
   padding:12px 14px; border-radius:14px;

@@ -201,6 +201,10 @@ export function GomokuPage() {
     onOpponentMove: (row, col, symbol) => {
       // Nếu game đã kết thúc local, bỏ qua move từ server
       if (gameEndedLocallyRef.current) return;
+      // Idempotent: bỏ qua nếu ô đã có quân. Với vs-AI, nước AI đã được áp cục bộ
+      // rồi server echo lại qua GOMOKU_STATE → nếu áp lần nữa sẽ đếm trùng moveCount.
+      // Đọc board mới nhất từ store để tránh stale closure.
+      if (useGomokuStore.getState().board[row]?.[col] != null) return;
       makeMove(row, col, symbol);
       // Check if opponent's move is a winning move — set win line for animation
       const newBoard = board.map((r) => [...r]) as Board;

@@ -147,8 +147,10 @@ export interface DailyAttempt {
   status: DailyAttemptStatus;
   /** Số câu đúng trong lượt */
   correctCount: number;
-  /** Tổng thời gian lượt (giây) */
+  /** Tổng thời gian lượt (giây) — mọi câu, đúng lẫn sai */
   totalResponseTime: number;
+  /** Tổng thời gian các câu ĐÚNG trong lượt (giây) — dùng cho màn kết quả, cùng định nghĩa với tiêu chí thời gian ở BXH */
+  correctResponseTime: number;
   /** Điểm lượt (gồm speed bonus) */
   pointsEarned: number;
   /** Index câu hiện tại (0-based) */

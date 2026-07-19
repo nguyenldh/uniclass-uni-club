@@ -137,7 +137,7 @@ export interface BossNameLabelProps extends HTMLAttributes<HTMLDivElement> {
   /** Dòng nhãn nhỏ phía trên. */
   eyebrow?: ReactNode;
 }
-export function BossNameLabel({ name, eyebrow = 'Boss tuần này', className, ...rest }: BossNameLabelProps) {
+export function BossNameLabel({ name, eyebrow = 'Quái Vật tuần này', className, ...rest }: BossNameLabelProps) {
   return (
     <div data-ui="UI-106" className={cn('bb-boss-name', className)} {...rest}>
       <span className="lab">{eyebrow}</span>
@@ -160,13 +160,13 @@ export function BossHpBar({ hpPercent, sub, className, ...rest }: BossHpBarProps
   return (
     <div data-ui="UI-102" className={cn('bb-hp', className)} {...rest}>
       <div className="bb-hp-top">
-        <span className="heart"><FlameIcon size={18} /><span className="lab">Máu Boss</span></span>
+        <span className="heart"><FlameIcon size={18} /><span className="lab">Máu Quái Vật</span></span>
         <span className="pct"><b>{hp.toFixed(2)}%</b></span>
       </div>
       <div className={cn('bb-hp-track', hp <= 0 && 'zero')}>
         <div className={cn('bb-hp-fill', low && 'low')} style={{ width: `calc(${hp}% - 4px)` }} />
       </div>
-      <div className="bb-hp-sub">{sub ?? `Cả khối đã đánh hạ ${progress}% máu Boss`}</div>
+      <div className="bb-hp-sub">{sub ?? `Cả khối đã đánh hạ ${progress}% máu Quái Vật`}</div>
     </div>
   );
 }
@@ -221,7 +221,7 @@ function nextMonday(): number {
   return target;
 }
 
-export function WeeklyCountdown({ to, label = 'Boss mới sau' }: WeeklyCountdownProps) {
+export function WeeklyCountdown({ to, label = 'Quái Vật mới sau' }: WeeklyCountdownProps) {
   const target = React.useMemo(
     () => (to == null ? nextMonday() : to instanceof Date ? to.getTime() : to),
     [to]
@@ -271,7 +271,7 @@ export function BattleCTA({ status = 'ready', onBattle, label = 'Chiến đấu'
   if (status === 'defeated') {
     return (
       <div data-ui="UI-105" className="bb-lock-note win">
-        <TrophyMini /> Boss đã bị hạ gục — chờ đợt tuần sau
+        <TrophyMini /> Quái Vật đã bị hạ gục — chờ đợt tuần sau
       </div>
     );
   }
@@ -329,7 +329,7 @@ export function BossLobby({
       <div className="bb-embers" aria-hidden><i /><i /><i /><i /><i /><i /><i /></div>
       <div className="bb-lobby">
         <div className="bb-topbar">
-          <h1 className="bb-title"><span className="crest" aria-hidden>⚔️</span>SĂN BOSS</h1>
+          <h1 className="bb-title"><span className="crest" aria-hidden>⚔️</span>SĂN QUÁI VẬT</h1>
           <div className="bb-topbar-right">
             {playerName && <span className="bb-chip bb-chip-name" style={{ background: 'rgba(255,255,255,0.12)' }}>{playerName}</span>}
             {grade && <span className="bb-chip">{grade}</span>}

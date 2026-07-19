@@ -50,7 +50,7 @@ export function BossBattleConfigPage() {
     try {
       const merged: BossBattleConfig = { ...values, bossStates: states };
       await updateBossBattle(merged);
-      message.success('Đã lưu cấu hình Săn Boss');
+      message.success('Đã lưu cấu hình Săn Quái Vật');
     } catch (err: any) {
       message.error(err.response?.data?.error || 'Lưu thất bại');
     } finally {
@@ -68,14 +68,14 @@ export function BossBattleConfigPage() {
 
   return (
     <div>
-      <Title level={4}>Cấu hình Săn Boss</Title>
+      <Title level={4}>Cấu hình Săn Quái Vật</Title>
       <Card style={{ maxWidth: 900 }}>
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Divider orientation="left">Thông số chung</Divider>
-          <Form.Item name="bossName" label="Tên Boss" rules={[{ required: true }]}>
+          <Form.Item name="bossName" label="Tên Quái Vật" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="hpMax" label="Tổng HP Boss" rules={[{ required: true }]}>
+          <Form.Item name="hpMax" label="Tổng HP Quái Vật" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="questionsPerDay" label="Số câu mỗi ngày" rules={[{ required: true }]}>
@@ -93,11 +93,11 @@ export function BossBattleConfigPage() {
           <Form.Item name="tMaxSec" label="Thời gian tối đa/câu (giây)" rules={[{ required: true }]}>
             <InputNumber min={5} max={300} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="weeklyFrameImageUrl" label="URL khung 'Dũng sĩ diệt Boss'">
+          <Form.Item name="weeklyFrameImageUrl" label="URL khung 'Dũng sĩ diệt Quái Vật'">
             <Input placeholder="https://..." />
           </Form.Item>
 
-          <Divider orientation="left">Trạng thái Boss theo % HP còn lại</Divider>
+          <Divider orientation="left">Trạng thái Quái Vật theo % HP còn lại</Divider>
           <Table<BossStateImage>
             rowKey={(_, idx) => String(idx)}
             dataSource={states}

@@ -54,7 +54,7 @@ export function BossLobbyPage() {
       <GameCanvas
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
-        <div style={{ color: '#fff', fontSize: 18 }}>Đang tải Săn Boss...</div>
+        <div style={{ color: '#fff', fontSize: 18 }}>Đang tải Săn Quái Vật...</div>
       </GameCanvas>
     );
   }
@@ -81,7 +81,7 @@ export function BossLobbyPage() {
         <ExitButton from="/boss-battle" className="bb-exit-btn">Thoát</ExitButton>
         <div style={{ color: '#fff', fontSize: 18, textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🐉</div>
-          <div style={{ fontWeight: 900 }}>Chưa có Boss tuần này</div>
+          <div style={{ fontWeight: 900 }}>Chưa có Quái Vật tuần này</div>
           <div style={{ fontSize: 13, opacity: 0.7, marginTop: 6 }}>
             Hãy quay lại khi tuần mới bắt đầu!
           </div>

@@ -63,14 +63,14 @@ export interface WeeklyAvatarFrameProps {
   name: string;
   avatar?: string;
   avatarBg?: string;
-  /** Nhãn khung, mặc định "Dũng sĩ diệt Boss". */
+  /** Nhãn khung, mặc định "Dũng sĩ diệt Quái Vật". */
   frameLabel?: ReactNode;
   /** Số ngày còn hiệu lực (mặc định 7). */
   daysLeft?: number;
 }
 export function WeeklyAvatarFrame({
   name, avatar, avatarBg = 'linear-gradient(135deg,#ffb24a,#e8530e)',
-  frameLabel = 'Dũng sĩ diệt Boss', daysLeft = 7,
+  frameLabel = 'Dũng sĩ diệt Quái Vật', daysLeft = 7,
 }: WeeklyAvatarFrameProps) {
   return (
     <div data-ui="UI-502" className="bb-frame-demo">

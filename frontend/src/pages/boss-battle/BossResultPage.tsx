@@ -111,7 +111,7 @@ export function BossResultPage() {
     <BossResult
       correctCount={attempt.correctCount}
       totalQuestions={myProgress ? undefined : 5}
-      totalTime={attempt.totalResponseTime}
+      totalTime={attempt.correctResponseTime}
       pointsContributed={attempt.pointsEarned}
       hpBefore={hpBefore}
       hpAfter={hpAfter}

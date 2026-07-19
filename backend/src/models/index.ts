@@ -465,6 +465,7 @@ export interface IDailyAttempt extends Document {
   status: DailyAttemptStatus;
   correctCount: number;
   totalResponseTime: number;
+  correctResponseTime: number;
   pointsEarned: number;
   currentQuestionIndex: number;
   startedAt: Date | null;
@@ -486,6 +487,7 @@ const DailyAttemptSchema = new Schema<IDailyAttempt>(
     },
     correctCount: { type: Number, required: true, default: 0 },
     totalResponseTime: { type: Number, required: true, default: 0 },
+    correctResponseTime: { type: Number, required: true, default: 0 },
     pointsEarned: { type: Number, required: true, default: 0 },
     currentQuestionIndex: { type: Number, required: true, default: 0 },
     startedAt: { type: Date, default: null },

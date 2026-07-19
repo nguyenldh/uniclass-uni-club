@@ -116,6 +116,16 @@ export function WeeklyEventImportExcelModal({ open, onCancel, onSuccess }: Weekl
           message="Định dạng file Excel"
           description="Mỗi dòng là 1 câu hỏi. Các dòng có cùng (Tên đề, Khối) sẽ được gộp thành 1 đề. Mỗi đề phải có đúng 25 câu."
         />
+        <Alert
+          type="info"
+          showIcon
+          message={
+            <span>
+              Có thể nhập công thức toán bằng <code>$...$</code> trong ô nội dung/đáp án, ví dụ{' '}
+              <code>{'$\\frac{a}{b}$'}</code>, <code>{'$x^2$'}</code>.
+            </span>
+          }
+        />
 
         <Upload
           accept=".xlsx,.xls"

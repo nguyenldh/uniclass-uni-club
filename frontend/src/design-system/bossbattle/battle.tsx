@@ -6,14 +6,10 @@
    ============================================================ */
 import React, { type ReactNode, type HTMLAttributes } from 'react';
 import { bossStateFor, type BossState, DEFAULT_BOSS_STATES } from './lobby';
+import { MathText } from '../common/MathText';
 
 const cn = (...xs: Array<string | false | null | undefined>) =>
   xs.filter(Boolean).join(' ');
-
-/** Đổi ký tự "\n" dạng literal (từ import Excel/JSON) thành xuống dòng thật;
- *  kết hợp CSS `white-space: pre-line` để câu hỏi dạng thơ hiển thị đúng dòng. */
-const multiline = (node: ReactNode): ReactNode =>
-  typeof node === 'string' ? node.replace(/\\r\\n|\\r|\\n/g, '\n') : node;
 
 /* ---------- BossStrip — máu boss + mặt boss nhận đòn ---------- */
 export interface BossStripProps extends HTMLAttributes<HTMLDivElement> {
@@ -48,7 +44,7 @@ export function BossStrip({ name, hpPercent, states = DEFAULT_BOSS_STATES, lastD
               <div className="bbar-fill" style={{ width: `${hp}%` }} />
             </div>
           )
-          : <div className="bbar-dmg-label">Sát thương gây cho Boss</div>}
+          : <div className="bbar-dmg-label">Sát thương gây cho Quái Vật</div>}
       </div>
       {mode === 'hp'
         ? <div className="bbar-hp">{hp.toFixed(2)}%</div>
@@ -148,7 +144,7 @@ export function AnswerGrid({ options, phase = 'answering', selected = null, corr
             onClick={() => phase === 'answering' && onSelect?.(opt.key)}
           >
             <span className="letter">{opt.key}</span>
-            <span className="lbl">{opt.label}</span>
+            <span className="lbl"><MathText source={opt.label} /></span>
           </button>
         );
       })}
@@ -173,7 +169,7 @@ export function BattleQuestionCard({
   return (
     <div data-ui="UI-201" className={cn('bb-qcard', className)} {...rest}>
       {image && <img className="bb-qimg" src={image} alt="" />}
-      <p className="bb-qtext">{multiline(question)}</p>
+      <p className="bb-qtext"><MathText source={question} /></p>
       <AnswerGrid options={options} phase={phase} selected={selected} correct={correct} onSelect={onSelect} />
     </div>
   );
@@ -205,7 +201,7 @@ export function BossArena({
   return (
     <div className={cn('bb-arena', hit && 'is-hit', st.tone === 'rage' && 'is-rage')}>
       <div className="bb-arena-name">
-        <span className="lab">Boss tuần này</span>
+        <span className="lab">Quái Vật tuần này</span>
         <span className="nm">{bossName}</span>
       </div>
       <div className="bb-arena-stage">
@@ -227,7 +223,7 @@ export function BossArena({
       <div className="bb-arena-dealt">
         <span className="lab">Bạn đã gây ra</span>
         <span className="val">{damageDealt.toLocaleString('vi-VN')}</span>
-        <span className="lab">sát thương cho Boss</span>
+        <span className="lab">sát thương cho Quái Vật</span>
       </div>
     </div>
   );

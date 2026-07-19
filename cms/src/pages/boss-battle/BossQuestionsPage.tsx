@@ -222,7 +222,7 @@ export function BossQuestionsPage() {
         }}
       >
         <Title level={4} style={{ margin: 0 }}>
-          Ngân hàng câu hỏi Săn Boss
+          Ngân hàng câu hỏi Săn Quái Vật
         </Title>
         <Space>
           <Button icon={<InfoCircleOutlined />} onClick={() => setHelpModalOpen(true)}>
@@ -241,7 +241,7 @@ export function BossQuestionsPage() {
       </div>
 
       <Modal
-        title="Hướng dẫn import/export câu hỏi Săn Boss"
+        title="Hướng dẫn import/export câu hỏi Săn Quái Vật"
         open={helpModalOpen}
         onCancel={() => setHelpModalOpen(false)}
         footer={null}
