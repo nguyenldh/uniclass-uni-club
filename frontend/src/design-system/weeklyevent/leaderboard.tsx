@@ -52,7 +52,7 @@ export function LeaderboardScreen({
 
         <div className="we-board-head">
           <div className="we-marquee"><span className="bulb" />Bảng xếp hạng<span className="bulb" /></div>
-          {weeklyTitle && <div className="we-subtle" style={{ marginTop: 4 }}>{weeklyTitle}</div>}
+          {/* {weeklyTitle && <div className="we-subtle" style={{ marginTop: 4 }}>{weeklyTitle}</div>} */}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minHeight: 0 }}>

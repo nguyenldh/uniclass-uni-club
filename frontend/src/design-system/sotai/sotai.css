@@ -165,6 +165,9 @@
 .st-lobby-cta{
   display:flex; flex-direction:column; align-items:center; gap: 16px;
 }
+.st-lobby-cta .st-lobby-cta-btn{
+  width: 100%;
+}
 .st-lobby-cta .cue{
   font-weight: 800; font-size: 14px; letter-spacing: .12em;
   text-transform: uppercase;
@@ -844,9 +847,9 @@
   min-height: 600px;
 }
 @media (max-width: 768px) {
-  .st-result{gap: 42px}
+  .st-result{gap: 18px}
 }
-.st-result > .st-compare{ width: 100%; }
+.st-result > .st-compare{ width: 100%; margin-top: 24px; }
 
 .st-result-headline{
   text-align: center;
@@ -876,8 +879,8 @@
   gap: 14px;
 }
 .st-compare-side{
-  display:flex; flex-direction:column; align-items: center; gap: 14px;
-  padding: 18px 18px 14px;
+  display:flex; flex-direction:column; align-items: center; gap: 10px;
+  padding: 16px 14px;
   border-radius: 18px;
   background: rgba(0,0,0,.35);
   border: 2px solid rgba(255,255,255,.12);
@@ -902,6 +905,31 @@
   font-weight: 900; font-size: 18px;
   letter-spacing: .02em;
 }
+/* Panel cúp nhận trong thẻ người chơi */
+.st-rcup{
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 12px;
+  background: rgba(0,0,0,.28);
+  border: 1px solid rgba(255,255,255,.12);
+  max-width: 100%;
+}
+.st-rcup .ic{ display: grid; place-items: center; color: var(--g-gold, #f6c344); flex: none; }
+.st-rcup .n{
+  font-weight: 900; font-size: 20px; line-height: 1;
+  font-variant-numeric: tabular-nums; color: #fff;
+}
+.st-rcup .u{
+  font-size: 10px; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; opacity: .65;
+}
+.st-rcup.is-top{
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(255,224,122,.35), rgba(0,0,0,0)),
+    rgba(0,0,0,.3);
+  border-color: rgba(246,195,68,.7);
+  box-shadow: 0 0 0 1px rgba(246,195,68,.35), 0 0 16px rgba(246,195,68,.3);
+}
+.st-rcup.is-top .n{ color: #ffe07a; }
 .st-compare-side .crown{
   position: absolute; top: -34px;
   display: grid; place-items: center;
@@ -961,16 +989,72 @@
   font-size: 12px; font-weight: 700; opacity: .7; margin-left: 2px;
 }
 
-/* VS divider */
+/* ===== Bảng so sánh chỉ số (bố cục gọn) ===== */
+.st-scoretable{
+  width: 100%;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.18));
+  border: 1px solid rgba(255,255,255,.1);
+}
+.st-scorerow{
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+}
+.st-scorerow:not(.big){
+  padding-top: 12px; border-top: 1px solid rgba(255,255,255,.08);
+}
+.st-scorerow .val{
+  font-weight: 900; font-variant-numeric: tabular-nums; font-size: 22px; line-height: 1;
+}
+.st-scorerow.big .val{ font-size: 34px; }
+.st-scorerow .val.me{ color: var(--st-me-1); text-align: left; }
+.st-scorerow .val.opp{ color: var(--st-opp-1); text-align: right; }
+.st-scorerow .val.win{ text-shadow: 0 0 14px currentColor; }
+.st-scorerow .lab{
+  text-align: center; font-weight: 800; font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase; opacity: .7;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.st-scorerow .lab small{
+  font-size: 11px; letter-spacing: .02em; text-transform: none;
+  color: var(--g-gold, #f6c344); opacity: .95; font-weight: 800;
+}
+/* Thanh câu đúng (tỉ lệ 2 bên) */
+.st-correctbar{
+  display: flex; height: 10px; border-radius: 999px; overflow: hidden;
+  background: rgba(0,0,0,.35); border: 1px solid rgba(0,0,0,.4);
+}
+.st-correctbar .seg{ height: 100%; transition: width .5s ease; }
+.st-correctbar .seg.me{ background: linear-gradient(90deg, var(--st-me-1), var(--st-me-2)); }
+.st-correctbar .seg.opp{ background: linear-gradient(270deg, var(--st-opp-1), var(--st-opp-2)); }
+/* Pill chênh lệch câu đúng */
+.st-scorepill{
+  align-self: center;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 12px; border-radius: 999px;
+  font-weight: 800; font-size: 12px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+}
+.st-scoreverdict{
+  text-align: center; font-weight: 800; font-size: 13px;
+  color: var(--g-gold, #f6c344); opacity: .9;
+  padding-top: 2px;
+}
+
+/* VS badge (huy hiệu tròn giữa 2 thẻ) */
 .st-compare-vs{
-  display:flex; flex-direction: column; align-items:center; justify-content:center;
-  gap: 10px;
-  padding: 0 4px;
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 2px;
 }
 .st-compare-vs .vs{
-  font-weight: 900; font-size: 38px;
+  display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  font-weight: 900; font-size: 18px; letter-spacing: .02em;
   color: #fff7c4;
-  text-shadow: 0 4px 0 var(--g-wood-4), 0 8px 16px rgba(0,0,0,.5);
+  background: linear-gradient(180deg, var(--g-wood-2), var(--g-wood-1));
+  border: 2px solid var(--g-wood-4);
+  box-shadow: 0 4px 0 rgba(0,0,0,.4), 0 6px 14px rgba(0,0,0,.5);
 }
 .st-compare-vs .line{
   flex: 1; width: 2px;
@@ -1077,9 +1161,18 @@
   .st-versus::after{ display:none;}
   .st-versus-vs{ font-size: 80px;}
   .st-fighter .av{ width: 110px; height: 110px; font-size: 44px;}
-  .st-compare{ grid-template-columns: 1fr; }
-  .st-compare-vs{ flex-direction: row; padding: 6px 0;}
-  .st-compare-vs .line{ width: auto; height: 2px;}
+  /* Giữ 2 thẻ cạnh nhau (không xếp dọc) cho gọn, thu nhỏ kích thước */
+  .st-compare{ grid-template-columns: 1fr auto 1fr; gap: 8px; }
+  .st-compare-side{ padding: 12px 8px; gap: 8px; }
+  .st-compare-side .av{ width: 60px; height: 60px; }
+  .st-compare-side .name{ font-size: 14px; }
+  .st-compare-side .crown{ top: -26px; }
+  .st-compare-vs .vs{ width: 36px; height: 36px; font-size: 15px; }
+  .st-rcup{ padding: 6px 10px; gap: 4px; }
+  .st-rcup .n{ font-size: 17px; }
+  .st-scoretable{ padding: 12px 14px; gap: 10px; }
+  .st-scorerow .val{ font-size: 18px; }
+  .st-scorerow.big .val{ font-size: 28px; }
   .st-answers{
     grid-template-columns: 1fr;
     grid-template-rows: repeat(4, 1fr);
@@ -1176,11 +1269,15 @@
 
   .st-decay {
     grid-template-columns: auto auto;
-    justify-content: space-between;
+    justify-content: end;
   }
 
   .st-decay .track {
     display: none;
+  }
+
+  .st-decay .num {
+    min-width: unset;
   }
 }
 

@@ -17,6 +17,7 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useWeeklyEventStore } from '../stores/weekly-event.store';
 import type { ExamBank, ExamQuestion } from '@uniclub/shared';
 import { MathPreview, MathSyntaxHint } from './MathText';
+import { MathFieldInput } from './MathFieldInput';
 
 interface ExamFormModalProps {
   open: boolean;
@@ -195,13 +196,15 @@ export function ExamFormModal({ open, exam, onClose }: ExamFormModalProps) {
               />
             }
           >
-            <Input.TextArea
-              placeholder="Nội dung câu hỏi"
-              value={q.stem}
-              onChange={(e) => handleQuestionChange(idx, 'stem', e.target.value)}
-              rows={2}
-              style={{ marginBottom: 8 }}
-            />
+            <div style={{ marginBottom: 8 }}>
+              <MathFieldInput
+                textarea
+                rows={2}
+                placeholder="Nội dung câu hỏi"
+                value={q.stem}
+                onChange={(v) => handleQuestionChange(idx, 'stem', v)}
+              />
+            </div>
 
             {OPTION_KEYS.map((key) => (
               <div key={key} style={{ display: 'flex', alignItems: 'center', marginBottom: 4, gap: 8 }}>
@@ -210,12 +213,13 @@ export function ExamFormModal({ open, exam, onClose }: ExamFormModalProps) {
                   onChange={() => handleQuestionChange(idx, 'correctKey', key)}
                 />
                 <strong>{key}.</strong>
-                <Input
-                  placeholder={`Phương án ${key}`}
-                  value={q.options.find((o) => o.key === key)?.text || ''}
-                  onChange={(e) => handleQuestionChange(idx, `option_${key}`, e.target.value)}
-                  style={{ flex: 1 }}
-                />
+                <div style={{ flex: 1 }}>
+                  <MathFieldInput
+                    placeholder={`Phương án ${key}`}
+                    value={q.options.find((o) => o.key === key)?.text || ''}
+                    onChange={(v) => handleQuestionChange(idx, `option_${key}`, v)}
+                  />
+                </div>
               </div>
             ))}
 

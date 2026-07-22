@@ -5,3 +5,14 @@ body {
 .ant-table-cell {
     overflow-wrap: unset !important;
 }
+
+/* MathLive: bàn phím toán ảo mặc định z-index thấp (105) nên bị lớp mask
+   của Ant Modal (z-index 1000+) che mất. Nâng lên trên mọi modal. */
+:root {
+    --keyboard-zindex: 100000;
+}
+
+/* Dự phòng nếu biến CSS không được đọc: ép trực tiếp container bàn phím. */
+.ML__keyboard {
+    z-index: 100000 !important;
+}

@@ -130,18 +130,28 @@ export class ScoreService {
     }
   }
 
-  /** Ghi nhận thua (chỉ tăng played) */
+  /**
+   * Ghi nhận thua (tăng played, KHÔNG tăng won).
+   * `points` > 0: vẫn cộng điểm/cúp (vd So Tài: người thua nhận cúp theo số câu
+   * đúng) và cập nhật leaderboard — chỉ khác addWinPoints ở chỗ không tính là thắng.
+   */
   static async recordLoss(
     userId: string,
     gameType: GameType,
     subGameType?: 'gomoku' | 'card_flip',
+    points: number = 0,
   ): Promise<UserScore> {
     const $inc: Record<string, number> = {
       gamesPlayed: 1,
       [`${gameType}.played`]: 1,
     };
+    if (points > 0) {
+      $inc.totalPoints = points;
+      $inc[`${gameType}.points`] = points;
+    }
     if (subGameType) {
       $inc[`${subGameType}.played`] = 1;
+      if (points > 0) $inc[`${subGameType}.points`] = points;
     }
 
     const doc = await UserScoreModel.findOneAndUpdate(
@@ -151,6 +161,8 @@ export class ScoreService {
     );
 
     const score = this.toUserScore(doc);
+    // Cộng điểm → cập nhật lại bảng xếp hạng (giống addWinPoints)
+    if (points > 0) await this.updateLeaderboardCache(userId, score);
     await redis.set(`${REDIS_KEYS.USER_SCORE}:${userId}`, JSON.stringify(score), 'EX', 300);
     return score;
   }

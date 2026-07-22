@@ -77,6 +77,13 @@ export function BossDamageRecap({ hpBefore, hpAfter, pointsContributed, states =
           ? <img className="bb-recap-face-img" src={img} alt="" />
           : <span className="glyph" aria-hidden>{st.glyph ?? '🐉'}</span>}
       </div>
+      {/* Thanh máu Quái Vật còn lại cuối lượt */}
+      <div className="bb-recap-hpbar">
+        <div className="track">
+          <div className="fill" style={{ width: `${after}%` }} />
+        </div>
+        <div className="hp">{fmtSmallPct(after)}% <span>máu Quái Vật còn lại</span></div>
+      </div>
     </div>
   );
 }

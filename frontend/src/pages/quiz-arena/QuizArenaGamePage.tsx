@@ -177,7 +177,6 @@ export function QuizArenaGamePage() {
   // ---- Tái đấu (phòng mời) ----
   const isInvite = !!navState?.roomId;
   const isGuest = user?.type === 'guest';
-  const rematchRemaining = navState?.rematchRemaining ?? 0;
   const [waitingRematch, setWaitingRematch] = useState(false);
   const [rematchClosed, setRematchClosed] = useState<string | null>(null);
 
@@ -279,6 +278,14 @@ export function QuizArenaGamePage() {
     onClosed: useCallback((reason: string) => setRematchClosed(reason), []),
   });
 
+  // Số lượt tái đấu còn lại: ưu tiên giá trị từ START (navState), fallback tính từ
+  // trạng thái phòng khi RECONNECT (navState không mang theo rematchRemaining).
+  const rematchRemaining =
+    navState?.rematchRemaining ??
+    (invite.room
+      ? Math.max(0, invite.room.maxGames - invite.room.gamesPlayed)
+      : 0);
+
   // Join lại phòng (reconnect) để socket nằm trong room khi ván kết thúc
   const roomId = navState?.roomId;
   useEffect(() => {
@@ -301,6 +308,9 @@ export function QuizArenaGamePage() {
     // Ván mới (kể cả tái đấu) → reset trạng thái chờ tái đấu của ván trước
     setWaitingRematch(false);
     setRematchClosed(null);
+    // Cho phép gửi lại game:ended cho ván mới (component KHÔNG remount khi tái đấu
+    // vì cùng route /quiz-arena/game → ref sẽ giữ true nếu không reset ở đây).
+    gameEndedSentRef.current = false;
 
     // Khối lớp chưa có câu hỏi (check ở lobby) → hiển thị màn no-questions ngay,
     // không cần session, không ghép trận.
@@ -573,8 +583,9 @@ export function QuizArenaGamePage() {
           correct: mySummary.correctCount,
           totalScore: mySummary.totalScore,
           correctResponseTime: Math.round(mySummary.totalCorrectTimeMs / 1000),
-          // Cúp chỉ cộng cho người thắng → hiển thị 0 cho người thua.
-          cup: amIWinner ? mySummary.uniPointsEarned : 0,
+          // Cúp = số câu đúng × cúp/câu, cộng cho CẢ 2 (đồng bộ UniClass cho cả
+          // người thua). Trận mời: guest = 0 (uniPointsEarned server đã tính sẵn).
+          cup: mySummary.uniPointsEarned,
         }}
         opponent={{
           name: oppData?.name,
@@ -582,9 +593,8 @@ export function QuizArenaGamePage() {
           correct: oppSummary.correctCount,
           totalScore: oppSummary.totalScore,
           correctResponseTime: Math.round(oppSummary.totalCorrectTimeMs / 1000),
-          cup: amIWinner ? 0 : oppSummary.uniPointsEarned,
+          cup: oppSummary.uniPointsEarned,
         }}
-        totalQuestions={totalQ}
         actions={
           <div
             style={{
@@ -620,9 +630,8 @@ export function QuizArenaGamePage() {
                   size="md"
                   className="st-reward-btn"
                   onClick={() => {
-                    // Guest Đổi quà = kết thúc trận → rời phòng để host biết đối thủ đã
-                    // xong (host hiện thông điệp trung tính, và F5 không còn nút Tái đấu).
-                    if (isInvite) invite.leave();
+                    // Đổi quà chỉ mở luồng đổi quà ở app cha, KHÔNG rời phòng —
+                    // host vẫn giữ nút Tái đấu, và guest vẫn có thể bấm Tái đấu sau đó.
                     notifyGuestReward({
                       profileId: String(user?.profileId ?? userId),
                       name: user?.name,

@@ -1305,34 +1305,32 @@ h3 {
   font-size: 15px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   padding: 5px 16px 5px 5px;
-  background: #fff;
-  border: 3px solid var(--g-wood-4);
+  background: #FFD60026;
+  border: 1px solid #FFD600;
   border-radius: 999px;
-  color: var(--g-wood-4);
+  color: white;
   white-space: nowrap;
-  box-shadow: 0 4px 0 rgba(110, 63, 23, 0.45);
 }
 .gpill .ico {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 2px solid var(--g-wood-4);
-  background: radial-gradient(circle at 30% 30%, #fff5a8 0%, var(--g-gold) 55%, #b6892b 100%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
-.gpill.green .ico {
-  background: radial-gradient(circle at 30% 30%, #c4f0b6, #2bb673 60%, #1f5b35);
+.gpill.green {
+  background: #00FFA326;
+  border: 1px solid #00FFA3;
 }
-.gpill.red .ico {
+.gpill.red {
   background: radial-gradient(circle at 30% 30%, #ffbfbf, #e23b3b 60%, #7e1a1a);
 }
-.gpill.blue .ico {
-  background: radial-gradient(circle at 30% 30%, #c6e6ff, #2f8fd6 60%, #1c5b8a);
+.gpill.blue {
+  border: 1px solid #A855F7;
+  background: #A855F726;
 }
 
 /* === Streak bar === */
@@ -2561,6 +2559,33 @@ h3 {
   font-weight: 700;
   line-height: 1.4;
   color: var(--o-600);
+}
+
+/* ============================================================
+   Màn Tìm trận — desktop / màn ngang
+   Xếp Luật chơi + Mẹo chơi thành 2 cột cạnh nhau (thay vì dọc) để
+   thẻ hướng dẫn thấp lại, nút "Tìm trận" luôn nằm gọn trong viewport
+   mà không phải cuộn. Chỉ áp dụng ≥561px (mobile dọc vẫn xếp dọc).
+   ============================================================ */
+@media (min-width: 561px) {
+  /* Nới rộng container idle (đè inline maxWidth:400) để 2 cột vừa vặn */
+  .mm-page .mm-overlay-idle {
+    max-width: 780px !important;
+  }
+  /* Header trải full, hai section (Luật / Mẹo) dàn ngang 2 cột */
+  .mm-page .game-guide-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--s-4, 20px);
+    align-content: start;
+  }
+  .mm-page .game-guide-header {
+    grid-column: 1 / -1;
+  }
+  .mm-page .game-guide-section {
+    margin-bottom: 0;
+    min-width: 0;
+  }
 }
 @keyframes mm-ring-pulse {
   0%,

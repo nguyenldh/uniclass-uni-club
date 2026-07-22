@@ -45,6 +45,9 @@ router.get('/active-session/:userId', async (req: Request, res: Response) => {
       sessionId: active.sessionId,
       gameType: active.gameType,
       isBot: session.isBot,
+      // Giữ ngữ cảnh trận mời khi reconnect → client mới hiện đúng nút "Tái đấu".
+      friendly: !!session.friendly,
+      roomId: session.friendly ? session.inviteRoomId : undefined,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

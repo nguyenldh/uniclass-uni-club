@@ -82,7 +82,8 @@ export function QuizArenaLobbyPage() {
         if (cancelled) return;
 
         if (res.hasActiveSession && res.sessionId) {
-          // Có session đang diễn ra → tự động vào game
+          // Có session đang diễn ra → tự động vào game.
+          // Trận mời: mang theo roomId để game page giữ ngữ cảnh mời (hiện nút Tái đấu).
           navigate('/quiz-arena/game', {
             state: {
               sessionId: res.sessionId,
@@ -90,6 +91,8 @@ export function QuizArenaLobbyPage() {
               isAI: res.isBot ?? false,
               role: 'first',
               isReconnect: true,
+              roomId: res.roomId,
+              isInvite: !!res.roomId,
             },
             replace: true,
           });
@@ -161,6 +164,7 @@ export function QuizArenaLobbyPage() {
     return (
       <Lobby
         ctaLabel="Ghép trận ngẫu nhiên"
+        showPeek={inviteEnabled} // Nếu MGM tắt → ẩn chip sneak-peek (không có ý nghĩa)
         player={{ name: displayName, grade, avatar: user?.avatar }}
         questionCount={questionCount ?? undefined}
         gradeLevel={user?.grade}
@@ -181,6 +185,10 @@ export function QuizArenaLobbyPage() {
           inviteEnabled ? (
           <GameButton
             color="ghost"
+            style={{
+              borderTopLeftRadius: 8,
+              borderBottomLeftRadius: 8,
+            }}
             size="md"
             onClick={() =>
               notifyUserReward({

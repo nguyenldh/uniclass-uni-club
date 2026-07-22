@@ -682,35 +682,41 @@ export class QuizArenaService {
     // - Trận mời: chỉ host (playerA) — ×hệ số khi thắng; guest (playerB) = 0.
     const uniA =
       session.playerAState.correctCount * config.uniPointsPerCorrect * hostMultiplier;
-    const uniB = isFriendly ? 0 : session.playerBState.correctCount * config.uniPointsPerCorrect;
+    // Guest (người được mời) cũng nhận cúp theo số câu đúng như trận thường
+    // (không ×hệ số — hệ số chỉ dành cho host khi thắng).
+    const uniB = session.playerBState.correctCount * config.uniPointsPerCorrect;
 
     // Cập nhật Cúp nội bộ + thắng/thua.
-    // - PvP thật (không bot, không mời): cả 2.
-    // - Bot HOẶC trận mời: chỉ tính cho người thật/host = playerA.
-    if (!session.isBot && !isFriendly) {
+    // - PvP thường VÀ trận mời: cả 2 người đều được tính cúp (guest cũng nhận).
+    // - Bot: chỉ tính cho người thật = playerA.
+    if (!session.isBot) {
       await Promise.all([
         ScoreService.addWinPoints(
           isPlayerAWinner ? session.playerA : session.playerB,
           isPlayerAWinner ? uniA : uniB,
           "quiz_arena",
         ),
+        // Người thua VẪN được cộng cúp theo số câu đúng (chỉ không tính là trận thắng).
         ScoreService.recordLoss(
           isPlayerAWinner ? session.playerB : session.playerA,
           "quiz_arena",
+          undefined,
+          isPlayerAWinner ? uniB : uniA,
         ),
       ]);
     } else {
-      // playerA luôn là user thật (bot) hoặc host (mời)
+      // Bot: chỉ tính người thật = playerA (đối thủ là bot, không tính).
       if (isPlayerAWinner) {
         await ScoreService.addWinPoints(session.playerA, uniA, "quiz_arena");
       } else {
-        await ScoreService.recordLoss(session.playerA, "quiz_arena");
+        // Thua vẫn nhận cúp theo số câu đúng của mình.
+        await ScoreService.recordLoss(session.playerA, "quiz_arena", undefined, uniA);
       }
     }
 
     // Enqueue sync về UniClass
     const now = new Date().toISOString();
-    if (!session.isBot && !isFriendly) {
+    if (!session.isBot) {
       await UniClassSyncService.enqueueSync({
         userId: session.playerA,
         sessionId,
@@ -726,7 +732,7 @@ export class QuizArenaService {
         playedAt: now,
       });
     } else {
-      // Bot: user thật; Mời: chỉ host (playerA). Guest không sync.
+      // Bot: chỉ sync người thật = playerA.
       await UniClassSyncService.enqueueSync({
         userId: session.playerA,
         sessionId,

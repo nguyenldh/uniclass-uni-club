@@ -64,7 +64,7 @@ export function VersusBar({
         />
         <div className="st-vbar-info">
           <div className="nm">{me.name}</div>
-          <div className="sc">{me.score.toLocaleString("vi-VN")}</div>
+          <div className="sc">{me.score}</div>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export function VersusBar({
         />
         <div className="st-vbar-info">
           <div className="nm">{opponent.name}</div>
-          <div className="sc">{opponent.score.toLocaleString("vi-VN")}</div>
+          <div className="sc">{opponent.score}</div>
         </div>
       </div>
     </div>

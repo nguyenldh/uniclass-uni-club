@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Radio, Space, Switch } from 'antd';
 import type { BossQuestion, CreateBossQuestionInput } from '@uniclub/shared';
 import { MathPreview, MathSyntaxHint } from './MathText';
-
-const { TextArea } = Input;
+import { MathFieldInput } from './MathFieldInput';
 
 interface BossQuestionFormModalProps {
   open: boolean;
@@ -99,7 +98,7 @@ export function BossQuestionFormModal({
           label="Nội dung câu hỏi"
           rules={[{ required: true, message: 'Nhập nội dung câu hỏi' }]}
         >
-          <TextArea rows={3} placeholder="Nhập nội dung câu hỏi..." />
+          <MathFieldInput textarea rows={3} placeholder="Nhập nội dung câu hỏi..." />
         </Form.Item>
         <MathSyntaxHint />
 
@@ -122,7 +121,7 @@ export function BossQuestionFormModal({
                     rules={[{ required: true, message: `Nhập đáp án ${String.fromCharCode(65 + idx)}` }]}
                     style={{ marginBottom: 0, flex: 1 }}
                   >
-                    <Input placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`} />
+                    <MathFieldInput placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`} />
                   </Form.Item>
                 </Space>
               ))}

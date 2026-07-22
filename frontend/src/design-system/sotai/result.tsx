@@ -1,11 +1,11 @@
 /* ============================================================
-   So Tài · Result (Màn kết quả)
-   - Side-by-side comparison: số câu đúng / điểm / thời gian phản xạ
-   - Highlight winner row
-   - UniPoint reward box
-   - No "Hòa" — always exactly one winner per spec
+   So Tài · Result (Màn kết quả) — bố cục gọn cho mobile
+   - 2 thẻ người chơi cạnh nhau: avatar + tên + cúp nhận
+   - 1 bảng so sánh chung bên dưới: câu đúng (kèm thanh + chênh lệch),
+     điểm trận, thời gian phản xạ
+   - Luôn đúng 1 người thắng (không có "Hòa")
    ============================================================ */
-import React, { type ReactNode, type HTMLAttributes } from 'react';
+import { type ReactNode, type HTMLAttributes } from 'react';
 import { TrophyIcon } from '../icons';
 import { AvatarImage } from '../../components/AvatarImage';
 
@@ -32,19 +32,12 @@ export interface ResultCompareProps extends Omit<HTMLAttributes<HTMLDivElement>,
   outcome: ResultOutcome;
   me: ResultPlayer;
   opponent: ResultPlayer;
-  /** Tổng câu trong trận. Default 10. */
-  totalQuestions?: number;
-  /**
-   * @deprecated Dùng `me.cup` / `opponent.cup` để hiện cúp riêng từng bên.
-   * Chỉ dùng khi KHÔNG truyền cup per-player (panel cúp đơn cũ).
-   */
-  uniPointsEarned?: number;
-  /** Hiện panel cúp đơn (cũ). Chỉ áp dụng khi không có cup per-player. */
-  showReward?: boolean;
   /** Title override — default theo outcome. */
   title?: ReactNode;
   /** Subtitle override — default theo outcome. */
   subtitle?: ReactNode;
+  /** Câu chốt dưới bảng (vd "Chiến thắng thuyết phục"). Auto theo chênh lệch nếu bỏ trống. */
+  verdictNote?: ReactNode;
   /** Action buttons (Chơi lại / Về sảnh). */
   actions?: ReactNode;
 }
@@ -69,46 +62,24 @@ function fmtTime(s: number): string {
   return `${s.toFixed(1)}s`;
 }
 
-interface StatRowProps {
-  label: ReactNode;
-  value: ReactNode;
-  better?: boolean;
+function cupText(n: number): string {
+  return n > 0 ? `+${n.toLocaleString('vi-VN')}` : `${n}`;
 }
 
-function StatRow({ label, value, better }: StatRowProps) {
-  return (
-    <div className={cn('st-cstat', better && 'is-better')}>
-      <span className="k">{label}</span>
-      <span className="v">{value}</span>
-    </div>
-  );
-}
-
-interface SideProps {
+interface CardProps {
   player: ResultPlayer;
-  totalQuestions: number;
   isWinner: boolean;
   side: 'me' | 'opp';
-  bestCorrect: boolean;
-  bestScore: boolean;
-  bestTime: boolean;
 }
 
-function ResultSide({
-  player,
-  totalQuestions,
-  isWinner,
-  side,
-  bestCorrect,
-  bestScore,
-  bestTime,
-}: SideProps) {
+/** Thẻ người chơi (trên cùng): avatar + tên + cúp nhận. */
+function ResultCard({ player, isWinner, side }: CardProps) {
   const playerName = typeof player.name === 'string' ? player.name : '?';
   return (
     <div className={cn('st-compare-side', side, isWinner && 'is-winner')} style={{ position: 'relative' }}>
       {isWinner && (
         <span className="crown" aria-hidden>
-          <TrophyIcon size={60} />
+          <TrophyIcon size={48} />
         </span>
       )}
       <AvatarImage
@@ -120,59 +91,71 @@ function ResultSide({
       />
       <div className="name">{player.name}</div>
 
-      <div className="st-compare-stats">
-        <StatRow
-          label="Câu đúng"
-          value={
-            <>
-              {player.correct}
-              <small>/{totalQuestions}</small>
-            </>
-          }
-          better={bestCorrect}
-        />
-        <StatRow
-          label="Điểm trận"
-          value={player.totalScore}
-          better={bestScore}
-        />
-        <StatRow
-          label="Thời gian phản xạ đúng"
-          value={fmtTime(player.correctResponseTime)}
-          better={bestTime}
-        />
-      </div>
+      {player.cup != null && (
+        <div className={cn('st-rcup', isWinner && 'is-top')}>
+          <span className="ic" aria-hidden><TrophyIcon size={16} /></span>
+          <span className="n">{cupText(player.cup)}</span>
+          <span className="u">Cúp</span>
+        </div>
+      )}
     </div>
   );
 }
 
-/** Màn kết quả — side-by-side so sánh 2 người. */
+interface ScoreRowProps {
+  label: ReactNode;
+  meValue: ReactNode;
+  oppValue: ReactNode;
+  meWin?: boolean;
+  oppWin?: boolean;
+  big?: boolean;
+}
+
+function ScoreRow({ label, meValue, oppValue, meWin, oppWin, big }: ScoreRowProps) {
+  return (
+    <div className={cn('st-scorerow', big && 'big')}>
+      <span className={cn('val me', meWin && 'win')}>{meValue}</span>
+      <span className="lab">{label}</span>
+      <span className={cn('val opp', oppWin && 'win')}>{oppValue}</span>
+    </div>
+  );
+}
+
+/** Câu chốt tự động theo chênh lệch câu đúng. */
+function autoVerdict(me: ResultPlayer, opponent: ResultPlayer): string {
+  const d = Math.abs(me.correct - opponent.correct);
+  if (d >= 3) return 'Chiến thắng thuyết phục';
+  if (d >= 1) return 'Chiến thắng sít sao';
+  return 'Cân tài cân sức';
+}
+
+/** Màn kết quả — 2 thẻ gọn + bảng so sánh. */
 export function ResultCompare({
   outcome,
   me,
   opponent,
-  totalQuestions = 10,
-  uniPointsEarned,
-  showReward = true,
   title,
   subtitle,
+  verdictNote,
   actions,
   className,
   ...rest
-}: ResultCompareProps) {  
-  // Highlight rules: gold if this side is strictly better on that metric.
+}: ResultCompareProps) {
+  // Ai hơn ở từng chỉ số (tô nổi giá trị tốt hơn).
   const bestCorrectMe = me.correct > opponent.correct;
   const bestCorrectOpp = opponent.correct > me.correct;
   const bestScoreMe = me.totalScore > opponent.totalScore;
   const bestScoreOpp = opponent.totalScore > me.totalScore;
-  // Lower time = better (faster reflexes on correct answers).
-  // But only meaningful if you actually have correct answers.
   const bestTimeMe = me.correct > 0 && (opponent.correct === 0 || me.correctResponseTime < opponent.correctResponseTime);
   const bestTimeOpp = opponent.correct > 0 && (me.correct === 0 || opponent.correctResponseTime < me.correctResponseTime);
-  // Cúp nhận riêng từng bên (winner mới có) → so sánh trực tiếp.
-  const hasPerSideCup = me.cup != null || opponent.cup != null;
-  const bestCupMe = (me.cup ?? 0) > (opponent.cup ?? 0);
-  const bestCupOpp = (opponent.cup ?? 0) > (me.cup ?? 0);
+
+  // Thanh câu đúng: tỉ lệ 2 bên.
+  const totalCorrect = me.correct + opponent.correct;
+  const mePct = totalCorrect > 0 ? (me.correct / totalCorrect) * 100 : 50;
+
+  const correctDiff = Math.abs(me.correct - opponent.correct);
+  const bothAnswered = me.correct > 0 && opponent.correct > 0;
+  const timeDiff = Math.abs(me.correctResponseTime - opponent.correctResponseTime);
 
   return (
     <div className={cn('st-stage', className)} {...rest}>
@@ -186,53 +169,55 @@ export function ResultCompare({
           <div className="sub">{subtitle ?? DEFAULT_SUBS[outcome]}</div>
         </div>
 
+        {/* 2 thẻ người chơi cạnh nhau */}
         <div className="st-compare">
-          <ResultSide
-            player={me}
-            totalQuestions={totalQuestions}
-            isWinner={outcome === 'win'}
-            side="me"
-            bestCorrect={bestCorrectMe}
-            bestScore={bestScoreMe}
-            bestTime={bestTimeMe}
-          />
+          <ResultCard player={me} isWinner={outcome === 'win'} side="me" />
           <div className="st-compare-vs" aria-hidden>
-            <div className="line" />
             <span className="vs">VS</span>
-            <div className="line" />
           </div>
-          <ResultSide
-            player={opponent}
-            totalQuestions={totalQuestions}
-            isWinner={outcome === 'lose'}
-            side="opp"
-            bestCorrect={bestCorrectOpp}
-            bestScore={bestScoreOpp}
-            bestTime={bestTimeOpp}
+          <ResultCard player={opponent} isWinner={outcome === 'lose'} side="opp" />
+        </div>
+
+        {/* Bảng so sánh chỉ số */}
+        <div className="st-scoretable">
+          <ScoreRow
+            big
+            label="Câu đúng"
+            meValue={me.correct}
+            oppValue={opponent.correct}
+            meWin={bestCorrectMe}
+            oppWin={bestCorrectOpp}
+          />
+          <div className="st-correctbar" aria-hidden>
+            <span className="seg me" style={{ width: `${mePct}%` }} />
+            <span className="seg opp" style={{ width: `${100 - mePct}%` }} />
+          </div>
+          {correctDiff > 0 && (
+            <div className="st-scorepill">⚡ Hơn {correctDiff} câu</div>
+          )}
+
+          <ScoreRow
+            label="Điểm trận"
+            meValue={me.totalScore}
+            oppValue={opponent.totalScore}
+            meWin={bestScoreMe}
+            oppWin={bestScoreOpp}
+          />
+
+          <ScoreRow
+            label={
+              <>
+                Thời gian phản xạ
+              </>
+            }
+            meValue={fmtTime(me.correctResponseTime)}
+            oppValue={fmtTime(opponent.correctResponseTime)}
+            meWin={bestTimeMe}
+            oppWin={bestTimeOpp}
           />
         </div>
 
-        {hasPerSideCup ? (
-          <div className="st-reward-pair">
-            <div className="st-reward-half">
-              <div className={cn('st-reward', bestCupMe && 'is-top')}>
-                <div className="lab">{me.name}</div>
-                <div className="pts">+{(me.cup ?? 0).toLocaleString('vi-VN')}</div>
-              </div>
-            </div>
-            <div className="st-reward-half">
-              <div className={cn('st-reward', bestCupOpp && 'is-top')}>
-                <div className="lab">{opponent.name}</div>
-                <div className="pts">+{(opponent.cup ?? 0).toLocaleString('vi-VN')}</div>
-              </div>
-            </div>
-          </div>
-        ) : showReward ? (
-          <div className="st-reward">
-            <div className="lab">Cúp nhận được</div>
-            <div className="pts">+{(uniPointsEarned ?? 0).toLocaleString('vi-VN')}</div>
-          </div>
-        ) : null}
+        <div className="st-scoreverdict">{verdictNote ?? autoVerdict(me, opponent)}</div>
 
         {actions && <div className="st-result-actions">{actions}</div>}
       </div>

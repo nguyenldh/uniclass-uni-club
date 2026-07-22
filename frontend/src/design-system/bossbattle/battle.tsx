@@ -215,7 +215,7 @@ export function BossArena({
             <span className="bb-arena-slash a" />
             <span className="bb-arena-slash b" />
             {lastDamage != null && lastDamage > 0 && (
-              <span className="bb-arena-dmg">-{lastDamage.toLocaleString('vi-VN')}<small>HP</small></span>
+              <span className="bb-arena-dmg">-{lastDamage.toLocaleString('vi-VN')}<small>máu</small></span>
             )}
           </div>
         )}

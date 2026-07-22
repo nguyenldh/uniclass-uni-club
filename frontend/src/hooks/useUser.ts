@@ -64,7 +64,18 @@ export function useUser(): { user: AuthUser | null; loading: boolean; error: str
         setUser(data.user);
       })
       .catch((err: any) => {
-        setError(err.message || 'Không thể lấy thông tin người dùng');
+        // Truy cập luôn qua link kèm token → token hỏng/hết hạn/đã dùng
+        // (vd người khác đã vào phòng qua link đó) = link không còn hợp lệ.
+        const msg: string = err?.message || '';
+        const isAuthError =
+          msg === 'Invalid token' ||
+          msg === 'Token expired' ||
+          msg.startsWith('Missing or invalid Authorization');
+        setError(
+          isAuthError
+            ? 'Link không còn hợp lệ'
+            : msg || 'Không thể lấy thông tin người dùng',
+        );
       })
       .finally(() => {
         setLoading(false);

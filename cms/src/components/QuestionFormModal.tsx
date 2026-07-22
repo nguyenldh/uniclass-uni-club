@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Radio, Space } from 'antd';
+import { Modal, Form, InputNumber, Radio, Space } from 'antd';
 import type { QuizQuestion, CreateQuizQuestionInput } from '@uniclub/shared';
 import { MathPreview, MathSyntaxHint } from './MathText';
-
-const { TextArea } = Input;
+import { MathFieldInput } from './MathFieldInput';
 
 interface QuestionFormModalProps {
   open: boolean;
@@ -105,7 +104,7 @@ export function QuestionFormModal({
           label="Nội dung câu hỏi"
           rules={[{ required: true, message: 'Nhập nội dung câu hỏi' }]}
         >
-          <TextArea rows={3} placeholder="Nhập nội dung câu hỏi..." />
+          <MathFieldInput textarea rows={3} placeholder="Nhập nội dung câu hỏi..." />
         </Form.Item>
         <MathSyntaxHint />
 
@@ -124,7 +123,7 @@ export function QuestionFormModal({
                     rules={[{ required: true, message: `Nhập đáp án ${String.fromCharCode(65 + idx)}` }]}
                     style={{ marginBottom: 0, flex: 1 }}
                   >
-                    <Input placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`} />
+                    <MathFieldInput placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`} />
                   </Form.Item>
                 </Space>
               ))}

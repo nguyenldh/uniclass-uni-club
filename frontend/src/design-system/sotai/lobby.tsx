@@ -46,10 +46,13 @@ export interface LobbyProps extends HTMLAttributes<HTMLDivElement> {
   topRight?: ReactNode;
   /** Show electric sparks decoration. Default true. */
   sparks?: boolean;
+  /** Show peek (question count and grade level chips). Default true. */
+  showPeek?: boolean;
 }
 
 /** Sảnh chờ — full-bleed stage with player card + single CTA. */
 export function Lobby({
+  showPeek = true,
   player,
   onFindMatch,
   onInvite,
@@ -64,7 +67,7 @@ export function Lobby({
   className,
   ...rest
 }: LobbyProps) {
-  const hasPeek = questionCount != null || gradeLevel != null;
+  const hasPeek = showPeek && (questionCount != null || gradeLevel != null);
   return (
     <div className={cn('st-stage is-lobby', className)} {...rest}>
       {sparks && (
@@ -141,6 +144,7 @@ export function Lobby({
               size="lg"
               onClick={onFindMatch}
               disabled={findMatchLoading}
+              className="st-lobby-cta-btn"
             >
               {findMatchLoading ? 'Đang kiểm tra…' : ctaLabel}
             </GameButton>
@@ -149,10 +153,7 @@ export function Lobby({
                 style={{
                   display: 'flex',
                   gap: 10,
-                  marginTop: 12,
-                  alignItems: 'center',
                   justifyContent: 'center',
-                  flexWrap: 'wrap',
                 }}
               >
                 {onInvite && (
@@ -161,6 +162,10 @@ export function Lobby({
                     size="md"
                     onClick={onInvite}
                     disabled={findMatchLoading}
+                    style={{
+                      borderTopRightRadius: 8,
+                      borderBottomRightRadius: 8,
+                    }}
                   >
                     {inviteLabel}
                   </GameButton>

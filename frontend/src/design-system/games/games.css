@@ -103,7 +103,11 @@
 
 /* X mark — orange brand, hand-drawn stroke that draws on placement */
 .caro-x, .caro-o{
-  width: 88%; height: 88%;
+  /* Neo theo cạnh ô (--cell kế thừa từ .caro-board) thay vì % — Safari tính % cho
+     phần tử thay-thế (SVG có width/height=100 gốc) trong flex không ổn định, dễ ra
+     kích thước sai. calc(px) cho kết quả tất định trên mọi trình duyệt. */
+  width: calc(var(--cell, 56px) * 0.6);
+  height: calc(var(--cell, 56px) * 0.6);
   overflow: visible;
 }
 .caro-x path, .caro-o circle{

@@ -18,7 +18,7 @@ const CLOSE_MESSAGES: Record<string, string> = {
 
 const ERROR_MESSAGES: Record<string, string> = {
   ROOM_NOT_FOUND: 'Phòng không tồn tại hoặc đã hết hạn.',
-  ROOM_FULL: 'Phòng đã đủ người.',
+  ROOM_FULL: 'Link không còn hợp lệ.',
   ROOM_EXPIRED: 'Phòng đã đóng.',
   ROOM_SELF_JOIN: 'Bạn không thể tự tham gia phòng của chính mình.',
   ROOM_SAME_DEVICE:
@@ -209,8 +209,7 @@ export function InviteRoomPage() {
           <AvatarImage src={member.avatar} name={member.displayName} size="lg" />
           <div
             style={{
-              color: '#fff', fontWeight: 700, maxWidth: 130,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              color: '#fff', fontWeight: 700, maxWidth: 130, textAlign: 'center'
             }}
           >
             {member.displayName}{isMe ? ' (bạn)' : ''}

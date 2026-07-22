@@ -10,6 +10,10 @@ export interface ActiveSessionResponse {
   sessionId?: string;
   gameType?: string;
   isBot?: boolean;
+  /** Trận mời (friendly) — reconnect cần biết để hiện nút Tái đấu. */
+  friendly?: boolean;
+  /** ID phòng mời (chỉ có khi friendly). */
+  roomId?: string;
 }
 
 export const quizArenaApi = {

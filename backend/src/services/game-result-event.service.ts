@@ -65,8 +65,8 @@ export class GameResultEventService {
     }).catch((err: Error) => console.error('[Analytics] Failed to log quiz_arena match:', err.message));
 
     // Emit cho playerB nếu không phải bot.
-    // Trận mời: guest VẪN bắn kafka (point=0) nhưng payload gắn type='guest'
-    // để UniClass phân biệt và xử lý riêng.
+    // Trận mời: guest cũng nhận cúp theo số câu đúng (point = số câu đúng × cúp/câu),
+    // payload gắn type='guest' để UniClass phân biệt.
     if (!session.isBot && session.playerB !== 'BOT') {
       const playerBResult: ClubGameResultDto = {
         profileId: session.playerB,
